@@ -78,7 +78,7 @@ PS
 	//
 	float4 MainPs( PixelInput i ) : SV_Target0
 	{
-		float3 worldPos = (i.vPositionWithOffsetWs.xyz + g_vCameraPositionWs.xyz) / 128.0;
+		float3 worldPos = (i.vPositionWithOffsetWs.xyz + g_vCameraPositionWs.xyz) / 256.0;
 
 		float2 uvX = worldPos.zy;
         float2 uvY = worldPos.xz;
