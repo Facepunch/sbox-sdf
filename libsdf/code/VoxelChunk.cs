@@ -107,7 +107,7 @@ namespace Sandbox.Sdf
 
 							_mesh = new Mesh( material )
 							{
-								Bounds = new BBox( 0f, Size )
+								Bounds = new BBox( Size * 0.5f, Size )
 							};
 						}
 
