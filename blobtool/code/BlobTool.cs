@@ -7,9 +7,12 @@ namespace Sandbox.Sdf
     [Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
     public class BlobTool : BaseTool
     {
+        public const float MinDistanceBetweenEdits = 16f;
+
         public VoxelVolume VoxelVolume { get; private set; }
 
-        public TimeSince LastEdit { get; set; }
+        public Vector3? LastEditPos { get; set; }
+        public float EditDistance { get; set; }
 
         public override void Activate()
         {
@@ -40,25 +43,32 @@ namespace Sandbox.Sdf
 
                 if ( !add && !subtract )
                 {
+                    LastEditPos = null;
                     return;
                 }
 
-                if ( LastEdit < 0.125f )
+                if ( LastEditPos == null )
+                {
+                    var tr = DoTrace();
+
+                    if ( !tr.Hit )
+                        return;
+
+                    if ( !tr.Entity.IsValid() )
+                        return;
+
+                    EditDistance = tr.Distance;
+                }
+
+                var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
+
+                if ( LastEditPos != null && ( editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
                 {
                     return;
                 }
 
-                var tr = DoTrace();
-
-                if ( !tr.Hit )
-                    return;
-
-                if ( !tr.Entity.IsValid() )
-                    return;
-
-                VoxelVolume.Add( new SphereSdf( tr.HitPosition, 64f, 64f), Matrix.Identity, Color.White );
-
-                LastEdit = 0f;
+                LastEditPos = editPos;
+                VoxelVolume.Add( new SphereSdf( editPos, 64f, 64f), Matrix.Identity, Color.White );
             }
         }
     }
