@@ -1,0 +1,29 @@
+{
+  "Title": "SDF Mesh Library",
+  "Type": "library",
+  "Org": "facepunch",
+  "Ident": "libsdf",
+  "Tags": null,
+  "Schema": 1,
+  "HasAssets": true,
+  "AssetsPath": "",
+  "ResourcePaths": null,
+  "HasCode": true,
+  "CodePath": "/code/",
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "Metadata": {
+    "ProjectTemplate": null,
+    "CsProjName": "",
+    "Summary": "Marching cubes \u0026 squares mesh generation",
+    "Description": "WIP",
+    "Public": false,
+    "Compiler": {
+      "RootNamespace": "Sandbox",
+      "DefineConstants": "SANDBOX;ADDON;DEBUG",
+      "NoWarn": "1701;1702;1591;",
+      "References": [],
+      "DistinctReferences": []
+    }
+  }
+}
