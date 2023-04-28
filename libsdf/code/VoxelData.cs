@@ -17,10 +17,10 @@ namespace Sandbox.Sdf
 	}
 
 	public partial class ArrayVoxelData : BaseNetworkable, IVoxelData, INetworkSerializer
-    {
-        public const int MaxSubdivisions = 5;
+	{
+		public const int MaxSubdivisions = 5;
 
-        public int Subdivisions { get; private set; }
+		public int Subdivisions { get; private set; }
 		public NormalStyle NormalStyle { get; private set; }
 
 		public int NetReadCount { get; private set; }
@@ -31,8 +31,8 @@ namespace Sandbox.Sdf
 		private Vector3 _scale;
 
 		private bool _cleared;
-        private bool _hasInterior;
-        private bool _hasExterior;
+		private bool _hasInterior;
+		private bool _hasExterior;
 
 		private int _margin;
 
@@ -81,7 +81,7 @@ namespace Sandbox.Sdf
 		public void UpdateMesh( IVoxelMeshWriter writer, int lod, bool render, bool collision )
 		{
 			if ( _voxels == null || _cleared || !render && !collision ) return;
-            if ( !_hasInterior || !_hasExterior ) return;
+			if ( !_hasInterior || !_hasExterior ) return;
 
 			writer.Write( _voxels, _size, _margin, _size - _margin, lod, render ? NormalStyle : NormalStyle.Flat, render, collision );
 		}
@@ -91,15 +91,15 @@ namespace Sandbox.Sdf
 			outerMin = Vector3i.Max( Vector3i.Floor( bounds.Mins * _renderedSize ) - _margin - 1, 0 );
 			outerMax = Vector3i.Min( Vector3i.Ceiling( bounds.Maxs * _renderedSize ) + 2 + _margin, _size );
 
-            if ( outerMin.x >= outerMax.x || outerMin.y >= outerMax.y || outerMin.z >= outerMax.z )
-            {
-                return false;
-            }
+			if ( outerMin.x >= outerMax.x || outerMin.y >= outerMax.y || outerMin.z >= outerMax.z )
+			{
+				return false;
+			}
 
-            _voxels ??= new Voxel[_size.x * _size.y * _size.z];
+			_voxels ??= new Voxel[_size.x * _size.y * _size.z];
 
-            return true;
-        }
+			return true;
+		}
 
 		public bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
 			where T : ISignedDistanceField
@@ -110,25 +110,25 @@ namespace Sandbox.Sdf
 			}
 
 			var changed = false;
-            var r = (byte)MathF.Round( color.r * byte.MaxValue );
-            var g = (byte)MathF.Round( color.g * byte.MaxValue );
-            var b = (byte)MathF.Round( color.b * byte.MaxValue );
+			var r = (byte)MathF.Round( color.r * byte.MaxValue );
+			var g = (byte)MathF.Round( color.g * byte.MaxValue );
+			var b = (byte)MathF.Round( color.b * byte.MaxValue );
 
 			foreach ( var (index3, index) in _size.EnumerateArray3D( outerMin, outerMax ) )
 			{
 				var pos = transform.Transform( (index3 - _margin) * _scale );
 				var prev = _voxels[index];
-                var next = prev + new Voxel(sdf[pos], r, g, b);
+				var next = prev + new Voxel(sdf[pos], r, g, b);
 
 				_voxels[index] = next;
 
 				changed |= next != prev;
 			}
 
-            if ( changed )
-            {
-                _cleared = false;
-            }
+			if ( changed )
+			{
+				_cleared = false;
+			}
 
 			return changed;
 		}
@@ -146,7 +146,7 @@ namespace Sandbox.Sdf
 			foreach ( var (index3, index) in _size.EnumerateArray3D( outerMin, outerMax ) )
 			{
 				var pos = transform.Transform( (index3 - _margin) * _scale );
-                var prev = _voxels[index];
+				var prev = _voxels[index];
 				var next = prev - new Voxel( sdf[pos], 0, 0, 0 );
 
 				_voxels[index] = next;
@@ -154,18 +154,18 @@ namespace Sandbox.Sdf
 				changed |= next != prev;
 			}
 
-            if ( changed )
-            {
-                _cleared = false;
-            }
+			if ( changed )
+			{
+				_cleared = false;
+			}
 
 			return changed;
 		}
 
-        public float GetValue( Vector3 pos )
-        {
+		public float GetValue( Vector3 pos )
+		{
 			throw new NotImplementedException();
-        }
+		}
 
 		public void Read( ref NetRead read )
 		{
@@ -177,10 +177,10 @@ namespace Sandbox.Sdf
 				Init( subDivs, normalStyle );
 			}
 
-            _hasInterior = read.Read<bool>();
+			_hasInterior = read.Read<bool>();
 			_hasExterior = read.Read<bool>();
 
-            if ( _hasInterior && _hasExterior )
+			if ( _hasInterior && _hasExterior )
 			{
 				_voxels = read.ReadUnmanagedArray(_voxels);
 			}
@@ -192,31 +192,31 @@ namespace Sandbox.Sdf
 
 		public void Write( NetWrite write )
 		{
-            write.Write( Subdivisions );
+			write.Write( Subdivisions );
 			write.Write( NormalStyle );
 
-            _hasInterior = false;
-            _hasExterior = false;
+			_hasInterior = false;
+			_hasExterior = false;
 
-            if ( _voxels != null )
+			if ( _voxels != null )
 			{
 				for (var i = 0; i < _voxels.Length; i++)
-                {
-                    var interior = _voxels[i].RawValue >= 128;
+				{
+					var interior = _voxels[i].RawValue >= 128;
 
-                    _hasInterior |= interior;
-                    _hasExterior |= !interior;
-                }
+					_hasInterior |= interior;
+					_hasExterior |= !interior;
+				}
 			}
 
-            write.Write( _hasInterior );
-            write.Write( _hasExterior );
+			write.Write( _hasInterior );
+			write.Write( _hasExterior );
 
-            if ( _hasInterior && _hasExterior )
-            {
-                write.WriteUnmanagedArray( _voxels );
-            }
-        }
+			if ( _hasInterior && _hasExterior )
+			{
+				write.WriteUnmanagedArray( _voxels );
+			}
+		}
 
 		public override string ToString()
 		{

@@ -5,12 +5,12 @@ namespace Sandbox.Sdf
 {
 	using static Helpers;
 
-    public enum SdfType : byte
-    {
+	public enum SdfType : byte
+	{
 		Unknown,
 		Sphere,
 		BBox,
-    }
+	}
 
 	public interface ISignedDistanceField
 	{
@@ -18,17 +18,17 @@ namespace Sandbox.Sdf
 
 		float this[Vector3 pos] { get; }
 
-        SdfType Type => SdfType.Unknown;
+		SdfType Type => SdfType.Unknown;
 
-        void Write( NetWrite write )
-        {
+		void Write( NetWrite write )
+		{
 
-        }
-    }
+		}
+	}
 
 	public readonly struct SphereSdf : ISignedDistanceField
 	{
-        public SdfType Type => SdfType.Sphere;
+		public SdfType Type => SdfType.Sphere;
 
 		public Vector3 Center { get; }
 		public float Radius { get; }
@@ -49,73 +49,73 @@ namespace Sandbox.Sdf
 
 		public float this[Vector3 pos] => (Radius - (Center - pos).Length) * _invMaxDistance;
 
-        public void Write( NetWrite write )
-        {
+		public void Write( NetWrite write )
+		{
 			write.Write( Center );
-            write.Write( Radius );
-            write.Write( MaxDistance );
-        }
+			write.Write( Radius );
+			write.Write( MaxDistance );
+		}
 
-        public static SphereSdf Read( ref NetRead read )
-        {
-            return new SphereSdf(
-                read.Read<Vector3>(),
-                read.Read<float>(),
-                read.Read<float>() );
-        }
+		public static SphereSdf Read( ref NetRead read )
+		{
+			return new SphereSdf(
+				read.Read<Vector3>(),
+				read.Read<float>(),
+				read.Read<float>() );
+		}
 	}
 
-    public readonly struct BBoxSdf : ISignedDistanceField
-    {
-        public SdfType Type => SdfType.BBox;
+	public readonly struct BBoxSdf : ISignedDistanceField
+	{
+		public SdfType Type => SdfType.BBox;
 
-        public BBox Box { get; }
-        public float MaxDistance { get; }
+		public BBox Box { get; }
+		public float MaxDistance { get; }
 
-        private readonly float _invMaxDistance;
+		private readonly float _invMaxDistance;
 
-        BBox ISignedDistanceField.Bounds => new BBox( Box.Mins - MaxDistance, Box.Maxs + MaxDistance );
+		BBox ISignedDistanceField.Bounds => new BBox( Box.Mins - MaxDistance, Box.Maxs + MaxDistance );
 
-        public BBoxSdf( BBox box, float maxDistance )
-        {
-            Box = box;
-            MaxDistance = maxDistance;
+		public BBoxSdf( BBox box, float maxDistance )
+		{
+			Box = box;
+			MaxDistance = maxDistance;
 
-            _invMaxDistance = 1f / maxDistance;
-        }
+			_invMaxDistance = 1f / maxDistance;
+		}
 
-        public BBoxSdf( Vector3 min, Vector3 max, float maxDistance )
-        {
-            Box = new BBox( min, max );
-            MaxDistance = maxDistance;
+		public BBoxSdf( Vector3 min, Vector3 max, float maxDistance )
+		{
+			Box = new BBox( min, max );
+			MaxDistance = maxDistance;
 
-            _invMaxDistance = 1f / maxDistance;
-        }
+			_invMaxDistance = 1f / maxDistance;
+		}
 
-        public float this[ Vector3 pos ]
-        {
-            get
-            {
-                var dist3 = Vector3.Min( pos - Box.Mins, Box.Maxs - pos );
-                return Math.Min( dist3.x, Math.Min( dist3.y, dist3.z ) ) * _invMaxDistance;
-            }
-        }
+		public float this[Vector3 pos]
+		{
+			get
+			{
+				var dist3 = Vector3.Min( pos - Box.Mins, Box.Maxs - pos );
+				return Math.Min( dist3.x, Math.Min( dist3.y, dist3.z ) ) * _invMaxDistance;
+			}
+		}
 
-        public void Write( NetWrite write )
-        {
-            write.Write( Box );
-            write.Write( MaxDistance );
-        }
+		public void Write( NetWrite write )
+		{
+			write.Write( Box );
+			write.Write( MaxDistance );
+		}
 
-        public static BBoxSdf Read( ref NetRead read )
-        {
-            return new BBoxSdf(
-                read.Read<BBox>(),
-                read.Read<float>() );
-        }
-    }
+		public static BBoxSdf Read( ref NetRead read )
+		{
+			return new BBoxSdf(
+				read.Read<BBox>(),
+				read.Read<float>() );
+		}
+	}
 
-    public readonly struct VoxelArraySdf : ISignedDistanceField
+	public readonly struct VoxelArraySdf : ISignedDistanceField
 	{
 		public Voxel[] Array { get; }
 		public Vector3i Size { get; }

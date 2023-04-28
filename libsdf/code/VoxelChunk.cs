@@ -11,10 +11,10 @@ namespace Sandbox.Sdf
 		[Net] public float Size { get; private set; }
 
 		private Mesh _mesh;
-        private PhysicsBody _body;
-        private PhysicsShape _shape;
+		private PhysicsBody _body;
+		private PhysicsShape _shape;
 
-        private Task _updateMeshTask;
+		private Task _updateMeshTask;
 
 		private bool _meshInvalid;
 		private int _lastNetReadCount;
@@ -51,7 +51,7 @@ namespace Sandbox.Sdf
 			{
 				_meshInvalid = false;
 
-                _updateMeshTask = UpdateMeshAsync( true, true );
+				_updateMeshTask = UpdateMeshAsync( true, true );
 			}
 		}
 
@@ -62,23 +62,23 @@ namespace Sandbox.Sdf
 			{
 				_meshInvalid = false;
 
-                _updateMeshTask = UpdateMeshAsync( false, true );
+				_updateMeshTask = UpdateMeshAsync( false, true );
 
 				Data.WriteNetworkData();
 			}
 		}
 
-        public bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
-            where T : ISignedDistanceField
-        {
-            return Data.Add( sdf, bounds, transform, color );
-        }
+		public bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
+			where T : ISignedDistanceField
+		{
+			return Data.Add( sdf, bounds, transform, color );
+		}
 
-        public bool Subtract<T>( T sdf, BBox bounds, Matrix transform )
-            where T : ISignedDistanceField
-        {
-            return Data.Subtract( sdf, bounds, transform );
-        }
+		public bool Subtract<T>( T sdf, BBox bounds, Matrix transform )
+			where T : ISignedDistanceField
+		{
+			return Data.Subtract( sdf, bounds, transform );
+		}
 
 		public async Task UpdateMeshAsync( bool render, bool collision )
 		{
@@ -89,8 +89,8 @@ namespace Sandbox.Sdf
 			try
 			{
 				if ( render )
-                {
-                    await Task.RunInThreadAsync( () => Data.UpdateMesh( writer, 0, true, false ) );
+				{
+					await Task.RunInThreadAsync( () => Data.UpdateMesh( writer, 0, true, false ) );
 
 					if ( writer.Vertices.Count == 0 )
 					{
@@ -129,12 +129,12 @@ namespace Sandbox.Sdf
 
 							modelBuilder.AddMesh( _mesh );
 
-                            Model = modelBuilder.Create();
+							Model = modelBuilder.Create();
 						}
 
 						EnableDrawing = true;
 						EnableShadowCasting = true;
-                    }
+					}
 				}
 
 				if ( collision )
@@ -142,41 +142,41 @@ namespace Sandbox.Sdf
 					Data.UpdateMesh( writer, 1, false, true );
 
 					if ( writer.CollisionVertices.Count == 0 )
-                    {
-                        if (_body.IsValid())
-                        {
-                            _body.ClearShapes();
-                        }
+					{
+						if (_body.IsValid())
+						{
+							_body.ClearShapes();
+						}
 
 						PhysicsClear();
 
-                        _body = null;
-                        _shape = null;
+						_body = null;
+						_shape = null;
 					}
 					else
 					{
 						if ( !_body.IsValid() )
-                        {
-                            SetupPhysicsFromAABB( PhysicsMotionType.Static, 0f, Size );
+						{
+							SetupPhysicsFromAABB( PhysicsMotionType.Static, 0f, Size );
 
-                            _body = PhysicsBody;
-                            _shape = null;
+							_body = PhysicsBody;
+							_shape = null;
 
 							if ( _body.IsValid() )
 							{
 								_body.ClearShapes();
 							}
-                        }
+						}
 
-                        if ( _body.IsValid() )
+						if ( _body.IsValid() )
 						{
 							if ( !_shape.IsValid() )
-                            {
-                                _shape = _body.AddMeshShape( writer.CollisionVertices, writer.CollisionIndices );
-                                _shape.AddTag( "solid" );
-                            }
+							{
+								_shape = _body.AddMeshShape( writer.CollisionVertices, writer.CollisionIndices );
+								_shape.AddTag( "solid" );
+							}
 
-                            _shape.UpdateMesh(writer.CollisionVertices, writer.CollisionIndices);
+							_shape.UpdateMesh(writer.CollisionVertices, writer.CollisionIndices);
 						}
 					}
 				}

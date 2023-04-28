@@ -53,10 +53,10 @@ namespace Sandbox.Sdf
 
 		private Vector3[] _chunkNormals;
 
-        private readonly Voxel[] _cubeVoxels = new Voxel[8];
-        private readonly Vector3[] _cubeColors = new Vector3[8];
-        private readonly Vector3[] _cubeNormals = new Vector3[8];
-        private readonly DualEdge[] _cubeDualEdges = new DualEdge[12];
+		private readonly Voxel[] _cubeVoxels = new Voxel[8];
+		private readonly Vector3[] _cubeColors = new Vector3[8];
+		private readonly Vector3[] _cubeNormals = new Vector3[8];
+		private readonly DualEdge[] _cubeDualEdges = new DualEdge[12];
 
 		public List<VoxelVertex> Vertices { get; } = new List<VoxelVertex>();
 		public List<Vector3> CollisionVertices { get; } = new List<Vector3>();
@@ -118,25 +118,25 @@ namespace Sandbox.Sdf
 					var i2 = xIndexOffset + (y + 0) * yStride + (z + 1) * zStride;
 					var i3 = xIndexOffset + (y + 1) * yStride + (z + 1) * zStride;
 
-                    _cubeVoxels[0] = data[i0];
-                    _cubeVoxels[2] = data[i1];
-                    _cubeVoxels[4] = data[i2];
-                    _cubeVoxels[6] = data[i3];
+					_cubeVoxels[0] = data[i0];
+					_cubeVoxels[2] = data[i1];
+					_cubeVoxels[4] = data[i2];
+					_cubeVoxels[6] = data[i3];
 
-                    if ( render )
-                    {
-                        _cubeColors[0] = _cubeVoxels[0].Color;
-                        _cubeColors[2] = _cubeVoxels[2].Color;
-                        _cubeColors[4] = _cubeVoxels[4].Color;
-                        _cubeColors[6] = _cubeVoxels[6].Color;
-                    }
+					if ( render )
+					{
+						_cubeColors[0] = _cubeVoxels[0].Color;
+						_cubeColors[2] = _cubeVoxels[2].Color;
+						_cubeColors[4] = _cubeVoxels[4].Color;
+						_cubeColors[6] = _cubeVoxels[6].Color;
+					}
 
 					if ( updateNormals )
 					{
-                        _cubeNormals[0] = _chunkNormals[i0];
-                        _cubeNormals[2] = _chunkNormals[i1];
-                        _cubeNormals[4] = _chunkNormals[i2];
-                        _cubeNormals[6] = _chunkNormals[i3];
+						_cubeNormals[0] = _chunkNormals[i0];
+						_cubeNormals[2] = _chunkNormals[i1];
+						_cubeNormals[4] = _chunkNormals[i2];
+						_cubeNormals[6] = _chunkNormals[i3];
 					}
 
 					var x0hash
@@ -157,20 +157,20 @@ namespace Sandbox.Sdf
 						_cubeVoxels[5] = data[i2];
 						_cubeVoxels[7] = data[i3];
 
-                        if (render)
-                        {
-                            _cubeColors[1] = _cubeVoxels[1].Color;
-                            _cubeColors[3] = _cubeVoxels[3].Color;
-                            _cubeColors[5] = _cubeVoxels[5].Color;
-                            _cubeColors[7] = _cubeVoxels[7].Color;
-                        }
+						if (render)
+						{
+							_cubeColors[1] = _cubeVoxels[1].Color;
+							_cubeColors[3] = _cubeVoxels[3].Color;
+							_cubeColors[5] = _cubeVoxels[5].Color;
+							_cubeColors[7] = _cubeVoxels[7].Color;
+						}
 
 						if ( updateNormals )
 						{
-                            _cubeNormals[1] = _chunkNormals[i0];
-                            _cubeNormals[3] = _chunkNormals[i1];
-                            _cubeNormals[5] = _chunkNormals[i2];
-                            _cubeNormals[7] = _chunkNormals[i3];
+							_cubeNormals[1] = _chunkNormals[i0];
+							_cubeNormals[3] = _chunkNormals[i1];
+							_cubeNormals[5] = _chunkNormals[i2];
+							_cubeNormals[7] = _chunkNormals[i3];
 						}
 
 						var x1hash
@@ -194,20 +194,20 @@ namespace Sandbox.Sdf
 
 						x0hash = x1hash;
 
-                        if ( render )
-                        {
-                            _cubeColors[0] = _cubeColors[1];
-                            _cubeColors[2] = _cubeColors[3];
-                            _cubeColors[4] = _cubeColors[5];
-                            _cubeColors[6] = _cubeColors[7];
-                        }
+						if ( render )
+						{
+							_cubeColors[0] = _cubeColors[1];
+							_cubeColors[2] = _cubeColors[3];
+							_cubeColors[4] = _cubeColors[5];
+							_cubeColors[6] = _cubeColors[7];
+						}
 
 						if ( updateNormals )
 						{
-                            _cubeNormals[0] = _cubeNormals[1];
-                            _cubeNormals[2] = _cubeNormals[3];
-                            _cubeNormals[4] = _cubeNormals[5];
-                            _cubeNormals[6] = _cubeNormals[7];
+							_cubeNormals[0] = _cubeNormals[1];
+							_cubeNormals[2] = _cubeNormals[3];
+							_cubeNormals[4] = _cubeNormals[5];
+							_cubeNormals[6] = _cubeNormals[7];
 						}
 					}
 				}
@@ -276,42 +276,42 @@ namespace Sandbox.Sdf
 				case 0b0011:
 				{
 					var dualEdge = new DualEdge( edge0, edge1 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
 				case 0b0101:
 				{
 					var dualEdge = new DualEdge( edge0, edge2 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
 				case 0b1001:
 				{
 					var dualEdge = new DualEdge( edge0, edge3 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
 				case 0b0110:
 				{
 					var dualEdge = new DualEdge( edge1, edge2 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
 				case 0b1010:
 				{
 					var dualEdge = new DualEdge( edge1, edge3 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
 				case 0b1100:
 				{
 					var dualEdge = new DualEdge( edge2, edge3 );
-                    _cubeDualEdges[dualEdge.Index0] = dualEdge;
+					_cubeDualEdges[dualEdge.Index0] = dualEdge;
 					return 1;
 				}
 
@@ -337,8 +337,8 @@ namespace Sandbox.Sdf
 						dualEdge1 = new DualEdge( edge1, edge2 );
 					}
 
-                    _cubeDualEdges[dualEdge0.Index0] = dualEdge0;
-                    _cubeDualEdges[dualEdge1.Index0] = dualEdge1;
+					_cubeDualEdges[dualEdge0.Index0] = dualEdge0;
+					_cubeDualEdges[dualEdge1.Index0] = dualEdge1;
 					return 2;
 				}
 
@@ -357,11 +357,11 @@ namespace Sandbox.Sdf
 		private static readonly Vector3 X1Y1Z1 = new Vector3( 1f, 1f, 1f );
 
 		private Vector3 Interpolate( Vector3 pos, Vector3[] cubeArray )
-        {
-            var x00 = Vector3.Lerp( cubeArray[0], cubeArray[1], pos.x );
-            var x10 = Vector3.Lerp( cubeArray[2], cubeArray[3], pos.x );
-            var x01 = Vector3.Lerp( cubeArray[4], cubeArray[5], pos.x );
-            var x11 = Vector3.Lerp( cubeArray[6], cubeArray[7], pos.x );
+		{
+			var x00 = Vector3.Lerp( cubeArray[0], cubeArray[1], pos.x );
+			var x10 = Vector3.Lerp( cubeArray[2], cubeArray[3], pos.x );
+			var x01 = Vector3.Lerp( cubeArray[4], cubeArray[5], pos.x );
+			var x11 = Vector3.Lerp( cubeArray[6], cubeArray[7], pos.x );
 
 			var xy0 = Vector3.Lerp( x00, x10, pos.y );
 			var xy1 = Vector3.Lerp( x01, x11, pos.y );
@@ -369,9 +369,9 @@ namespace Sandbox.Sdf
 			return Vector3.Lerp( xy0, xy1, pos.z );
 		}
 
-        private Vector3 InterpolateNormal( Vector3 pos )
-        {
-            return Interpolate( pos, _cubeNormals ).Normal;
+		private Vector3 InterpolateNormal( Vector3 pos )
+		{
+			return Interpolate( pos, _cubeNormals ).Normal;
 		}
 
 		private void WriteCube( Vector3i index3, Vector3 scale,
@@ -398,7 +398,7 @@ namespace Sandbox.Sdf
 			// Each of these "dual edges" will be stored in a table, indexed by the first
 			// intersection edge.
 
-            Array.Clear( _cubeDualEdges );
+			Array.Clear( _cubeDualEdges );
 
 			var dualEdgeCount = 0;
 
@@ -426,7 +426,7 @@ namespace Sandbox.Sdf
 			// Follow edges in a loop to triangulate.
 
 			for (var i = 0; i < 12 && dualEdgeCount > 0; ++i)
-            {
+			{
 				var first = _cubeDualEdges[i];
 				if (!first.Exists) continue;
 
@@ -436,10 +436,10 @@ namespace Sandbox.Sdf
 				var next = first;
 
 				// Remove first edge in edge loop.
-                _cubeDualEdges[i] = default;
+				_cubeDualEdges[i] = default;
 				--dualEdgeCount;
 
-                var a0 = first.Pos0;
+				var a0 = first.Pos0;
 				var b0 = first.Pos1;
 
 				var a = offset + a0 * scale;
@@ -456,17 +456,17 @@ namespace Sandbox.Sdf
 
 				Vector3 aNorm = default, bNorm = default, aColor = default, bColor = default;
 
-                if ( render )
-                {
-                    if ( normalStyle != NormalStyle.Flat )
-                    {
-                        aNorm = InterpolateNormal( a0 );
-                        bNorm = InterpolateNormal( b0 );
-                    }
+				if ( render )
+				{
+					if ( normalStyle != NormalStyle.Flat )
+					{
+						aNorm = InterpolateNormal( a0 );
+						bNorm = InterpolateNormal( b0 );
+					}
 
-                    aColor = Interpolate( a0, _cubeColors );
-                    bColor = Interpolate( b0, _cubeColors );
-                }
+					aColor = Interpolate( a0, _cubeColors );
+					bColor = Interpolate( b0, _cubeColors );
+				}
 
 				// We skip the first edge, and break on the last edge, so
 				// we output a triangle every N-2 edges in the loop.
@@ -474,19 +474,19 @@ namespace Sandbox.Sdf
 				while ((next = _cubeDualEdges[prev.Index1]).Exists)
 				{
 					// Remove edge from map.
-                    _cubeDualEdges[prev.Index1] = default;
+					_cubeDualEdges[prev.Index1] = default;
 					--dualEdgeCount;
 
 					if ( next.Index1 == i ) break;
 
-                    var c0 = next.Pos1;
+					var c0 = next.Pos1;
 					var c = offset + c0 * scale;
 
-                    if ( render )
-                    {
-                        var cColor = Interpolate( c0, _cubeColors );
+					if ( render )
+					{
+						var cColor = Interpolate( c0, _cubeColors );
 
-                        switch ( normalStyle )
+						switch ( normalStyle )
 						{
 							case NormalStyle.Flat:
 								{
@@ -517,8 +517,8 @@ namespace Sandbox.Sdf
 								}
 						}
 
-                        bColor = cColor;
-                    }
+						bColor = cColor;
+					}
 
 					if ( collision )
 					{
