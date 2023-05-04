@@ -23,10 +23,6 @@ namespace Sandbox.Sdf
 				VoxelVolume ??= Entity.All.OfType<VoxelVolume>().FirstOrDefault()
 					?? new VoxelVolume( 256f );
 			}
-			else
-			{
-				VoxelVolume ??= Entity.All.OfType<VoxelVolume>().FirstOrDefault();
-			}
 		}
 
 		public override void Simulate()
@@ -67,9 +63,19 @@ namespace Sandbox.Sdf
 					return;
 				}
 
-				LastEditPos = editPos;
-				VoxelVolume.Add( new SphereSdf( editPos, 64f, 64f), Matrix.Identity, Color.White );
-			}
+                var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f, 64f );
+
+                if ( add )
+                {
+                    VoxelVolume.Add( capsule, Matrix.Identity, Color.White );
+                }
+                else
+                {
+                    VoxelVolume.Subtract( capsule, Matrix.Identity );
+                }
+
+                LastEditPos = editPos;
+            }
 		}
 	}
 }

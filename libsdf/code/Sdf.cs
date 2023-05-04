@@ -9,7 +9,8 @@ namespace Sandbox.Sdf
 	{
 		Unknown,
 		Sphere,
-		BBox,
+		Capsule,
+		BBox
 	}
 
 	public interface ISignedDistanceField
@@ -64,6 +65,51 @@ namespace Sandbox.Sdf
 				read.Read<float>() );
 		}
 	}
+
+    public readonly struct CapsuleSdf : ISignedDistanceField
+    {
+        public SdfType Type => SdfType.Capsule;
+
+        public Vector3 CenterA { get; }
+        public Vector3 CenterB { get; }
+        public float Radius { get; }
+        public float MaxDistance { get; }
+
+        private readonly float _invMaxDistance;
+        private readonly Vector3 _ab;
+
+        public CapsuleSdf( Vector3 centerA, Vector3 centerB, float radius, float maxDistance )
+        {
+            CenterA = centerA;
+            CenterB = centerB;
+            Radius = radius;
+            MaxDistance = maxDistance;
+
+            _invMaxDistance = 1f / maxDistance;
+            _ab = (centerA - centerB).IsNearZeroLength ? Vector3.Zero : (CenterB - CenterA) / (CenterB - CenterA).LengthSquared;
+        }
+
+        public BBox Bounds => new BBox( Vector3.Min( CenterA, CenterB ) - Radius - MaxDistance, Vector3.Max( CenterA, CenterB ) + Radius + MaxDistance );
+
+        public float this[Vector3 pos] => (Radius - (Vector3.Lerp( CenterA, CenterB, Vector3.Dot( pos - CenterA, _ab ) ) - pos).Length) * _invMaxDistance;
+
+        public void Write( NetWrite write )
+        {
+            write.Write( CenterA );
+            write.Write( CenterB );
+            write.Write( Radius );
+            write.Write( MaxDistance );
+        }
+
+        public static CapsuleSdf Read( ref NetRead read )
+        {
+            return new CapsuleSdf(
+                read.Read<Vector3>(),
+                read.Read<Vector3>(),
+                read.Read<float>(),
+                read.Read<float>() );
+        }
+    }
 
 	public readonly struct BBoxSdf : ISignedDistanceField
 	{
