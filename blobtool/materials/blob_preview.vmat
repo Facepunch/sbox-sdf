@@ -5,7 +5,7 @@ Layer0
 	shader "shaders/voxeltest.shader_c"
 
 	//---- Color ----
-	g_vColorAdd "[0.000000 0.000000 0.000000 0.000000]"
+	g_vColorAdd "[1.000000 1.000000 1.000000 0.000000]"
 
 	//---- Fog ----
 	g_bFogEnabled "1"
