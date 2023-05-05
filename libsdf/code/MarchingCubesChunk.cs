@@ -15,6 +15,7 @@ namespace Sandbox.Sdf
 		private PhysicsShape _shape;
 
 		private Task _updateMeshTask;
+		private Task<bool> _lastEditTask;
 
 		private bool _meshInvalid;
 		private int _lastNetReadCount;
@@ -68,17 +69,55 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
+		public Task<bool> Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
 			where T : ISignedDistanceField
 		{
-			return Data.Add( sdf, bounds, transform, color );
+			lock ( this )
+			{
+				var lastTask = _lastEditTask;
+
+				return _lastEditTask = Task.RunInThreadAsync( async () =>
+				{
+					if ( lastTask != null )
+					{
+						await lastTask;
+					}
+
+					if ( Data.Add( sdf, bounds, transform, color ) )
+					{
+						InvalidateMesh();
+						return true;
+					}
+
+					return false;
+				} );
+			}
 		}
 
-		public bool Subtract<T>( T sdf, BBox bounds, Matrix transform )
+		public Task<bool> Subtract<T>( T sdf, BBox bounds, Matrix transform )
 			where T : ISignedDistanceField
 		{
-			return Data.Subtract( sdf, bounds, transform );
-		}
+			lock ( this )
+			{
+				var lastTask = _lastEditTask;
+
+				return _lastEditTask = Task.RunInThreadAsync( async () =>
+				{
+					if ( lastTask != null )
+					{
+						await lastTask;
+					}
+
+					if ( Data.Subtract( sdf, bounds, transform ) )
+					{
+						InvalidateMesh();
+						return true;
+					}
+
+					return false;
+				} );
+			}
+        }
 
 		public async Task UpdateMeshAsync( bool render, bool collision )
 		{
@@ -139,7 +178,7 @@ namespace Sandbox.Sdf
 
 				if ( collision )
 				{
-					Data.UpdateMesh( writer, 1, false, true );
+					await Task.RunInThreadAsync( () => Data.UpdateMesh( writer, 1, false, true ) );
 
 					if ( writer.CollisionVertices.Count == 0 )
 					{

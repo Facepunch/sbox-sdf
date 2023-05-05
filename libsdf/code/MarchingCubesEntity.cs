@@ -1,6 +1,8 @@
 ﻿using System;
 using Sandbox;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf
 {
@@ -98,46 +100,48 @@ namespace Sandbox.Sdf
 			return chunk.Data.GetValue( localPos - (Vector3) chunkIndex * ChunkSize );
 		}
 
-		public void Add<T>( T sdf, Matrix transform, Color color )
+		public async Task<bool> Add<T>( T sdf, Matrix transform, Color color )
 			where T : ISignedDistanceField
 		{
 			GetChunkBounds( transform, sdf.Bounds,
 				out var invChunkTransform, out var chunkBounds,
 				out var minChunkIndex, out var maxChunkIndex );
 
-			foreach ( var (indexOffset, _) in Helpers.Enumerate( maxChunkIndex - minChunkIndex ) )
+			var tasks = new List<Task<bool>>();
+
+			foreach ( var (indexOffset, _) in (maxChunkIndex - minChunkIndex).Enumerate() )
 			{
 				var chunkIndex = minChunkIndex + indexOffset;
 				var chunk = GetOrCreateChunk( chunkIndex );
 
-				if ( chunk.Add( sdf, chunkBounds + -chunkIndex,
+				tasks.Add( chunk.Add( sdf, chunkBounds + -chunkIndex,
 					Matrix.CreateTranslation( chunkIndex ) * invChunkTransform,
-					color ) )
-				{
-					chunk.InvalidateMesh();
-				}
+					color ) );
 			}
+
+			return (await Task.WhenAll( tasks )).Any();
 		}
 
-		public void Subtract<T>( T sdf, Matrix transform )
+		public async Task<bool> Subtract<T>( T sdf, Matrix transform )
 			where T : ISignedDistanceField
 		{
 			GetChunkBounds( transform, sdf.Bounds,
 				out var invChunkTransform, out var chunkBounds,
 				out var minChunkIndex, out var maxChunkIndex );
 
-			foreach ( var (indexOffset, _) in Helpers.Enumerate( maxChunkIndex - minChunkIndex ) )
+			var tasks = new List<Task<bool>>();
+
+            foreach ( var (indexOffset, _) in Helpers.Enumerate( maxChunkIndex - minChunkIndex ) )
 			{
 				var chunkIndex = minChunkIndex + indexOffset;
 
 				if ( !_chunks.TryGetValue( chunkIndex, out var chunk ) ) continue;
 
-				if ( chunk.Subtract( sdf, chunkBounds + -chunkIndex,
-					Matrix.CreateTranslation( chunkIndex ) * invChunkTransform ) )
-				{
-					chunk.InvalidateMesh();
-				}
+				tasks.Add( chunk.Subtract( sdf, chunkBounds + -chunkIndex,
+					Matrix.CreateTranslation( chunkIndex ) * invChunkTransform ) );
 			}
-		}
+
+            return (await Task.WhenAll( tasks )).Any();
+        }
 	}
 }

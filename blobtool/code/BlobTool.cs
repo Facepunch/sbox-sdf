@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Sandbox.Physics;
 using Sandbox.Tools;
 
@@ -10,6 +11,8 @@ namespace Sandbox.Sdf
 	{
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
+
+		private Task _lastEditTask;
 
 		public MarchingCubesEntity MarchingCubes { get; private set; }
 
@@ -59,7 +62,7 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			if ( !Game.IsServer || MarchingCubes == null )
+			if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}
@@ -102,7 +105,7 @@ namespace Sandbox.Sdf
 			{
 				IsDrawing = true;
 
-				MarchingCubes.Add( capsule, Matrix.Identity, BrushColor );
+				_lastEditTask = MarchingCubes.Add( capsule, Matrix.Identity, BrushColor );
 
 				if ( LastEditPos.HasValue )
 				{
@@ -111,7 +114,7 @@ namespace Sandbox.Sdf
 			}
 			else
 			{
-				MarchingCubes.Subtract( capsule, Matrix.Identity );
+				_lastEditTask = MarchingCubes.Subtract( capsule, Matrix.Identity );
 			}
 
 			LastEditPos = editPos;
