@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf
 {
-	public partial class VoxelChunk : ModelEntity
+	public partial class MarchingCubesChunk : ModelEntity
 	{
 		[Net] public ArrayVoxelData Data { get; private set; }
 		[Net] public float Size { get; private set; }
@@ -19,12 +19,12 @@ namespace Sandbox.Sdf
 		private bool _meshInvalid;
 		private int _lastNetReadCount;
 
-		public VoxelChunk()
+		public MarchingCubesChunk()
 		{
 
 		}
 
-		public VoxelChunk( ArrayVoxelData data, float size )
+		public MarchingCubesChunk( ArrayVoxelData data, float size )
 		{
 			Data = data;
 			Size = size;

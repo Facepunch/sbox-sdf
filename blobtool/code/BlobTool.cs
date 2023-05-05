@@ -11,7 +11,7 @@ namespace Sandbox.Sdf
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
 
-		public VoxelVolume VoxelVolume { get; private set; }
+		public MarchingCubesEntity MarchingCubes { get; private set; }
 
 		public Vector3? LastEditPos { get; set; }
 
@@ -35,8 +35,7 @@ namespace Sandbox.Sdf
 
 			if ( Game.IsServer )
 			{
-				VoxelVolume ??= Entity.All.OfType<VoxelVolume>().FirstOrDefault()
-					?? new VoxelVolume( 256f );
+				MarchingCubes ??= Entity.All.OfType<MarchingCubesEntity>().FirstOrDefault() ?? new MarchingCubesEntity( 256f );
 			}
 			else
 			{
@@ -60,7 +59,7 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			if ( !Game.IsServer || VoxelVolume == null )
+			if ( !Game.IsServer || MarchingCubes == null )
 			{
 				return;
 			}
@@ -103,7 +102,7 @@ namespace Sandbox.Sdf
 			{
 				IsDrawing = true;
 
-				VoxelVolume.Add( capsule, Matrix.Identity, BrushColor );
+				MarchingCubes.Add( capsule, Matrix.Identity, BrushColor );
 
 				if ( LastEditPos.HasValue )
 				{
@@ -112,7 +111,7 @@ namespace Sandbox.Sdf
 			}
 			else
 			{
-				VoxelVolume.Subtract( capsule, Matrix.Identity );
+				MarchingCubes.Subtract( capsule, Matrix.Identity );
 			}
 
 			LastEditPos = editPos;

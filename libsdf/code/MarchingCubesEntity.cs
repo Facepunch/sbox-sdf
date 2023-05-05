@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Sandbox.Sdf
 {
-	public partial class VoxelVolume : Entity
+	public partial class MarchingCubesEntity : Entity
 	{
 		public float ChunkSize { get; }
 		public int ChunkSubdivisions { get; }
@@ -13,15 +13,15 @@ namespace Sandbox.Sdf
 		private readonly float _chunkScale;
 		private readonly int _margin;
 
-		private readonly Dictionary<Vector3i, VoxelChunk> _chunks = new Dictionary<Vector3i, VoxelChunk>();
+		private readonly Dictionary<Vector3i, MarchingCubesChunk> _chunks = new Dictionary<Vector3i, MarchingCubesChunk>();
 
 		// ReSharper disable once UnusedMember.Global
-		public VoxelVolume()
+		public MarchingCubesEntity()
 		{
 
 		}
 
-		public VoxelVolume( float chunkSize, int chunkSubdivisions = 4, NormalStyle normalStyle = NormalStyle.Smooth )
+		public MarchingCubesEntity( float chunkSize, int chunkSubdivisions = 4, NormalStyle normalStyle = NormalStyle.Smooth )
 		{
 			ChunkSize = chunkSize;
 			ChunkSubdivisions = chunkSubdivisions;
@@ -71,11 +71,11 @@ namespace Sandbox.Sdf
 			maxChunkIndex = Vector3i.Ceiling( chunkBounds.Maxs ) + 1;
 		}
 
-		private VoxelChunk GetOrCreateChunk( Vector3i index3 )
+		private MarchingCubesChunk GetOrCreateChunk( Vector3i index3 )
 		{
 			if ( _chunks.TryGetValue( index3, out var chunk ) ) return chunk;
 
-			_chunks.Add( index3, chunk = new VoxelChunk( new ArrayVoxelData( ChunkSubdivisions, NormalStyle ), ChunkSize ) );
+			_chunks.Add( index3, chunk = new MarchingCubesChunk( new ArrayVoxelData( ChunkSubdivisions, NormalStyle ), ChunkSize ) );
 
 			chunk.Name = $"Chunk {index3.x} {index3.y} {index3.z}";
 
