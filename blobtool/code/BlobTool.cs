@@ -9,7 +9,7 @@ namespace Sandbox.Sdf
 	public partial class BlobTool : BaseTool
 	{
 		public const float MinDistanceBetweenEdits = 4f;
-        public const float MaxEditDistance = 512f;
+		public const float MaxEditDistance = 512f;
 
 		public VoxelVolume VoxelVolume { get; private set; }
 
@@ -17,6 +17,12 @@ namespace Sandbox.Sdf
 
 		[Net]
 		public float EditDistance { get; set; }
+
+		[Net]
+		public float Hue { get; set; }
+
+		public Color BrushColor => new ColorHsv( Hue, 0.75f, 1f );
+
 
 		public ModelEntity Preview { get; set; }
 
@@ -47,6 +53,7 @@ namespace Sandbox.Sdf
 			if ( Preview != null && EditDistance > 64f )
 			{
 				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
+				Preview.RenderColor = BrushColor;
 			}
 
 			if ( !Game.IsServer || VoxelVolume == null )
@@ -64,10 +71,10 @@ namespace Sandbox.Sdf
 					{
 						EditDistance = Math.Min( tr.Distance, MaxEditDistance );
 					}
-                    else
-                    {
-                        EditDistance = MaxEditDistance;
-                    }
+					else
+					{
+						EditDistance = MaxEditDistance;
+					}
 				}
 
 				var add = Input.Down( "attack1" );
@@ -90,7 +97,12 @@ namespace Sandbox.Sdf
 
 				if ( add )
 				{
-					VoxelVolume.Add( capsule, Matrix.Identity, Color.White );
+					VoxelVolume.Add( capsule, Matrix.Identity, BrushColor );
+
+					if ( LastEditPos.HasValue )
+					{
+						Hue += (LastEditPos.Value - editPos).Length * 360f / 1024f;
+					}
 				}
 				else
 				{
