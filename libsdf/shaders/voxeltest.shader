@@ -43,8 +43,7 @@ VS
 {
 	#include "common/vertex.hlsl"
 
-	float3 g_vColorAdd < UiType( Color ); Default3( 0.0, 0.0, 0.0 ); UiGroup( "Color,10/20" ); >;
-	Float3Attribute( g_vColorAdd, g_vColorAdd );
+	float3 g_vColorAdd < UiType( Color ); Default3( 0.0, 0.0, 0.0 ); UiGroup( "Color,10/20" ); Attribute( "ColorAdd" ); >;
 
 	//
 	// Main
@@ -53,7 +52,7 @@ VS
 	{
 		PixelInput o = ProcessVertex( i );
 
-		o.vVertexColor.rgb = SrgbGammaToLinear( i.vColor.rgb ) + g_vColorAdd;
+		o.vVertexColor.rgb = i.vColor.rgb + g_vColorAdd.rgb;
 		o.vVertexColor.a =  i.vColor.a;
 
 		return FinalizeVertex( o );

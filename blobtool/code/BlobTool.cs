@@ -21,7 +21,10 @@ namespace Sandbox.Sdf
 		[Net]
 		public float Hue { get; set; }
 
-		public Color BrushColor => new ColorHsv( Hue, 0.75f, 1f );
+		[Net]
+		public bool IsDrawing { get; set; }
+
+		public Color BrushColor => new ColorHsv( Hue, 0.875f, 1f );
 
 
 		public ModelEntity Preview { get; set; }
@@ -50,10 +53,11 @@ namespace Sandbox.Sdf
 
 		public override void Simulate()
 		{
-			if ( Preview != null && EditDistance > 64f )
+			if ( Preview != null )
 			{
 				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-				Preview.RenderColor = BrushColor;
+				Preview.SceneObject.Attributes.Set( "ColorAdd", BrushColor );
+				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
 			if ( !Game.IsServer || VoxelVolume == null )
@@ -61,56 +65,57 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			using ( Prediction.Off() )
+			var add = Input.Down( "attack1" );
+			var subtract = Input.Down( "attack2" );
+
+			IsDrawing &= add;
+
+			if ( LastEditPos == null )
 			{
-				if ( LastEditPos == null )
+				var tr = DoTrace();
+
+				if ( tr.Hit && tr.Entity.IsValid() )
 				{
-					var tr = DoTrace();
-
-					if ( tr.Hit && tr.Entity.IsValid() )
-					{
-						EditDistance = Math.Min( tr.Distance, MaxEditDistance );
-					}
-					else
-					{
-						EditDistance = MaxEditDistance;
-					}
-				}
-
-				var add = Input.Down( "attack1" );
-				var subtract = Input.Down( "attack2" );
-
-				if ( !add && !subtract )
-				{
-					LastEditPos = null;
-					return;
-				}
-
-				var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-
-				if ( LastEditPos != null && ( editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
-				{
-					return;
-				}
-
-				var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f, 64f );
-
-				if ( add )
-				{
-					VoxelVolume.Add( capsule, Matrix.Identity, BrushColor );
-
-					if ( LastEditPos.HasValue )
-					{
-						Hue += (LastEditPos.Value - editPos).Length * 360f / 1024f;
-					}
+					EditDistance = Math.Min( tr.Distance, MaxEditDistance );
 				}
 				else
 				{
-					VoxelVolume.Subtract( capsule, Matrix.Identity );
+					EditDistance = MaxEditDistance;
 				}
-
-				LastEditPos = editPos;
 			}
+
+			if ( !add && !subtract )
+			{
+				LastEditPos = null;
+				return;
+			}
+
+			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
+
+			if ( LastEditPos != null && ( editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
+			{
+				return;
+			}
+
+			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f, 64f );
+
+			if ( add )
+			{
+				IsDrawing = true;
+
+				VoxelVolume.Add( capsule, Matrix.Identity, BrushColor );
+
+				if ( LastEditPos.HasValue )
+				{
+					Hue += (LastEditPos.Value - editPos).Length * 360f / 1024f;
+				}
+			}
+			else
+			{
+				VoxelVolume.Subtract( capsule, Matrix.Identity );
+			}
+
+			LastEditPos = editPos;
 		}
 	}
 }
