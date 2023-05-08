@@ -3,7 +3,7 @@ using Sandbox;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	public partial class MarchingCubesChunk : ModelEntity
 	{
@@ -70,7 +70,7 @@ namespace Sandbox.Sdf
 		}
 
 		public Task<bool> Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			lock ( this )
 			{
@@ -95,7 +95,7 @@ namespace Sandbox.Sdf
 		}
 
 		public Task<bool> Subtract<T>( T sdf, BBox bounds, Matrix transform )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			lock ( this )
 			{

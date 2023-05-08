@@ -4,7 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Sandbox.Sdf
 {
-	public struct Vector3i : IEquatable<Vector3i>
+	public enum NormalStyle
+	{
+		Flat,
+		Smooth
+	}
+
+    public struct Vector3i : IEquatable<Vector3i>
 	{
 		public static Vector3i Zero => new Vector3i( 0, 0, 0 );
 		public static Vector3i One => new Vector3i( 1, 1, 1 );

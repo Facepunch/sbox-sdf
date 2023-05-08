@@ -2,7 +2,7 @@ using Sandbox;
 using System;
 using System.Runtime.InteropServices;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	public readonly struct Voxel : IEquatable<Voxel>
 	{

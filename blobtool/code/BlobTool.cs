@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.MarchingCubes;
+using Sandbox.MarchingSquares;
 using Sandbox.Physics;
 using Sandbox.Tools;
 
@@ -9,6 +11,18 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
+		public static MarchingSquaresChunk Chunk { get; set; }
+
+		[ConCmd.Client("sdf_2d_test")]
+		public static void Sdf2DTest()
+		{
+			var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+
+			Chunk ??= new MarchingSquaresChunk( 64, 16f );
+			Chunk.Add( new CircleSdf( new Vector2( 8f, 8f ), 4f ), mat );
+			Chunk.UpdateMesh();
+		}
+
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
 

@@ -3,8 +3,9 @@ using Sandbox;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.Sdf;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	public partial class MarchingCubesEntity : Entity
 	{
@@ -101,7 +102,7 @@ namespace Sandbox.Sdf
 		}
 
 		public async Task<bool> Add<T>( T sdf, Matrix transform, Color color )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			GetChunkBounds( transform, sdf.Bounds,
 				out var invChunkTransform, out var chunkBounds,
@@ -123,7 +124,7 @@ namespace Sandbox.Sdf
 		}
 
 		public async Task<bool> Subtract<T>( T sdf, Matrix transform )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			GetChunkBounds( transform, sdf.Bounds,
 				out var invChunkTransform, out var chunkBounds,

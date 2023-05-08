@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	partial class MarchingCubesMeshWriter
 	{

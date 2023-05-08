@@ -1,7 +1,8 @@
 using System;
 using Sandbox;
+using Sandbox.Sdf;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	using static Helpers;
 
@@ -13,7 +14,7 @@ namespace Sandbox.Sdf
 		BBox
 	}
 
-	public interface ISignedDistanceField
+	public interface ISdf
 	{
 		BBox Bounds { get; }
 
@@ -27,7 +28,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public readonly struct SphereSdf : ISignedDistanceField
+	public readonly struct SphereSdf : ISdf
 	{
 		public SdfType Type => SdfType.Sphere;
 
@@ -66,7 +67,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-    public readonly struct CapsuleSdf : ISignedDistanceField
+    public readonly struct CapsuleSdf : ISdf
     {
         public SdfType Type => SdfType.Capsule;
 
@@ -111,7 +112,7 @@ namespace Sandbox.Sdf
         }
     }
 
-	public readonly struct BBoxSdf : ISignedDistanceField
+	public readonly struct BBoxSdf : ISdf
 	{
 		public SdfType Type => SdfType.BBox;
 
@@ -120,7 +121,7 @@ namespace Sandbox.Sdf
 
 		private readonly float _invMaxDistance;
 
-		BBox ISignedDistanceField.Bounds => new BBox( Box.Mins - MaxDistance, Box.Maxs + MaxDistance );
+		BBox ISdf.Bounds => new BBox( Box.Mins - MaxDistance, Box.Maxs + MaxDistance );
 
 		public BBoxSdf( BBox box, float maxDistance )
 		{
@@ -161,7 +162,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public readonly struct VoxelArraySdf : ISignedDistanceField
+	public readonly struct VoxelArraySdf : ISdf
 	{
 		public Voxel[] Array { get; }
 		public Vector3i Size { get; }

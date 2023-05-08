@@ -2,15 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Sandbox.Sdf;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
-	public enum NormalStyle
-	{
-		Flat,
-		Smooth
-	}
-
 	public interface IVoxelMeshWriter
 	{
 		void Write( Voxel[] data, Vector3i size, Vector3i min, Vector3i max, int lod, NormalStyle normalStyle, bool render, bool collision );

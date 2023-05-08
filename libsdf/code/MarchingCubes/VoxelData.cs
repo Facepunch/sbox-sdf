@@ -2,8 +2,9 @@ using Sandbox;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Sandbox.Sdf;
 
-namespace Sandbox.Sdf
+namespace Sandbox.MarchingCubes
 {
 	public interface IVoxelData
 	{
@@ -11,9 +12,9 @@ namespace Sandbox.Sdf
 		void UpdateMesh( IVoxelMeshWriter writer, int lod, bool render, bool collision );
 
 		bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
-			where T : ISignedDistanceField;
+			where T : ISdf;
 		bool Subtract<T>( T sdf, BBox bounds, Matrix transform )
-			where T : ISignedDistanceField;
+			where T : ISdf;
 	}
 
 	public partial class ArrayVoxelData : BaseNetworkable, IVoxelData, INetworkSerializer
@@ -102,7 +103,7 @@ namespace Sandbox.Sdf
 		}
 
 		public bool Add<T>( T sdf, BBox bounds, Matrix transform, Color color )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			if ( !PrepareVoxelsForEditing( bounds, out var outerMin, out var outerMax ) )
 			{
@@ -134,7 +135,7 @@ namespace Sandbox.Sdf
 		}
 
 		public bool Subtract<T>( T sdf, BBox bounds, Matrix transform )
-			where T : ISignedDistanceField
+			where T : ISdf
 		{
 			if ( !PrepareVoxelsForEditing( bounds, out var outerMin, out var outerMax ) )
 			{
