@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using static Sandbox.Package;
+using static Sandbox.Prefab;
 
 namespace Sandbox.MarchingSquares
 {
@@ -67,6 +69,8 @@ namespace Sandbox.MarchingSquares
             {
 
             }
+
+            public FrontBackTriangle Flipped => new( V0, V2, V1 );
         }
 
         private record struct CutFace( VertexKey V0, VertexKey V1 )
@@ -118,41 +122,23 @@ namespace Sandbox.MarchingSquares
         }
 
         private bool[] _solidity;
-        
-        private class FrontBackSubMesh
+
+        private abstract class SubMesh<T>
+            where T : unmanaged
         {
-            public Dictionary<VertexKey, int> Map { get; } = new();
-            public List<FrontBackVertex> Vertices { get; } = new List<FrontBackVertex>();
+            public List<T> Vertices { get; } = new List<T>();
             public List<int> Indices { get; } = new List<int>();
 
-            public Vector3 Normal { get; set; }
-            public Vector3 Offset { get; set; }
+            public abstract VertexAttribute[] VertexLayout { get; }
 
-            public void ClearMap()
+            public abstract void ClearMap();
+            
+            protected Vector3 GetVertexPos( float[] data, int baseIndex, int rowStride, VertexKey key )
             {
-                Map.Clear();
-            }
-
-            public void Clear()
-            {
-                Map.Clear();
-                Vertices.Clear();
-                Indices.Clear();
-            }
-
-            public int AddVertex( float[] data, int baseIndex, int rowStride, float unitSize, VertexKey key )
-            {
-                if ( Map.TryGetValue( key, out var index ) )
-                {
-                    return index;
-                }
-
-                Vector3 pos;
-
                 switch ( key.Vertex )
                 {
                     case NormalizedVertex.A:
-                        pos = new Vector3( key.X, key.Y );
+                        return new Vector3( key.X, key.Y );
                         break;
 
                     case NormalizedVertex.AB:
@@ -160,7 +146,7 @@ namespace Sandbox.MarchingSquares
                         var a = data[baseIndex + key.X + key.Y * rowStride];
                         var b = data[baseIndex + key.X + key.Y * rowStride + 1];
                         var t = a / (a - b);
-                        pos = new Vector3( key.X + t, key.Y );
+                        return new Vector3( key.X + t, key.Y );
                         break;
                     }
 
@@ -169,34 +155,23 @@ namespace Sandbox.MarchingSquares
                         var a = data[baseIndex + key.X + key.Y * rowStride];
                         var b = data[baseIndex + key.X + key.Y * rowStride + rowStride];
                         var t = a / (a - b);
-                        pos = new Vector3( key.X, key.Y + t );
+                        return new Vector3( key.X, key.Y + t );
                         break;
                     }
 
                     default:
                         throw new NotImplementedException();
                 }
-
-                index = Vertices.Count;
-
-                Vertices.Add( new FrontBackVertex(
-                    pos * unitSize + Offset,
-                    Normal,
-                    new Vector3( 1f, 0f, 0f ),
-                    new Vector2( pos.x * unitSize / 16f, pos.y * unitSize / 16f ) ) );
-
-                Map.Add( key, index );
-
-                return index;
             }
 
-            public void AddTriangle( int a, int b, int c )
+            public void Clear()
             {
-                Indices.Add( a );
-                Indices.Add( b );
-                Indices.Add( c );
+                ClearMap();
+
+                Vertices.Clear();
+                Indices.Clear();
             }
-            
+
             public void ApplyTo( Mesh mesh )
             {
                 if ( mesh.HasVertexBuffer )
@@ -214,15 +189,133 @@ namespace Sandbox.MarchingSquares
                 }
                 else if ( Indices.Count > 0 )
                 {
-                    mesh.CreateVertexBuffer( Vertices.Count, FrontBackVertex.Layout, Vertices );
+                    mesh.CreateVertexBuffer( Vertices.Count, VertexLayout, Vertices );
                     mesh.CreateIndexBuffer( Indices.Count, Indices );
                 }
             }
         }
 
-        private class CutSubMesh
+        private class FrontBackSubMesh : SubMesh<FrontBackVertex>
         {
+            public Dictionary<VertexKey, int> Map { get; } = new();
 
+            public override VertexAttribute[] VertexLayout => FrontBackVertex.Layout;
+
+            public Vector3 Normal { get; set; }
+            public Vector3 Offset { get; set; }
+
+            public override void ClearMap()
+            {
+                Map.Clear();
+            }
+
+            private int AddVertex( float[] data, int baseIndex, int rowStride, float unitSize, VertexKey key )
+            {
+                if ( Map.TryGetValue( key, out var index ) )
+                {
+                    return index;
+                }
+
+                var pos = GetVertexPos( data, baseIndex, rowStride, key );
+
+                index = Vertices.Count;
+
+                Vertices.Add( new FrontBackVertex(
+                    pos * unitSize + Offset,
+                    Normal,
+                    new Vector3( 1f, 0f, 0f ),
+                    new Vector2( pos.x * unitSize / 16f, pos.y * unitSize / 16f ) ) );
+
+                Map.Add( key, index );
+
+                return index;
+            }
+
+            public void AddTriangle( float[] data, int baseIndex, int rowStride, float unitSize, FrontBackTriangle triangle )
+            {
+                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 ) );
+                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 ) );
+                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 ) );
+            }
+        }
+
+        private class CutSubMesh : SubMesh<CutVertex>
+        {
+            private const float SmoothNormalThreshold = 33f;
+            private static readonly float SmoothNormalDotTheshold = MathF.Cos( SmoothNormalThreshold * MathF.PI / 180f );
+
+            private record struct VertexInfo( int FrontIndex, int BackIndex, Vector3 Normal );
+
+            private Dictionary<VertexKey, VertexInfo> Map { get; } = new Dictionary<VertexKey, VertexInfo>();
+
+            public override VertexAttribute[] VertexLayout => CutVertex.Layout;
+
+            public Vector3 FrontOffset { get; set; }
+            public Vector3 BackOffset { get; set; }
+
+            private (int FrontIndex, int BackIndex) AddVertices( Vector3 pos, Vector3 normal, float unitSize, VertexKey key )
+            {
+                var wasInMap = false;
+
+                if ( Map.TryGetValue( key, out var info ) )
+                {
+                    if ( Vector3.Dot( info.Normal, normal ) >= SmoothNormalDotTheshold )
+                    {
+                        normal = (info.Normal + normal).Normal;
+
+                        Vertices[info.FrontIndex] = Vertices[info.FrontIndex] with { Normal = normal };
+                        Vertices[info.BackIndex] = Vertices[info.BackIndex] with { Normal = normal };
+
+                        return (info.FrontIndex, info.BackIndex);
+                    }
+
+                    wasInMap = true;
+                }
+
+                var frontIndex = Vertices.Count;
+                var backIndex = frontIndex + 1;
+
+                Vertices.Add( new CutVertex(
+                    pos * unitSize + FrontOffset,
+                    normal,
+                    new Vector3( 0f, 0f, -1f ) ) );
+
+                Vertices.Add( new CutVertex(
+                    pos * unitSize + BackOffset,
+                    normal,
+                    new Vector3( 0f, 0f, -1f ) ) );
+
+                if ( !wasInMap )
+                {
+                    Map[key] = new VertexInfo( frontIndex, backIndex, normal );
+                }
+
+                return (frontIndex, backIndex);
+            }
+
+            public void AddQuad( float[] data, int baseIndex, int rowStride, float unitSize, CutFace face )
+            {
+                var aPos = GetVertexPos( data, baseIndex, rowStride, face.V0 );
+                var bPos = GetVertexPos( data, baseIndex, rowStride, face.V1 );
+
+                var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
+
+                var (aFrontIndex, aBackIndex) = AddVertices( aPos, normal, unitSize, face.V0 );
+                var (bFrontIndex, bBackIndex) = AddVertices( bPos, normal, unitSize, face.V1 );
+
+                Indices.Add( aFrontIndex );
+                Indices.Add( bFrontIndex );
+                Indices.Add( aBackIndex );
+
+                Indices.Add( bFrontIndex );
+                Indices.Add( bBackIndex );
+                Indices.Add( aBackIndex );
+            }
+
+            public override void ClearMap()
+            {
+                Map.Clear();
+            }
         }
 
         private List<FrontBackTriangle> FrontBackTriangles { get; } = new();
@@ -230,6 +323,7 @@ namespace Sandbox.MarchingSquares
 
         private FrontBackSubMesh Front { get; } = new();
         private FrontBackSubMesh Back { get; } = new();
+        private CutSubMesh Cut { get; } = new();
 
         public void Clear()
         {
@@ -237,6 +331,7 @@ namespace Sandbox.MarchingSquares
             CutFaces.Clear();
             Front.Clear();
             Back.Clear();
+            Cut.Clear();
         }
 
         private float GetAdSubBc( float[] data, int baseIndex, int rowStride, int x, int y )
@@ -330,7 +425,7 @@ namespace Sandbox.MarchingSquares
                         case SquareConfiguration.BD:
                             FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB, SquareVertex.D ) );
                             FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AB, SquareVertex.CD ) );
-                            CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AC ) );
+                            CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.CD ) );
                             break;
 
 
@@ -417,35 +512,39 @@ namespace Sandbox.MarchingSquares
 
             Front.ClearMap();
             Back.ClearMap();
+            Cut.ClearMap();
 
             Front.Normal = new Vector3( 0f, 0f, 1f );
-            Front.Offset = Front.Normal * depth * 0.5f;
+            Front.Offset = Cut.FrontOffset = Front.Normal * depth * 0.5f;
             Back.Normal = new Vector3( 0f, 0f, -1f );
-            Back.Offset = Back.Normal * depth * 0.5f;
+            Back.Offset = Cut.BackOffset = Back.Normal * depth * 0.5f;
 
             foreach ( var triangle in FrontBackTriangles )
             {
-                var a = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 );
-                var b = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 );
-                var c = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 );
-
-                Front.AddTriangle( a, c, b );
+                Front.AddTriangle( data, baseIndex, rowStride, unitSize, triangle.Flipped );
+                Back.AddTriangle( data, baseIndex, rowStride, unitSize, triangle );
             }
 
-            foreach ( var triangle in FrontBackTriangles )
+            foreach ( var cutFace in CutFaces )
             {
-                var a = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 );
-                var b = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 );
-                var c = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 );
-
-                Back.AddTriangle( a, b, c );
+                Cut.AddQuad( data, baseIndex, rowStride, unitSize, cutFace );
             }
         }
 
-        public void ApplyTo( Mesh front, Mesh back, Mesh cut )
+        public (bool HasFrontBackFaces, bool HasCutFaces) ApplyTo( Mesh front, Mesh back, Mesh cut )
         {
-            Front.ApplyTo( front );
-            Back.ApplyTo( back );
+            if ( Front.Indices.Count > 0 )
+            {
+                Front.ApplyTo( front );
+                Back.ApplyTo( back );
+            }
+
+            if ( Cut.Indices.Count > 0 )
+            {
+                Cut.ApplyTo( cut );
+            }
+
+            return (Front.Indices.Count > 0, Cut.Indices.Count > 0);
         }
     }
 

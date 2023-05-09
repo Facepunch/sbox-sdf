@@ -36,6 +36,20 @@ namespace Sandbox.MarchingSquares
             Layers = new Dictionary<MarchingSquaresMaterial, float[]>();
         }
 
+        private float[] GetOrCreateLayer( MarchingSquaresMaterial material, float fill )
+        {
+            if ( Layers.TryGetValue( material, out var layer ) )
+            {
+                return layer;
+            }
+
+            layer = new float[ArraySize * ArraySize];
+            Array.Fill( layer, fill );
+            Layers.Add( material, layer );
+
+            return layer;
+        }
+
         public void Clear( MarchingSquaresMaterial material = null )
         {
             foreach ( var layer in Layers )
@@ -48,6 +62,11 @@ namespace Sandbox.MarchingSquares
                 {
                     Array.Fill( layer.Value, MaxDistance );
                 }
+            }
+
+            if ( material != null )
+            {
+                GetOrCreateLayer( material, -MaxDistance );
             }
         }
 
@@ -66,37 +85,6 @@ namespace Sandbox.MarchingSquares
             var maxY = Math.Min( ArraySize, (int) MathF.Ceiling( max.y ) + Margin );
 
             var changed = false;
-
-            if ( material != null )
-            {
-                if ( !Layers.TryGetValue( material, out var layer ) )
-                {
-                    layer = new float[ArraySize * ArraySize];
-                    Array.Fill( layer, MaxDistance );
-                    Layers.Add( material, layer );
-                }
-
-                for ( var y = minY; y < maxY; ++y )
-                {
-                    var worldY = (y - Margin) * UnitSize;
-
-                    for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
-                    {
-                        var worldX = (x - Margin) * UnitSize;
-                        var sampled = sdf[new Vector2( worldX, worldY )];
-
-                        if ( sampled >= MaxDistance ) continue;
-
-                        var oldValue = layer[index];
-                        var newValue = Math.Clamp( sampled, -MaxDistance, oldValue );
-
-                        layer[index] = newValue;
-
-                        // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        changed |= oldValue != newValue;
-                    }
-                }
-            }
 
             foreach ( var (mat, layer) in Layers )
             {
@@ -118,6 +106,32 @@ namespace Sandbox.MarchingSquares
 
                         var oldValue = layer[index];
                         var newValue = Math.Clamp( -sampled, oldValue, MaxDistance );
+
+                        layer[index] = newValue;
+
+                        // ReSharper disable once CompareOfFloatsByEqualityOperator
+                        changed |= oldValue != newValue;
+                    }
+                }
+            }
+
+            if ( material != null )
+            {
+                var layer = GetOrCreateLayer( material, MaxDistance );
+
+                for ( var y = minY; y < maxY; ++y )
+                {
+                    var worldY = (y - Margin) * UnitSize;
+
+                    for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
+                    {
+                        var worldX = (x - Margin) * UnitSize;
+                        var sampled = sdf[new Vector2( worldX, worldY )];
+
+                        if ( sampled >= MaxDistance ) continue;
+
+                        var oldValue = layer[index];
+                        var newValue = Math.Clamp( sampled, -MaxDistance, oldValue );
 
                         layer[index] = newValue;
 

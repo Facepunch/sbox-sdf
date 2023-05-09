@@ -20,7 +20,7 @@ namespace Sandbox.Sdf
 
 			Chunk = new MarchingSquaresChunk( resolution, 512f )
 			{
-				LocalPosition = new Vector3( -256f, 0f ),
+				LocalPosition = new Vector3( -256f, -1024f + 32f ),
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
 		}
@@ -87,11 +87,11 @@ namespace Sandbox.Sdf
 			{
 				var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
 
-				Chunk.Clear();
-				Chunk.Add( new CircleSdf( new Vector2( 256f, 256f ), 128f ), mat );
-				Chunk.Subtract( new BoxSdf( new Vector2( -96f, -64f), new Vector2( 96f, 64f ), 16f )
-					.Transform( translation: new Vector2( 256f, 256f ), rotation: Time.Now * 22.5f ) );
-				Chunk.UpdateMesh();
+				Chunk.Clear( mat );
+				Chunk.Subtract( new CircleSdf( new Vector2( 256f, 256f ), 128f ) );
+				Chunk.Subtract( new CircleSdf( 0f, 64f )
+					.Transform( new Vector2( 256f, 256f ) + (Vector2) Rotation.FromAxis( new Vector3( 0f, 0f, 1f ), Time.Now * 22.5f ).Forward * 160f ) );
+                Chunk.UpdateMesh();
 			}
 
             if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )

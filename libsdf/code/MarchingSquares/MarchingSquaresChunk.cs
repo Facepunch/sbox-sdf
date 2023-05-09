@@ -9,8 +9,24 @@ namespace Sandbox.MarchingSquares
 {
     public partial class MarchingSquaresChunk : ModelEntity
     {
-        private Mesh _frontMesh;
-        private Mesh _backMesh;
+        private class SubMesh
+        {
+            public Mesh Front { get; }
+            public Mesh Back { get; }
+            public Mesh Cut { get; }
+
+            public bool FrontBackUsed { get; set; }
+            public bool CutUsed { get; set; }
+
+            public SubMesh( MarchingSquaresMaterial material )
+            {
+                Front = new Mesh( material.FrontFaceMaterial );
+                Back = new Mesh( material.BackFaceMaterial );
+                Cut = new Mesh( material.CutFaceMaterial );
+            }
+        }
+
+        private Dictionary<MarchingSquaresMaterial, SubMesh> SubMeshes { get; } = new ();
 
         private SdfArray2D Data { get; set; }
 
@@ -44,20 +60,48 @@ namespace Sandbox.MarchingSquares
         public void UpdateMesh()
         {
             var writer = new MarchingSquaresMeshWriter();
+            var subMeshesChanged = false;
 
-            Data.WriteTo( writer, Data.Materials.First() );
+            foreach ( var mat in Data.Materials )
+            {
+                if ( !SubMeshes.TryGetValue( mat, out var subMesh ) )
+                {
+                    subMesh = new SubMesh( mat );
 
-            _frontMesh ??= new Mesh( Data.Materials.First().FrontFaceMaterial );
-            _backMesh ??= new Mesh( Data.Materials.First().BackFaceMaterial );
+                    SubMeshes.Add( mat, subMesh );
 
-            writer.ApplyTo( _frontMesh, _backMesh, null );
+                    subMeshesChanged = true;
+                }
 
-            if ( Model == null )
+                writer.Clear();
+
+                Data.WriteTo( writer, mat );
+
+                var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
+
+                (subMesh.FrontBackUsed, subMesh.CutUsed) = writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
+
+                subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
+                subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
+            }
+            
+            if ( Model == null || subMeshesChanged )
             {
                 var builder = new ModelBuilder();
 
-                builder.AddMesh( _frontMesh );
-                builder.AddMesh( _backMesh );
+                foreach ( var subMesh in SubMeshes.Values )
+                {
+                    if ( subMesh.FrontBackUsed )
+                    {
+                        builder.AddMesh( subMesh.Front );
+                        builder.AddMesh( subMesh.Back );
+                    }
+
+                    if ( subMesh.CutUsed )
+                    {
+                        builder.AddMesh( subMesh.Cut );
+                    }
+                }
 
                 Model = builder.Create();
             }
