@@ -118,12 +118,15 @@ namespace Sandbox.MarchingSquares
         }
 
         private bool[] _solidity;
-
-        private abstract class SubMesh<T>
+        
+        private class FrontBackSubMesh
         {
             public Dictionary<VertexKey, int> Map { get; } = new();
-            public List<T> Vertices { get; } = new List<T>();
+            public List<FrontBackVertex> Vertices { get; } = new List<FrontBackVertex>();
             public List<int> Indices { get; } = new List<int>();
+
+            public Vector3 Normal { get; set; }
+            public Vector3 Offset { get; set; }
 
             public void ClearMap()
             {
@@ -136,10 +139,7 @@ namespace Sandbox.MarchingSquares
                 Vertices.Clear();
                 Indices.Clear();
             }
-        }
 
-        private class FrontBackSubMesh : SubMesh<FrontBackVertex>
-        {
             public int AddVertex( float[] data, int baseIndex, int rowStride, float unitSize, VertexKey key )
             {
                 if ( Map.TryGetValue( key, out var index ) )
@@ -180,8 +180,8 @@ namespace Sandbox.MarchingSquares
                 index = Vertices.Count;
 
                 Vertices.Add( new FrontBackVertex(
-                    pos * unitSize,
-                    new Vector3( 0f, 0f, 1f ),
+                    pos * unitSize + Offset,
+                    Normal,
                     new Vector3( 1f, 0f, 0f ),
                     new Vector2( pos.x * unitSize / 16f, pos.y * unitSize / 16f ) ) );
 
@@ -189,6 +189,40 @@ namespace Sandbox.MarchingSquares
 
                 return index;
             }
+
+            public void AddTriangle( int a, int b, int c )
+            {
+                Indices.Add( a );
+                Indices.Add( b );
+                Indices.Add( c );
+            }
+            
+            public void ApplyTo( Mesh mesh )
+            {
+                if ( mesh.HasVertexBuffer )
+                {
+                    if ( Indices.Count > 0 )
+                    {
+                        mesh.SetIndexBufferSize( Indices.Count );
+                        mesh.SetVertexBufferSize( Vertices.Count );
+
+                        mesh.SetIndexBufferData( Indices );
+                        mesh.SetVertexBufferData( Vertices );
+                    }
+
+                    mesh.SetIndexRange( 0, Indices.Count );
+                }
+                else if ( Indices.Count > 0 )
+                {
+                    mesh.CreateVertexBuffer( Vertices.Count, FrontBackVertex.Layout, Vertices );
+                    mesh.CreateIndexBuffer( Indices.Count, Indices );
+                }
+            }
+        }
+
+        private class CutSubMesh
+        {
+
         }
 
         private List<FrontBackTriangle> FrontBackTriangles { get; } = new();
@@ -217,7 +251,7 @@ namespace Sandbox.MarchingSquares
             return a * d - b * c;
         }
 
-        public void Write( float[] data, int baseIndex, int width, int height, int rowStride, float unitSize )
+        public void Write( float[] data, int baseIndex, int width, int height, int rowStride, float unitSize, float depth )
         {
             if ( _solidity == null || _solidity.Length < width * height )
             {
@@ -384,35 +418,34 @@ namespace Sandbox.MarchingSquares
             Front.ClearMap();
             Back.ClearMap();
 
+            Front.Normal = new Vector3( 0f, 0f, 1f );
+            Front.Offset = Front.Normal * depth * 0.5f;
+            Back.Normal = new Vector3( 0f, 0f, -1f );
+            Back.Offset = Back.Normal * depth * 0.5f;
+
             foreach ( var triangle in FrontBackTriangles )
             {
                 var a = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 );
                 var b = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 );
                 var c = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 );
 
-                Front.Indices.Add( a );
-                Front.Indices.Add( c );
-                Front.Indices.Add( b );
+                Front.AddTriangle( a, c, b );
+            }
+
+            foreach ( var triangle in FrontBackTriangles )
+            {
+                var a = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 );
+                var b = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 );
+                var c = Back.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 );
+
+                Back.AddTriangle( a, b, c );
             }
         }
 
-        public void ApplyTo( Mesh mesh )
+        public void ApplyTo( Mesh front, Mesh back, Mesh cut )
         {
-            if ( mesh.HasVertexBuffer )
-            {
-                mesh.SetIndexBufferSize( Front.Indices.Count );
-                mesh.SetVertexBufferSize( Front.Vertices.Count );
-
-                mesh.SetIndexBufferData( Front.Indices );
-                mesh.SetVertexBufferData( Front.Vertices );
-            }
-            else
-            {
-                mesh.CreateVertexBuffer( Front.Vertices.Count, FrontBackVertex.Layout, Front.Vertices );
-                mesh.CreateIndexBuffer( Front.Indices.Count, Front.Indices );
-            }
-
-            mesh.SetIndexRange( 0, Front.Indices.Count );
+            Front.ApplyTo( front );
+            Back.ApplyTo( back );
         }
     }
 
@@ -425,6 +458,17 @@ namespace Sandbox.MarchingSquares
             new (VertexAttributeType.Normal, VertexAttributeFormat.Float32),
             new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32),
             new (VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2)
+        };
+    }
+
+    [StructLayout( LayoutKind.Sequential )]
+    public record struct CutVertex( Vector3 Position, Vector3 Normal, Vector3 Tangent )
+    {
+        public static VertexAttribute[] Layout { get; } =
+        {
+            new (VertexAttributeType.Position, VertexAttributeFormat.Float32),
+            new (VertexAttributeType.Normal, VertexAttributeFormat.Float32),
+            new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32)
         };
     }
 }

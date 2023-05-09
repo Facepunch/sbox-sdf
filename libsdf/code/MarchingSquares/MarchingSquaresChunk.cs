@@ -9,7 +9,8 @@ namespace Sandbox.MarchingSquares
 {
     public partial class MarchingSquaresChunk : ModelEntity
     {
-        private Mesh _mesh;
+        private Mesh _frontMesh;
+        private Mesh _backMesh;
 
         private SdfArray2D Data { get; set; }
 
@@ -46,15 +47,17 @@ namespace Sandbox.MarchingSquares
 
             Data.WriteTo( writer, Data.Materials.First() );
 
-            _mesh ??= new Mesh( Data.Materials.First().FrontFaceMaterial );
+            _frontMesh ??= new Mesh( Data.Materials.First().FrontFaceMaterial );
+            _backMesh ??= new Mesh( Data.Materials.First().BackFaceMaterial );
 
-            writer.ApplyTo( _mesh );
+            writer.ApplyTo( _frontMesh, _backMesh, null );
 
             if ( Model == null )
             {
                 var builder = new ModelBuilder();
 
-                builder.AddMesh( _mesh );
+                builder.AddMesh( _frontMesh );
+                builder.AddMesh( _backMesh );
 
                 Model = builder.Create();
             }

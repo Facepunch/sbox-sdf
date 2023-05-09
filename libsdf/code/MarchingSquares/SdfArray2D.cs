@@ -143,7 +143,7 @@ namespace Sandbox.MarchingSquares
                 return;
             }
 
-            writer.Write( layer, Margin * ArraySize + Margin, Resolution, Resolution, ArraySize, UnitSize );
+            writer.Write( layer, Margin * ArraySize + Margin, Resolution, Resolution, ArraySize, UnitSize, material.Depth );
         }
     }
 }

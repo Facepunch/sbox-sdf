@@ -9,6 +9,8 @@ namespace Sandbox.MarchingSquares
     [GameResource("Marching Squares Material", "msmat", "Material used by Sandbox.MarchingSquares", Icon = "brush")]
     public class MarchingSquaresMaterial : GameResource
     {
+        public float Depth { get; set; } = 32f;
+
         public Material FrontFaceMaterial { get; set; }
 
         public Material BackFaceMaterial { get; set; }
