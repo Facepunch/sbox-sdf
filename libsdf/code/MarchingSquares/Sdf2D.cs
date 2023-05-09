@@ -33,10 +33,10 @@ namespace Sandbox.MarchingSquares
         }
     }
 
-    public record struct BoxSdf( Vector2 Min, Vector2 Max ) : ISdf2D
+    public record struct BoxSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f ) : ISdf2D
     {
-        public BoxSdf( Rect rect )
-            : this( rect.TopLeft, rect.BottomRight )
+        public BoxSdf( Rect rect, float cornerRadius = 0f )
+            : this( rect.TopLeft, rect.BottomRight, cornerRadius )
         {
 
         }
@@ -47,11 +47,11 @@ namespace Sandbox.MarchingSquares
         {
             get
             {
-                var dist2 = Vector2.Max( Min - pos, pos - Max );
+                var dist2 = Vector2.Max( Min + CornerRadius - pos, pos - Max + CornerRadius );
 
-                return dist2.x <= 0f || dist2.y <= 0f
+                return (dist2.x <= 0f || dist2.y <= 0f
                     ? Math.Max( dist2.x, dist2.y )
-                    : dist2.Length;
+                    : dist2.Length) - CornerRadius;
             }
         }
     }

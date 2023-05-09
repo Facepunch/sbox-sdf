@@ -87,7 +87,8 @@ namespace Sandbox.Sdf
 
 				Chunk.Clear();
 				Chunk.Add( new CircleSdf( new Vector2( 8f, 8f ), 4f ), mat );
-				Chunk.Subtract( new CircleSdf( new Vector2( 8f, MathF.Sin( Time.Now ) * 4f + 8f ), 2f ) );
+				Chunk.Subtract( new BoxSdf( -2.5f, 2.5f, 1f )
+					.Transform( translation: new Vector2( 8f, 8f ), rotation: Time.Now * 45f ) );
 				Chunk.UpdateMesh();
 			}
 
