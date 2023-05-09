@@ -121,8 +121,6 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        private bool[] _solidity;
-
         private abstract class SubMesh<T>
             where T : unmanaged
         {
@@ -348,33 +346,17 @@ namespace Sandbox.MarchingSquares
 
         public void Write( float[] data, int baseIndex, int width, int height, int rowStride, float unitSize, float depth )
         {
-            if ( _solidity == null || _solidity.Length < width * height )
-            {
-                var pow2 = 256;
-                while ( pow2 < width * height ) pow2 <<= 1;
-
-                Array.Resize( ref _solidity, pow2 );
-            }
-
-            for ( var y = 0; y < height; ++y )
-            {
-                for ( int x = 0, srcIndex = baseIndex + y * rowStride, dstIndex = y * width; x < width; ++x, ++srcIndex, ++dstIndex )
-                {
-                    _solidity[dstIndex] = data[srcIndex] < 0f;
-                }
-            }
-
             FrontBackTriangles.Clear();
             CutFaces.Clear();
 
-            for ( var y = 0; y < height - 1; ++y )
+            for ( var y = 0; y < height; ++y )
             {
-                for ( int x = 0, index = y * width; x < width - 1; ++x, ++index )
+                for ( int x = 0, index = baseIndex + y * rowStride; x < width; ++x, ++index )
                 {
-                    var a = _solidity[index] ? SquareConfiguration.A : 0;
-                    var b = _solidity[index + 1] ? SquareConfiguration.B : 0;
-                    var c = _solidity[index + width] ? SquareConfiguration.C : 0;
-                    var d = _solidity[index + width + 1] ? SquareConfiguration.D : 0;
+                    var a = data[index] < 0f ? SquareConfiguration.A : 0;
+                    var b = data[index + 1] < 0f ? SquareConfiguration.B : 0;
+                    var c = data[index + rowStride] < 0f ? SquareConfiguration.C : 0;
+                    var d = data[index + rowStride + 1] < 0f ? SquareConfiguration.D : 0;
 
                     var config = a | b | c | d;
 
