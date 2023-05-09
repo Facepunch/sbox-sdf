@@ -289,7 +289,7 @@ namespace Sandbox.MarchingSquares
 
 
                         case SquareConfiguration.AD:
-                            if ( /* -a - d > b + c */ false )
+                            if ( /* -a - d > b + c */ true )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC, SquareVertex.D ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC, SquareVertex.CD ) );
@@ -309,11 +309,11 @@ namespace Sandbox.MarchingSquares
                             break;
 
                         case SquareConfiguration.BC:
-                            if ( /* -b - c > a + d */ false )
+                            if ( /* -b - c > a + d */ true )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB, SquareVertex.C ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB, SquareVertex.AC ) );
-                                FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C, SquareVertex.CD ) );
+                                FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C, SquareVertex.BD ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD, SquareVertex.BD ) );
                                 CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.AC ) );
                                 CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.BD ) );
