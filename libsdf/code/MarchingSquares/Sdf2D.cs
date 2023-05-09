@@ -65,6 +65,11 @@ namespace Sandbox.MarchingSquares
 
     public record struct Rotation2D( float Cos, float Sin )
     {
+        public static implicit operator Rotation2D( float degrees )
+        {
+            return new Rotation2D( degrees );
+        }
+
         public static Rotation2D Identity { get; } = new Rotation2D( 1f, 0f );
 
         public static Vector2 operator *( Rotation2D rotation, Vector2 vector )
@@ -93,8 +98,8 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        public Rotation2D( float radians )
-            : this( MathF.Cos( radians ), MathF.Sin( radians ) )
+        public Rotation2D( float degrees )
+            : this( MathF.Cos( degrees * MathF.PI / 180f ), MathF.Sin( degrees * MathF.PI / 180f ) )
         {
 
         }

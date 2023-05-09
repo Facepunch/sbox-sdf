@@ -36,7 +36,10 @@ namespace Sandbox.MarchingSquares
 
         public void Clear()
         {
-            Layers.Clear();
+            foreach ( var layer in Layers )
+            {
+                Array.Fill( layer.Value, 1f );
+            }
         }
 
         public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
@@ -105,7 +108,7 @@ namespace Sandbox.MarchingSquares
                         if ( sampled >= 1f ) continue;
 
                         var oldValue = layer[index];
-                        var newValue = Math.Clamp( sampled, oldValue, 1f );
+                        var newValue = Math.Clamp( -sampled, oldValue, 1f );
 
                         layer[index] = newValue;
 

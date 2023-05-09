@@ -34,6 +34,12 @@ namespace Sandbox.MarchingSquares
             return Data.Add( in sdf, material );
         }
 
+        public bool Subtract<T>( in T sdf )
+            where T : ISdf2D
+        {
+            return Data.Subtract( in sdf );
+        }
+
         public void UpdateMesh()
         {
             var writer = new MarchingSquaresMeshWriter();

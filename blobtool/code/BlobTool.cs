@@ -16,11 +16,10 @@ namespace Sandbox.Sdf
 		[ConCmd.Client("sdf_2d_test")]
 		public static void Sdf2DTest()
 		{
-			var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
-
 			Chunk ??= new MarchingSquaresChunk( 64, 16f );
-			Chunk.Add( new CircleSdf( new Vector2( 8f, 8f ), 4f ), mat );
-			Chunk.UpdateMesh();
+			Chunk.LocalScale = 8f;
+			Chunk.LocalPosition = new Vector3( -256f, 0f );
+			Chunk.LocalRotation = Rotation.FromRoll( 90f );
 		}
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -67,6 +66,12 @@ namespace Sandbox.Sdf
 			Preview?.Delete();
 		}
 
+		[GameEvent.PreRender]
+		private void Frame()
+		{
+
+        }
+
 		public override void Simulate()
 		{
 			if ( Preview != null )
@@ -76,7 +81,17 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
+			if ( Chunk != null )
+			{
+				var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+
+				Chunk.Clear();
+				Chunk.Add( new CircleSdf( new Vector2( 8f, 8f ), 4f ), mat );
+				Chunk.Subtract( new CircleSdf( new Vector2( 8f, MathF.Sin( Time.Now ) * 4f + 8f ), 2f ) );
+				Chunk.UpdateMesh();
+			}
+
+            if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}

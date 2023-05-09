@@ -119,76 +119,90 @@ namespace Sandbox.MarchingSquares
 
         private bool[] _solidity;
 
-        private Dictionary<VertexKey, int> FrontVertices { get; } = new();
+        private abstract class SubMesh<T>
+        {
+            public Dictionary<VertexKey, int> Map { get; } = new();
+            public List<T> Vertices { get; } = new List<T>();
+            public List<int> Indices { get; } = new List<int>();
+
+            public void ClearMap()
+            {
+                Map.Clear();
+            }
+
+            public void Clear()
+            {
+                Map.Clear();
+                Vertices.Clear();
+                Indices.Clear();
+            }
+        }
+
+        private class FrontBackSubMesh : SubMesh<FrontBackVertex>
+        {
+            public int AddVertex( float[] data, int baseIndex, int rowStride, VertexKey key )
+            {
+                if ( Map.TryGetValue( key, out var index ) )
+                {
+                    return index;
+                }
+
+                Vector3 pos;
+
+                switch ( key.Vertex )
+                {
+                    case NormalizedVertex.A:
+                        pos = new Vector3( key.X, key.Y );
+                        break;
+
+                    case NormalizedVertex.AB:
+                    {
+                        var a = data[baseIndex + key.X + key.Y * rowStride];
+                        var b = data[baseIndex + key.X + key.Y * rowStride + 1];
+                        var t = a / (a - b);
+                        pos = new Vector3( key.X + t, key.Y );
+                        break;
+                    }
+
+                    case NormalizedVertex.AC:
+                    {
+                        var a = data[baseIndex + key.X + key.Y * rowStride];
+                        var b = data[baseIndex + key.X + key.Y * rowStride + rowStride];
+                        var t = a / (a - b);
+                        pos = new Vector3( key.X, key.Y + t );
+                        break;
+                    }
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                index = Vertices.Count;
+
+                Vertices.Add( new FrontBackVertex(
+                    pos,
+                    new Vector3( 0f, 0f, 1f ),
+                    new Vector3( 1f, 0f, 0f ),
+                    new Vector2( pos.x * 0.5f, pos.y * 0.5f ) ) );
+
+                Map.Add( key, index );
+
+                return index;
+            }
+        }
 
         private List<FrontBackTriangle> FrontBackTriangles { get; } = new();
         private List<CutFace> CutFaces { get; } = new();
-        private List<Vertex> Vertices { get; } = new();
-        private List<int> FrontIndices { get; } = new();
+
+        private FrontBackSubMesh Front { get; } = new();
+        private FrontBackSubMesh Back { get; } = new();
 
         public void Clear()
         {
             FrontBackTriangles.Clear();
             CutFaces.Clear();
-
-            FrontIndices.Clear();
-            FrontVertices.Clear();
-            Vertices.Clear();
-        }
-
-        public void Print()
-        {
-            Log.Info( $"Vertices: {Vertices.Count}" );
-            Log.Info( $"FrontIndices: {FrontIndices.Count}" );
-        }
-
-        private int AddFrontVertex( float[] data, int baseIndex, int rowStride, VertexKey key )
-        {
-            if ( FrontVertices.TryGetValue( key, out var index ) )
-            {
-                return index;
-            }
-
-            Vector3 pos;
-
-            switch ( key.Vertex )
-            {
-                case NormalizedVertex.A:
-                    pos = Vector3.Zero;
-                    break;
-
-                case NormalizedVertex.AB:
-                {
-                    var a = data[baseIndex + key.X + key.Y * rowStride];
-                    var b = data[baseIndex + key.X + key.Y * rowStride + 1];
-                    var t = a / (a - b);
-                    pos = new Vector3( key.X + t, key.Y );
-                    break;
-                }
-
-                case NormalizedVertex.AC:
-                {
-                    var a = data[baseIndex + key.X + key.Y * rowStride];
-                    var b = data[baseIndex + key.X + key.Y * rowStride + rowStride];
-                    var t = a / (a - b);
-                    pos = new Vector3( key.X, key.Y + t );
-                    break;
-                }
-
-                default:
-                    throw new NotImplementedException();
-            }
-
-            index = Vertices.Count;
-
-            Vertices.Add( new Vertex(
-                pos,
-                new Vector3( 0f, 0f, 1f ),
-                new Vector3( 1f, 0f, 0f ) ) );
-
-            FrontVertices.Add( key, index );
-
-            return index;
+            Front.Clear();
+            Back.Clear();
         }
 
         public void Write( float[] data, int baseIndex, int width, int height, int rowStride )
@@ -203,15 +217,10 @@ namespace Sandbox.MarchingSquares
 
             for ( var y = 0; y < height; ++y )
             {
-                var value = "";
-
                 for ( int x = 0, srcIndex = baseIndex + y * rowStride, dstIndex = y * width; x < width; ++x, ++srcIndex, ++dstIndex )
                 {
-                    value += $"{Math.Clamp( MathF.Round( (data[srcIndex] + 1f) * 5 ), 0, 9 )}";
                     _solidity[dstIndex] = data[srcIndex] < 0f;
                 }
-
-                Log.Info( $"{y:000}: {value}" );
             }
 
             FrontBackTriangles.Clear();
@@ -261,9 +270,9 @@ namespace Sandbox.MarchingSquares
                             break;
 
                         case SquareConfiguration.AC:
-                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C, SquareVertex.AC ) );
-                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD, SquareVertex.AC ) );
-                            CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AC ) );
+                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C, SquareVertex.AB ) );
+                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD, SquareVertex.AB ) );
+                            CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AB ) );
                             break;
 
                         case SquareConfiguration.CD:
@@ -360,17 +369,18 @@ namespace Sandbox.MarchingSquares
                 }
             }
 
-            FrontVertices.Clear();
+            Front.ClearMap();
+            Back.ClearMap();
 
             foreach ( var triangle in FrontBackTriangles )
             {
-                var a = AddFrontVertex( data, baseIndex, rowStride, triangle.V0 );
-                var b = AddFrontVertex( data, baseIndex, rowStride, triangle.V1 );
-                var c = AddFrontVertex( data, baseIndex, rowStride, triangle.V2 );
+                var a = Front.AddVertex( data, baseIndex, rowStride, triangle.V0 );
+                var b = Front.AddVertex( data, baseIndex, rowStride, triangle.V1 );
+                var c = Front.AddVertex( data, baseIndex, rowStride, triangle.V2 );
 
-                FrontIndices.Add( a );
-                FrontIndices.Add( b );
-                FrontIndices.Add( c );
+                Front.Indices.Add( a );
+                Front.Indices.Add( c );
+                Front.Indices.Add( b );
             }
         }
 
@@ -378,28 +388,31 @@ namespace Sandbox.MarchingSquares
         {
             if ( mesh.HasVertexBuffer )
             {
-                mesh.SetVertexBufferSize( Vertices.Count );
-                mesh.SetVertexBufferData( Vertices );
+                mesh.SetIndexBufferSize( Front.Indices.Count );
+                mesh.SetVertexBufferSize( Front.Vertices.Count );
 
-                mesh.SetIndexBufferSize( FrontIndices.Count );
-                mesh.SetIndexBufferData( FrontIndices );
+                mesh.SetIndexBufferData( Front.Indices );
+                mesh.SetVertexBufferData( Front.Vertices );
             }
             else
             {
-                mesh.CreateVertexBuffer( Vertices.Count, Vertex.Layout, Vertices );
-                mesh.CreateIndexBuffer( FrontIndices.Count, FrontIndices );
+                mesh.CreateVertexBuffer( Front.Vertices.Count, FrontBackVertex.Layout, Front.Vertices );
+                mesh.CreateIndexBuffer( Front.Indices.Count, Front.Indices );
             }
+
+            mesh.SetIndexRange( 0, Front.Indices.Count );
         }
     }
 
     [StructLayout( LayoutKind.Sequential )]
-    public record struct Vertex( Vector3 Position, Vector3 Normal, Vector3 Tangent )
+    public record struct FrontBackVertex( Vector3 Position, Vector3 Normal, Vector3 Tangent, Vector2 TexCoord )
     {
         public static VertexAttribute[] Layout { get; } =
         {
             new (VertexAttributeType.Position, VertexAttributeFormat.Float32),
             new (VertexAttributeType.Normal, VertexAttributeFormat.Float32),
-            new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32)
+            new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32),
+            new (VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2)
         };
     }
 }
