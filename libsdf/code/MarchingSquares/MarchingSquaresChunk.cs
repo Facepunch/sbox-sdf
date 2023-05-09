@@ -18,14 +18,14 @@ namespace Sandbox.MarchingSquares
 
         }
 
-        public MarchingSquaresChunk( int resolution, float size )
+        public MarchingSquaresChunk( int resolution, float size, float? maxDistance = null )
         {
-            Data = new SdfArray2D( resolution, size, NormalStyle.Flat );
+            Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution), NormalStyle.Flat );
         }
 
-        public void Clear()
+        public void Clear( MarchingSquaresMaterial material = null )
         {
-            Data.Clear();
+            Data.Clear( material );
         }
 
         public bool Add<T>( in T sdf, MarchingSquaresMaterial material )

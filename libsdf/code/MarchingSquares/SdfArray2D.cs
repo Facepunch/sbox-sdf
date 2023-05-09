@@ -8,6 +8,7 @@ namespace Sandbox.MarchingSquares
     {
         public int Resolution { get; }
         public float Size { get; }
+        public float MaxDistance { get; }
         public NormalStyle NormalStyle { get; }
 
         private Dictionary<MarchingSquaresMaterial, float[]> Layers { get; }
@@ -20,10 +21,11 @@ namespace Sandbox.MarchingSquares
 
         private int Margin { get; }
 
-        public SdfArray2D( int resolution, float size, NormalStyle normalStyle )
+        public SdfArray2D( int resolution, float size, float maxDistance, NormalStyle normalStyle )
         {
             Resolution = resolution;
             Size = size;
+            MaxDistance = maxDistance;
             NormalStyle = normalStyle;
 
             Margin = normalStyle == NormalStyle.Flat ? 0 : 1;
@@ -34,11 +36,18 @@ namespace Sandbox.MarchingSquares
             Layers = new Dictionary<MarchingSquaresMaterial, float[]>();
         }
 
-        public void Clear()
+        public void Clear( MarchingSquaresMaterial material = null )
         {
             foreach ( var layer in Layers )
             {
-                Array.Fill( layer.Value, 1f );
+                if ( layer.Key == material )
+                {
+                    Array.Fill( layer.Value, -MaxDistance );
+                }
+                else
+                {
+                    Array.Fill( layer.Value, MaxDistance );
+                }
             }
         }
 
@@ -47,8 +56,8 @@ namespace Sandbox.MarchingSquares
         {
             var bounds = sdf.Bounds;
 
-            var min = (bounds.TopLeft - Vector2.One) * InvUnitSize;
-            var max = (bounds.BottomRight + Vector2.One) * InvUnitSize;
+            var min = (bounds.TopLeft - MaxDistance) * InvUnitSize;
+            var max = (bounds.BottomRight + MaxDistance) * InvUnitSize;
 
             var minX = Math.Max( 0, (int) MathF.Ceiling( min.x ) + Margin );
             var minY = Math.Max( 0, (int) MathF.Ceiling( min.y ) + Margin );
@@ -63,7 +72,7 @@ namespace Sandbox.MarchingSquares
                 if ( !Layers.TryGetValue( material, out var layer ) )
                 {
                     layer = new float[ArraySize * ArraySize];
-                    Array.Fill( layer, 1f );
+                    Array.Fill( layer, MaxDistance );
                     Layers.Add( material, layer );
                 }
 
@@ -76,10 +85,10 @@ namespace Sandbox.MarchingSquares
                         var worldX = (x - Margin) * UnitSize;
                         var sampled = sdf[new Vector2( worldX, worldY )];
 
-                        if ( sampled >= 1f ) continue;
+                        if ( sampled >= MaxDistance ) continue;
 
                         var oldValue = layer[index];
-                        var newValue = Math.Clamp( sampled, -1f, oldValue );
+                        var newValue = Math.Clamp( sampled, -MaxDistance, oldValue );
 
                         layer[index] = newValue;
 
@@ -105,10 +114,10 @@ namespace Sandbox.MarchingSquares
                         var worldX = (x - Margin) * UnitSize;
                         var sampled = sdf[new Vector2( worldX, worldY )];
 
-                        if ( sampled >= 1f ) continue;
+                        if ( sampled >= MaxDistance ) continue;
 
                         var oldValue = layer[index];
-                        var newValue = Math.Clamp( -sampled, oldValue, 1f );
+                        var newValue = Math.Clamp( -sampled, oldValue, MaxDistance );
 
                         layer[index] = newValue;
 
@@ -134,7 +143,7 @@ namespace Sandbox.MarchingSquares
                 return;
             }
 
-            writer.Write( layer, Margin * ArraySize + Margin, Resolution, Resolution, ArraySize );
+            writer.Write( layer, Margin * ArraySize + Margin, Resolution, Resolution, ArraySize, UnitSize );
         }
     }
 }

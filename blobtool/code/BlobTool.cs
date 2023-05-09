@@ -14,12 +14,15 @@ namespace Sandbox.Sdf
 		public static MarchingSquaresChunk Chunk { get; set; }
 
 		[ConCmd.Client("sdf_2d_test")]
-		public static void Sdf2DTest()
+		public static void Sdf2DTest( int resolution = 64 )
 		{
-			Chunk ??= new MarchingSquaresChunk( 64, 16f );
-			Chunk.LocalScale = 8f;
-			Chunk.LocalPosition = new Vector3( -256f, 0f );
-			Chunk.LocalRotation = Rotation.FromRoll( 90f );
+			Chunk?.Delete();
+
+			Chunk = new MarchingSquaresChunk( resolution, 512f )
+			{
+				LocalPosition = new Vector3( -256f, 0f ),
+				LocalRotation = Rotation.FromRoll( 90f )
+			};
 		}
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -41,7 +44,6 @@ namespace Sandbox.Sdf
 		public bool IsDrawing { get; set; }
 
 		public Color BrushColor => new ColorHsv( Hue, 0.875f, 1f );
-
 
 		public ModelEntity Preview { get; set; }
 
@@ -86,9 +88,9 @@ namespace Sandbox.Sdf
 				var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
 
 				Chunk.Clear();
-				Chunk.Add( new CircleSdf( new Vector2( 8f, 8f ), 4f ), mat );
-				Chunk.Subtract( new BoxSdf( -2.5f, 2.5f, 1f )
-					.Transform( translation: new Vector2( 8f, 8f ), rotation: Time.Now * 45f ) );
+				Chunk.Add( new CircleSdf( new Vector2( 256f, 256f ), 128f ), mat );
+				Chunk.Subtract( new BoxSdf( new Vector2( -96f, -64f), new Vector2( 96f, 64f ), 16f )
+					.Transform( translation: new Vector2( 256f, 256f ), rotation: Time.Now * 22.5f ) );
 				Chunk.UpdateMesh();
 			}
 

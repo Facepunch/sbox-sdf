@@ -140,7 +140,7 @@ namespace Sandbox.MarchingSquares
 
         private class FrontBackSubMesh : SubMesh<FrontBackVertex>
         {
-            public int AddVertex( float[] data, int baseIndex, int rowStride, VertexKey key )
+            public int AddVertex( float[] data, int baseIndex, int rowStride, float unitSize, VertexKey key )
             {
                 if ( Map.TryGetValue( key, out var index ) )
                 {
@@ -180,10 +180,10 @@ namespace Sandbox.MarchingSquares
                 index = Vertices.Count;
 
                 Vertices.Add( new FrontBackVertex(
-                    pos,
+                    pos * unitSize,
                     new Vector3( 0f, 0f, 1f ),
                     new Vector3( 1f, 0f, 0f ),
-                    new Vector2( pos.x * 0.5f, pos.y * 0.5f ) ) );
+                    new Vector2( pos.x * unitSize / 16f, pos.y * unitSize / 16f ) ) );
 
                 Map.Add( key, index );
 
@@ -205,7 +205,19 @@ namespace Sandbox.MarchingSquares
             Back.Clear();
         }
 
-        public void Write( float[] data, int baseIndex, int width, int height, int rowStride )
+        private float GetAdSubBc( float[] data, int baseIndex, int rowStride, int x, int y )
+        {
+            var index = baseIndex + x + y * rowStride;
+
+            var a = data[index];
+            var b = data[index + 1];
+            var c = data[index + rowStride];
+            var d = data[index + rowStride + 1];
+
+            return a * d - b * c;
+        }
+
+        public void Write( float[] data, int baseIndex, int width, int height, int rowStride, float unitSize )
         {
             if ( _solidity == null || _solidity.Length < width * height )
             {
@@ -289,7 +301,7 @@ namespace Sandbox.MarchingSquares
 
 
                         case SquareConfiguration.AD:
-                            if ( /* -a - d > b + c */ true )
+                            if ( GetAdSubBc( data, baseIndex, rowStride, x, y ) > 0f )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC, SquareVertex.D ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC, SquareVertex.CD ) );
@@ -309,7 +321,7 @@ namespace Sandbox.MarchingSquares
                             break;
 
                         case SquareConfiguration.BC:
-                            if ( /* -b - c > a + d */ true )
+                            if ( GetAdSubBc( data, baseIndex, rowStride, x, y ) < 0f )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB, SquareVertex.C ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB, SquareVertex.AC ) );
@@ -374,9 +386,9 @@ namespace Sandbox.MarchingSquares
 
             foreach ( var triangle in FrontBackTriangles )
             {
-                var a = Front.AddVertex( data, baseIndex, rowStride, triangle.V0 );
-                var b = Front.AddVertex( data, baseIndex, rowStride, triangle.V1 );
-                var c = Front.AddVertex( data, baseIndex, rowStride, triangle.V2 );
+                var a = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 );
+                var b = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 );
+                var c = Front.AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 );
 
                 Front.Indices.Add( a );
                 Front.Indices.Add( c );
