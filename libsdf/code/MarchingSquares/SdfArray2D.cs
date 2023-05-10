@@ -12,11 +12,11 @@ namespace Sandbox.MarchingSquares
     public partial class SdfArray2D : BaseNetworkable, INetworkSerializer
     {
         private const byte MaxEncoded = 255;
+        public const int Margin = 1;
 
         public int Resolution { get; private set; }
         public float Size { get; private set; }
         public float MaxDistance { get; private set; }
-        public int Margin { get; private set; }
 
         private Dictionary<MarchingSquaresMaterial, byte[]> Layers { get; } = new();
 
@@ -27,6 +27,8 @@ namespace Sandbox.MarchingSquares
         private float _invUnitSize;
         private float _invMaxDistance;
 
+        public int ModificationCount { get; set; }
+
         public SdfArray2D()
         {
 
@@ -34,11 +36,14 @@ namespace Sandbox.MarchingSquares
 
         public SdfArray2D( int resolution, float size, float maxDistance )
         {
+            Init( resolution, size, maxDistance );
+        }
+
+        private void Init( int resolution, float size, float maxDistance )
+        {
             Resolution = resolution;
             Size = size;
             MaxDistance = maxDistance;
-
-            Margin = 1;
 
             _arraySize = Resolution + Margin * 2 + 1;
             _unitSize = Size / Resolution;
@@ -69,6 +74,8 @@ namespace Sandbox.MarchingSquares
             Array.Fill( layer, encoded );
             Layers.Add( material, layer );
 
+            ++ModificationCount;
+
             return layer;
         }
 
@@ -84,6 +91,8 @@ namespace Sandbox.MarchingSquares
             {
                 GetOrCreateLayer( material, -MaxDistance );
             }
+
+            ++ModificationCount;
         }
 
         public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
@@ -159,6 +168,11 @@ namespace Sandbox.MarchingSquares
                 }
             }
 
+            if ( changed )
+            {
+                ++ModificationCount;
+            }
+
             return changed;
         }
 
@@ -179,14 +193,61 @@ namespace Sandbox.MarchingSquares
                 Resolution, Resolution, _unitSize, material.Depth );
         }
 
-        public void Read( ref NetRead read )
+        [ThreadStatic] private static HashSet<MarchingSquaresMaterial> RemovedLayers;
+
+        public void Read( ref NetRead net )
         {
-            throw new NotImplementedException();
+            var resolution = net.Read<int>();
+            var size = net.Read<float>();
+            var maxDistance = net.Read<float>();
+            var layerCount = net.Read<int>();
+
+            Init( resolution, size, maxDistance );
+
+            RemovedLayers ??= new HashSet<MarchingSquaresMaterial>();
+            RemovedLayers.Clear();
+
+            foreach ( var layer in Layers )
+            {
+                RemovedLayers.Add( layer.Key );
+            }
+
+            for ( var i = 0; i < layerCount; ++i )
+            {
+                var key = net.ReadClass<MarchingSquaresMaterial>();
+
+                RemovedLayers.Remove( key );
+
+                if ( !Layers.TryGetValue( key, out var layer ) )
+                {
+                    layer = null;
+                }
+
+                Layers[key] = net.ReadUnmanagedArray( layer );
+            }
+
+            foreach ( var layer in RemovedLayers )
+            {
+                Layers.Remove( layer );
+            }
+
+            RemovedLayers.Clear();
+
+            ++ModificationCount;
         }
 
-        public void Write( NetWrite write )
+        public void Write( NetWrite net )
         {
-            throw new NotImplementedException();
+            net.Write( Resolution );
+            net.Write( Size );
+            net.Write( MaxDistance );
+            net.Write( Layers.Count );
+
+            foreach ( var layer in Layers )
+            {
+                net.Write( layer.Key );
+                net.WriteUnmanagedArray( layer.Value );
+            }
         }
     }
 }

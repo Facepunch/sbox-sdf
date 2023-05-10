@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Sandbox.Diagnostics;
 using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
@@ -27,34 +28,94 @@ namespace Sandbox.MarchingSquares
         }
 
         private Dictionary<MarchingSquaresMaterial, SubMesh> SubMeshes { get; } = new ();
-        
+
+        [Net]
         private SdfArray2D Data { get; set; }
+
+        public bool OwnedByServer { get; }
+
+        private int _lastModificationCount;
 
         public MarchingSquaresChunk()
         {
-
+            OwnedByServer = true;
         }
 
         public MarchingSquaresChunk( int resolution, float size, float? maxDistance = null )
         {
+            OwnedByServer = Game.IsServer;
             Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution) );
+        }
+
+        private void AssertCanModify()
+        {
+            Assert.True( OwnedByServer == Game.IsServer, "Can only modify server-created chunks on the server." );
         }
 
         public void Clear( MarchingSquaresMaterial material = null )
         {
+            AssertCanModify();
+
             Data.Clear( material );
+
+            if ( Game.IsServer )
+            {
+                Data.WriteNetworkData();
+            }
         }
 
         public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
             where T : ISdf2D
         {
-            return Data.Add( in sdf, material );
+            AssertCanModify();
+
+            if ( !Data.Add( in sdf, material ) )
+            {
+                return false;
+            }
+
+            if ( Game.IsServer )
+            {
+                Data.WriteNetworkData();
+            }
+
+            return true;
         }
 
         public bool Subtract<T>( in T sdf )
             where T : ISdf2D
         {
-            return Data.Subtract( in sdf );
+            AssertCanModify();
+
+            if ( !Data.Subtract( in sdf ) )
+            {
+                return false;
+            }
+
+            if ( Game.IsServer )
+            {
+                Data.WriteNetworkData();
+            }
+
+            return true;
+        }
+
+        [GameEvent.PreRender]
+        public void ClientPreRender()
+        {
+            if ( Data == null )
+            {
+                return;
+            }
+
+            if ( Data.ModificationCount == _lastModificationCount )
+            {
+                return;
+            }
+
+            _lastModificationCount = Data.ModificationCount;
+
+            UpdateMesh();
         }
 
         public void UpdateMesh()

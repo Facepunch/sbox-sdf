@@ -13,7 +13,7 @@ namespace Sandbox.Sdf
 	{
 		public static MarchingSquaresChunk Chunk { get; set; }
 
-		[ConCmd.Client("sdf_2d_test")]
+		[ConCmd.Admin("sdf_2d_test")]
 		public static void Sdf2DTest( int resolution = 64 )
 		{
 			Chunk?.Delete();
@@ -106,8 +106,6 @@ namespace Sandbox.Sdf
                     {
 	                    Chunk.Subtract( sdf );
                     }
-
-					Chunk.UpdateMesh();
                 }
 			}
 
