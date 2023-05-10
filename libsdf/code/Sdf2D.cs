@@ -152,4 +152,51 @@ namespace Sandbox.Sdf
 
         public float this[ Vector2 pos ] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
     }
+
+    public readonly struct TextureSdf : ISdf2D
+    {
+        private readonly Vector2 _worldSize;
+        private readonly Vector2 _invSampleSize;
+        private readonly (int Width, int Height) _imageSize;
+        private readonly float[] _samples;
+
+        public TextureSdf( Texture texture, int gradientWidthPixels, float worldWidth, bool invert = false )
+        {
+            _worldSize = new Vector2( worldWidth, worldWidth * texture.Height / texture.Width );
+            _imageSize = (texture.Width, texture.Height);
+            _invSampleSize = new Vector2( _imageSize.Width, _imageSize.Height ) / _worldSize;
+
+            var colors = texture.GetPixels();
+            var scale = worldWidth * gradientWidthPixels / texture.Width * (invert ? -1f : 1f);
+
+            _samples = new float[_imageSize.Width * _imageSize.Height];
+
+            for ( var i = 0; i < colors.Length; ++i )
+            {
+                _samples[i] = scale * (colors[i].r / 255f - 0.5f);
+            }
+        }
+
+        public Rect Bounds => new Rect( 0f, 0f, _worldSize.x, _worldSize.y );
+
+        public float this[ Vector2 pos ]
+        {
+            get
+            {
+                var localPos = pos * _invSampleSize;
+
+                var x = (int) MathF.Round( localPos.x );
+                var y = (int) MathF.Round( localPos.y );
+
+                if ( x < 0 || y < 0 || x >= _imageSize.Width || y >= _imageSize.Height )
+                {
+                    return float.PositiveInfinity;
+                }
+
+                y = _imageSize.Height - y - 1;
+
+                return _samples[x + y * _imageSize.Width];
+            }
+        }
+    }
 }

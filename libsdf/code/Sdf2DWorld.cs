@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using Sandbox.Diagnostics;
 using Sandbox.MarchingSquares;
-using Sandbox.UI;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Sandbox.Sdf
 {

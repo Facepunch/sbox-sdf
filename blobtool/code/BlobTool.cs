@@ -14,7 +14,7 @@ namespace Sandbox.Sdf
 		public static Sdf2DWorld SdfWorld { get; set; }
 
 		[ConCmd.Admin("sdf_2d_test")]
-		public static void Sdf2DTest( int resolution = 16 )
+		public static async Task Sdf2DTest( int resolution = 16 )
 		{
 			SdfWorld?.Delete();
 
@@ -24,23 +24,11 @@ namespace Sandbox.Sdf
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
 
+			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/example_sdf.png" );
+			var mapSdf = new TextureSdf( mapSdfTexture, 32, 2048f );
 			var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
 
-            for ( var i = 0; i < 48; ++i )
-            {
-	            SdfWorld.Add( new CircleSdf( new Vector2( i * 64f, 0f ),
-		            Random.Shared.NextSingle() * 64f + 64f ), mat );
-            }
-
-            for ( var i = 0; i < 100; ++i )
-            {
-	            var radius = 32f + MathF.Pow( Random.Shared.NextSingle(), 2f ) * 128f;
-                var sdf = new CircleSdf( new Vector2(
-		            Random.Shared.NextSingle() * 64f * 48f,
-		            MathF.Pow( Random.Shared.NextSingle(), 2f) * 256f ), radius );
-
-                SdfWorld.Add( sdf, mat );
-            }
+			SdfWorld.Add( mapSdf, mat );
 		}
 
 		public const float MinDistanceBetweenEdits = 4f;
