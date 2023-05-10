@@ -11,18 +11,36 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
-		public static MarchingSquaresChunk Chunk { get; set; }
+		public static Sdf2DWorld SdfWorld { get; set; }
 
 		[ConCmd.Admin("sdf_2d_test")]
-		public static void Sdf2DTest( int resolution = 64 )
+		public static void Sdf2DTest( int resolution = 16 )
 		{
-			Chunk?.Delete();
+			SdfWorld?.Delete();
 
-			Chunk = new MarchingSquaresChunk( resolution, 512f )
+			SdfWorld = new Sdf2DWorld( resolution, 256f )
 			{
-				LocalPosition = new Vector3( -256f, -1024f + 32f ),
+				LocalPosition = new Vector3( -256f, -2470f ),
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
+
+			var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+
+            for ( var i = 0; i < 48; ++i )
+            {
+	            SdfWorld.Add( new CircleSdf( new Vector2( i * 64f, 0f ),
+		            Random.Shared.NextSingle() * 64f + 64f ), mat );
+            }
+
+            for ( var i = 0; i < 100; ++i )
+            {
+	            var radius = 32f + MathF.Pow( Random.Shared.NextSingle(), 2f ) * 128f;
+                var sdf = new CircleSdf( new Vector2(
+		            Random.Shared.NextSingle() * 64f * 48f,
+		            MathF.Pow( Random.Shared.NextSingle(), 2f) * 256f ), radius );
+
+                SdfWorld.Add( sdf, mat );
+            }
 		}
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -77,48 +95,46 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			var add = Input.Down( "attack1" );
-
-            if ( Chunk != null )
-			{
-				if ( Input.Pressed( "attack1" ) || Input.Pressed( "attack2" ) )
-				{
-					var radius = 32f + MathF.Pow( Random.Shared.NextSingle(), 2f ) * 128f;
-
-					if ( Input.Pressed( "attack2" ) )
-					{
-						radius *= 0.5f;
-					}
-
-					var min = radius + 8f;
-					var max = 512f - 8f - radius;
-
-					var sdf = new CircleSdf( new Vector2(
-						Random.Shared.NextSingle() * (max - min) + min,
-						Random.Shared.NextSingle() * (max - min) + min ), radius );
-
-                    if ( Input.Pressed( "attack1" ) )
-                    {
-	                    var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
-                        Chunk.Add( sdf, mat );
-                    }
-					else
-                    {
-	                    Chunk.Subtract( sdf );
-                    }
-                }
-			}
-
-            return;
-
             if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}
 
-			var subtract = Input.Down( "attack2" );
 
-			IsDrawing &= add;
+            var add = Input.Down( "attack1" );
+            var subtract = Input.Down( "attack2" );
+
+            if ( SdfWorld != null )
+            {
+	            if ( add || subtract )
+	            {
+		            var ray = new Ray( Owner.EyePosition, Owner.EyeRotation.Forward );
+		            var plane = new Plane( SdfWorld.Position, SdfWorld.Rotation.Up );
+		            var hit = plane.Trace( ray, true );
+
+		            if ( hit is { } hitPos )
+		            {
+			            var radius = 64f;
+			            var localPos = SdfWorld.Transform.PointToLocal( hitPos );
+
+			            var sdf = new CircleSdf( new Vector2( localPos.x, localPos.y ), radius );
+
+			            if ( add )
+			            {
+				            var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+				            SdfWorld.Add( sdf, mat );
+			            }
+			            else
+			            {
+				            SdfWorld.Subtract( sdf );
+			            }
+                    }
+	            }
+            }
+
+            return;
+
+            IsDrawing &= add;
 
 			if ( LastEditPos == null || subtract )
 			{

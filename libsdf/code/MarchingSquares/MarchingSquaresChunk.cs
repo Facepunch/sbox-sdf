@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Diagnostics;
+using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
 {
@@ -39,15 +40,19 @@ namespace Sandbox.MarchingSquares
             Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution) );
         }
 
-        private void AssertCanModify()
+        protected override void OnDestroy()
         {
-            Assert.True( OwnedByServer == Game.IsServer, "Can only modify server-created chunks on the server." );
+            base.OnDestroy();
+
+            PhysicsBody?.Remove();
+            PhysicsBody = null;
+
+            SceneObject?.Delete();
+            SceneObject = null;
         }
 
         public void Clear( MarchingSquaresMaterial material = null )
         {
-            AssertCanModify();
-
             Data.Clear( material );
 
             if ( Game.IsServer )
@@ -59,9 +64,23 @@ namespace Sandbox.MarchingSquares
         public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
             where T : ISdf2D
         {
-            AssertCanModify();
-
             if ( !Data.Add( in sdf, material ) )
+            {
+                return false;
+            }
+
+            if ( Game.IsServer )
+            {
+                Data.WriteNetworkData();
+            }
+
+            return true;
+        }
+
+        public bool Replace<T>( in T sdf, MarchingSquaresMaterial material )
+            where T : ISdf2D
+        {
+            if ( !Data.Replace( in sdf, material ) )
             {
                 return false;
             }
@@ -77,19 +96,7 @@ namespace Sandbox.MarchingSquares
         public bool Subtract<T>( in T sdf )
             where T : ISdf2D
         {
-            AssertCanModify();
-
-            if ( !Data.Subtract( in sdf ) )
-            {
-                return false;
-            }
-
-            if ( Game.IsServer )
-            {
-                Data.WriteNetworkData();
-            }
-
-            return true;
+            return Add( sdf, null );
         }
 
         [GameEvent.Tick]
@@ -134,6 +141,7 @@ namespace Sandbox.MarchingSquares
 
             var writer = MarchingSquaresMeshWriter.Rent( collisionOnly );
             var subMeshesChanged = false;
+            var anyMeshes = false;
 
             try
             {
@@ -168,6 +176,8 @@ namespace Sandbox.MarchingSquares
 
                         subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
                         subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
+
+                        anyMeshes |= subMesh.FrontBackUsed || subMesh.CutUsed;
                     }
 
                     if ( writer.CollisionMesh.Indices.Count == 0 )
@@ -199,40 +209,43 @@ namespace Sandbox.MarchingSquares
                     }
                 }
 
-                if ( collisionOnly || SceneObject != null && !subMeshesChanged )
+                if ( collisionOnly || (SceneObject == null == anyMeshes) && !subMeshesChanged )
                 {
                     return;
                 }
 
-                var builder = new ModelBuilder();
-
-                foreach ( var subMesh in SubMeshes.Values )
+                if ( !anyMeshes )
                 {
-                    if ( subMesh.FrontBackUsed )
-                    {
-                        builder.AddMesh( subMesh.Front );
-                        builder.AddMesh( subMesh.Back );
-                    }
-
-                    if ( subMesh.CutUsed )
-                    {
-                        builder.AddMesh( subMesh.Cut );
-                    }
-                }
-
-                if ( SceneObject == null )
-                {
-                    SceneObject ??= new SceneObject( Scene, builder.Create() );
+                    SceneObject?.Delete();
+                    SceneObject = null;
                 }
                 else
                 {
-                    SceneObject.Model = builder.Create();
+                    var builder = new ModelBuilder();
+
+                    foreach ( var subMesh in SubMeshes.Values )
+                    {
+                        if ( subMesh.FrontBackUsed )
+                        {
+                            builder.AddMesh( subMesh.Front );
+                            builder.AddMesh( subMesh.Back );
+                        }
+
+                        if ( subMesh.CutUsed )
+                        {
+                            builder.AddMesh( subMesh.Cut );
+                        }
+                    }
+
+                    if ( SceneObject == null )
+                    {
+                        SceneObject = new SceneObject( Scene, builder.Create() );
+                    }
+                    else
+                    {
+                        SceneObject.Model = builder.Create();
+                    }
                 }
-
-                var maxDepth = Data.Materials.Max( x => x.Depth );
-
-                SceneObject.Bounds = new BBox( new Vector3( 0f, 0f, -maxDepth * 0.5f ),
-                    new Vector3( Data.Size, Data.Size, maxDepth * 0.5f ) );
             }
             finally
             {

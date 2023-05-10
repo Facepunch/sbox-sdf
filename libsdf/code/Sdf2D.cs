@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Sandbox.MarchingSquares
+namespace Sandbox.Sdf
 {
     public interface ISdf2D
     {

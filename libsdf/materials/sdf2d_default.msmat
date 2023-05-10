@@ -1,5 +1,5 @@
 {
-  "Depth": 64,
+  "Depth": 32,
   "FrontFaceMaterial": "materials/dev/dev_measuregeneric01.vmat",
   "BackFaceMaterial": "materials/dev/dev_measuregeneric01.vmat",
   "CutFaceMaterial": "materials/sdf_default.vmat"

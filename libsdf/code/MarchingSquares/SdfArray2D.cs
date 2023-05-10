@@ -176,10 +176,61 @@ namespace Sandbox.MarchingSquares
             return changed;
         }
 
-        public bool Subtract<T>( in T sdf )
+        public bool Replace<T>( in T sdf, MarchingSquaresMaterial material )
             where T : ISdf2D
         {
-            return Add<T>( sdf, null );
+            var bounds = sdf.Bounds;
+
+            var min = (bounds.TopLeft - MaxDistance) * _invUnitSize;
+            var max = (bounds.BottomRight + MaxDistance) * _invUnitSize;
+
+            var minX = Math.Max( 0, (int) MathF.Ceiling( min.x ) + Margin );
+            var minY = Math.Max( 0, (int) MathF.Ceiling( min.y ) + Margin );
+
+            var maxX = Math.Min( _arraySize, (int) MathF.Ceiling( max.x ) + Margin );
+            var maxY = Math.Min( _arraySize, (int) MathF.Ceiling( max.y ) + Margin );
+
+            var changed = false;
+
+            var dstLayer = GetOrCreateLayer( material, MaxDistance );
+
+            foreach ( var (mat, layer) in Layers )
+            {
+                if ( mat == material )
+                {
+                    continue;
+                }
+
+                for ( var y = minY; y < maxY; ++y )
+                {
+                    var worldY = (y - Margin) * _unitSize;
+
+                    for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
+                    {
+                        var worldX = (x - Margin) * _unitSize;
+                        var sampled = sdf[new Vector2( worldX, worldY )];
+
+                        if ( sampled >= MaxDistance ) continue;
+
+                        var encoded = Encode( sampled );
+
+                        var oldValue = layer[index];
+                        var newValue = Math.Max( (byte) (MaxEncoded - encoded), oldValue );
+
+                        layer[index] = newValue;
+                        dstLayer[index] = Math.Min( dstLayer[index], Math.Max( encoded, oldValue ) );
+
+                        changed |= oldValue != newValue;
+                    }
+                }
+            }
+
+            if ( changed )
+            {
+                ++ModificationCount;
+            }
+
+            return changed;
         }
 
         public void WriteTo( MarchingSquaresMeshWriter writer, MarchingSquaresMaterial material )
