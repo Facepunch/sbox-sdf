@@ -13,14 +13,14 @@ namespace Sandbox.MarchingCubes
 
 	public partial class MarchingCubesMeshWriter : IVoxelMeshWriter
 	{
-		private static readonly List<MarchingCubesMeshWriter> _sPool = new List<MarchingCubesMeshWriter>();
+		private static List<MarchingCubesMeshWriter> Pool { get; } = new List<MarchingCubesMeshWriter>();
 
 		public static MarchingCubesMeshWriter Rent()
 		{
-			if ( _sPool.Count > 0 )
+			if ( Pool.Count > 0 )
 			{
-				var writer = _sPool[_sPool.Count - 1];
-				_sPool.RemoveAt( _sPool.Count - 1 );
+				var writer = Pool[^1];
+				Pool.RemoveAt( Pool.Count - 1 );
 
 				writer._isInPool = false;
 				writer.Clear();
@@ -41,7 +41,7 @@ namespace Sandbox.MarchingCubes
 			Clear();
 
 			_isInPool = true;
-			_sPool.Add( this );
+			Pool.Add( this );
 		}
 
 		private bool _isInPool;

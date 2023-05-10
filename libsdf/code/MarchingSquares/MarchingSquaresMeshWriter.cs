@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Sandbox.MarchingCubes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,6 +10,44 @@ namespace Sandbox.MarchingSquares
 {
     public class MarchingSquaresMeshWriter
     {
+        private const int MaxPoolCount = 16;
+        private static List<MarchingSquaresMeshWriter> Pool { get; } = new List<MarchingSquaresMeshWriter>();
+
+        public static MarchingSquaresMeshWriter Rent()
+        {
+            if ( Pool.Count > 0 )
+            {
+                var writer = Pool[^1];
+                Pool.RemoveAt( Pool.Count - 1 );
+
+                writer._isInPool = false;
+                writer.Clear();
+
+                return writer;
+            }
+
+            return new MarchingSquaresMeshWriter();
+        }
+
+        public void Return()
+        {
+            if ( _isInPool )
+            {
+                throw new InvalidOperationException( "Already returned." );
+            }
+
+            Clear();
+
+            _isInPool = true;
+
+            if ( Pool.Count < MaxPoolCount )
+            {
+                Pool.Add( this );
+            }
+        }
+
+        private bool _isInPool;
+
         /// <summary>
         /// <code>
         /// c - d
@@ -269,16 +308,15 @@ namespace Sandbox.MarchingSquares
 
                 var frontIndex = Vertices.Count;
                 var backIndex = frontIndex + 1;
+                var tangent = new Vector3( 0f, 0f, 1f );
 
                 Vertices.Add( new CutVertex(
                     pos * unitSize + FrontOffset,
-                    normal,
-                    new Vector3( 0f, 0f, -1f ) ) );
+                    normal, tangent ) );
 
                 Vertices.Add( new CutVertex(
                     pos * unitSize + BackOffset,
-                    normal,
-                    new Vector3( 0f, 0f, -1f ) ) );
+                    normal, tangent ) );
 
                 if ( !wasInMap )
                 {
@@ -320,10 +358,16 @@ namespace Sandbox.MarchingSquares
         private FrontBackSubMesh Back { get; } = new();
         private CutSubMesh Cut { get; } = new();
 
+        private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY );
+
+        private List<SolidBlock> SolidBlocks { get; } = new();
+
         public void Clear()
         {
+            SolidBlocks.Clear();
             FrontBackTriangles.Clear();
             CutFaces.Clear();
+
             Front.Clear();
             Back.Clear();
             Cut.Clear();
@@ -341,6 +385,7 @@ namespace Sandbox.MarchingSquares
 
         public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth )
         {
+            SolidBlocks.Clear();
             FrontBackTriangles.Clear();
             CutFaces.Clear();
 
@@ -477,8 +522,7 @@ namespace Sandbox.MarchingSquares
 
 
                         case SquareConfiguration.ABCD:
-                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C, SquareVertex.B ) );
-                            FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.B, SquareVertex.C ) );
+                            SolidBlocks.Add( new SolidBlock( x, y, x + 1, y + 1 ) );
                             break;
 
                         default:
@@ -502,9 +546,119 @@ namespace Sandbox.MarchingSquares
                 Back.AddTriangle( layer, unitSize, triangle );
             }
 
+            ReduceSolidBlocks( SolidBlocks );
+
+            foreach ( var block in SolidBlocks )
+            {
+                var a = new VertexKey( block.MinX, block.MinY, NormalizedVertex.A );
+                var b = new VertexKey( block.MaxX, block.MinY, NormalizedVertex.A );
+                var c = new VertexKey( block.MinX, block.MaxY, NormalizedVertex.A );
+                var d = new VertexKey( block.MaxX, block.MaxY, NormalizedVertex.A );
+
+                var tri0 = new FrontBackTriangle( a, c, b );
+                var tri1 = new FrontBackTriangle( c, d, b );
+
+                Front.AddTriangle( layer, unitSize, tri0.Flipped );
+                Front.AddTriangle( layer, unitSize, tri1.Flipped );
+
+                Back.AddTriangle( layer, unitSize, tri0 );
+                Back.AddTriangle( layer, unitSize, tri1 );
+            }
+
             foreach ( var cutFace in CutFaces )
             {
                 Cut.AddQuad( layer, unitSize, cutFace );
+            }
+        }
+
+        private static void ReduceSolidBlocks( List<SolidBlock> blocks )
+        {
+            if ( blocks.Count < 2 )
+            {
+                return;
+            }
+
+            // Merge adjacent blocks on the same row
+
+            {
+                var next = blocks[^1];
+
+                for ( var i = blocks.Count - 2; i >= 0; --i )
+                {
+                    var prev = blocks[i];
+
+                    if ( prev.MinY == next.MinY && prev.MaxY == next.MaxY && prev.MaxX == next.MinX )
+                    {
+                        prev = new SolidBlock( prev.MinX, prev.MinY, next.MaxX, prev.MaxY );
+                        blocks[i] = prev;
+                        blocks.RemoveAt( i + 1 );
+                    }
+
+                    next = prev;
+                }
+            }
+
+            // Dumb and slow merging of vertically adjacent blocks
+            // Only merge if at least one of the left or right sides are flush
+
+            for ( var i = blocks.Count - 2; i >= 0; --i )
+            {
+                var prev = blocks[i];
+
+                for ( var j = i + 1; j < blocks.Count; ++j )
+                {
+                    var next = blocks[j];
+
+                    if ( next.MinY != prev.MaxY )
+                    {
+                        continue;
+                    }
+
+                    if ( next.MinX >= prev.MaxX || next.MaxX <= prev.MinX )
+                    {
+                        continue;
+                    }
+
+                    if ( next.MinX == prev.MinX && next.MaxX == prev.MaxX )
+                    {
+                        blocks[i] = prev with { MaxY = next.MaxY };
+                        blocks.RemoveAt( j );
+                        break;
+                    }
+
+                    if ( next.MinX != prev.MinX && next.MaxX != prev.MaxX )
+                    {
+                        break;
+                    }
+
+                    if ( next.MinX < prev.MinX )
+                    {
+                        blocks[j] = next with { MaxX = prev.MinX };
+                        blocks[i] = prev with { MaxY = next.MaxY };
+                        break;
+                    }
+
+                    if ( next.MinX > prev.MinX )
+                    {
+                        blocks[j] = next with { MinY = prev.MinY };
+                        blocks[i] = prev = prev with { MaxX = next.MinX };
+                        break;
+                    }
+
+                    if ( next.MaxX > prev.MaxX)
+                    {
+                        blocks[j] = next with { MinX = prev.MaxX };
+                        blocks[i] = prev with { MaxY = next.MaxY };
+                        break;
+                    }
+
+                    if ( next.MaxX < prev.MaxX )
+                    {
+                        blocks[j] = next with { MinY = prev.MinY };
+                        blocks[i] = prev = prev with { MinX = next.MaxX };
+                        break;
+                    }
+                }
             }
         }
 

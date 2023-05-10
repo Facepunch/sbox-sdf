@@ -120,51 +120,59 @@ namespace Sandbox.MarchingSquares
 
         public void UpdateMesh()
         {
-            var writer = new MarchingSquaresMeshWriter();
+            var writer = MarchingSquaresMeshWriter.Rent();
             var subMeshesChanged = false;
 
-            foreach ( var mat in Data.Materials )
+            try
             {
-                if ( !SubMeshes.TryGetValue( mat, out var subMesh ) )
+                foreach ( var mat in Data.Materials )
                 {
-                    subMesh = new SubMesh( mat );
+                    if ( !SubMeshes.TryGetValue( mat, out var subMesh ) )
+                    {
+                        subMesh = new SubMesh( mat );
 
-                    SubMeshes.Add( mat, subMesh );
+                        SubMeshes.Add( mat, subMesh );
 
-                    subMeshesChanged = true;
+                        subMeshesChanged = true;
+                    }
+
+                    writer.Clear();
+
+                    Data.WriteTo( writer, mat );
+
+                    var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
+
+                    (subMesh.FrontBackUsed, subMesh.CutUsed) =
+                        writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
+
+                    subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
+                    subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
                 }
 
-                writer.Clear();
+                if ( Model == null || subMeshesChanged )
+                {
+                    var builder = new ModelBuilder();
 
-                Data.WriteTo( writer, mat );
+                    foreach ( var subMesh in SubMeshes.Values )
+                    {
+                        if ( subMesh.FrontBackUsed )
+                        {
+                            builder.AddMesh( subMesh.Front );
+                            builder.AddMesh( subMesh.Back );
+                        }
 
-                var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
+                        if ( subMesh.CutUsed )
+                        {
+                            builder.AddMesh( subMesh.Cut );
+                        }
+                    }
 
-                (subMesh.FrontBackUsed, subMesh.CutUsed) = writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
-
-                subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
-                subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
+                    Model = builder.Create();
+                }
             }
-            
-            if ( Model == null || subMeshesChanged )
+            finally
             {
-                var builder = new ModelBuilder();
-
-                foreach ( var subMesh in SubMeshes.Values )
-                {
-                    if ( subMesh.FrontBackUsed )
-                    {
-                        builder.AddMesh( subMesh.Front );
-                        builder.AddMesh( subMesh.Back );
-                    }
-
-                    if ( subMesh.CutUsed )
-                    {
-                        builder.AddMesh( subMesh.Cut );
-                    }
-                }
-
-                Model = builder.Create();
+                writer.Return();
             }
         }
     }
