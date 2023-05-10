@@ -1,30 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Sandbox.Diagnostics;
-using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
 {
-    public partial class MarchingSquaresChunk : ModelEntity
+    public partial class MarchingSquaresChunk : Entity
     {
         private class SubMesh
         {
-            public Mesh Front { get; }
-            public Mesh Back { get; }
-            public Mesh Cut { get; }
+            public Mesh Front { get; set; }
+            public Mesh Back { get; set; }
+            public Mesh Cut { get; set; }
+            public PhysicsShape Shape { get; set; }
 
             public bool FrontBackUsed { get; set; }
             public bool CutUsed { get; set; }
-
-            public SubMesh( MarchingSquaresMaterial material )
-            {
-                Front = new Mesh( material.FrontFaceMaterial );
-                Back = new Mesh( material.BackFaceMaterial );
-                Cut = new Mesh( material.CutFaceMaterial );
-            }
         }
 
         private Dictionary<MarchingSquaresMaterial, SubMesh> SubMeshes { get; } = new ();
@@ -33,6 +23,8 @@ namespace Sandbox.MarchingSquares
         private SdfArray2D Data { get; set; }
 
         public bool OwnedByServer { get; }
+        public SceneObject SceneObject { get; private set; }
+        public PhysicsBody PhysicsBody { get; private set; }
 
         private int _lastModificationCount;
 
@@ -100,8 +92,29 @@ namespace Sandbox.MarchingSquares
             return true;
         }
 
+        [GameEvent.Tick]
+        public void Tick()
+        {
+            UpdateMesh();
+
+            if ( PhysicsBody.IsValid() )
+            {
+                PhysicsBody.Transform = Transform;
+            }
+        }
+
         [GameEvent.PreRender]
         public void ClientPreRender()
+        {
+            UpdateMesh();
+
+            if ( SceneObject.IsValid() )
+            {
+                SceneObject.Transform = Transform;
+            }
+        }
+
+        public void UpdateMesh()
         {
             if ( Data == null )
             {
@@ -116,11 +129,10 @@ namespace Sandbox.MarchingSquares
             _lastModificationCount = Data.ModificationCount;
 
             UpdateMesh();
-        }
 
-        public void UpdateMesh()
-        {
-            var writer = MarchingSquaresMeshWriter.Rent();
+            var collisionOnly = Game.IsServer;
+
+            var writer = MarchingSquaresMeshWriter.Rent( collisionOnly );
             var subMeshesChanged = false;
 
             try
@@ -129,7 +141,14 @@ namespace Sandbox.MarchingSquares
                 {
                     if ( !SubMeshes.TryGetValue( mat, out var subMesh ) )
                     {
-                        subMesh = new SubMesh( mat );
+                        subMesh = new SubMesh();
+
+                        if ( !collisionOnly )
+                        {
+                            subMesh.Front = new Mesh( mat.FrontFaceMaterial );
+                            subMesh.Back = new Mesh( mat.BackFaceMaterial );
+                            subMesh.Cut = new Mesh( mat.CutFaceMaterial );
+                        }
 
                         SubMeshes.Add( mat, subMesh );
 
@@ -140,35 +159,80 @@ namespace Sandbox.MarchingSquares
 
                     Data.WriteTo( writer, mat );
 
-                    var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
-
-                    (subMesh.FrontBackUsed, subMesh.CutUsed) =
-                        writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
-
-                    subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
-                    subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
-                }
-
-                if ( Model == null || subMeshesChanged )
-                {
-                    var builder = new ModelBuilder();
-
-                    foreach ( var subMesh in SubMeshes.Values )
+                    if ( !collisionOnly )
                     {
-                        if ( subMesh.FrontBackUsed )
-                        {
-                            builder.AddMesh( subMesh.Front );
-                            builder.AddMesh( subMesh.Back );
-                        }
+                        var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
 
-                        if ( subMesh.CutUsed )
-                        {
-                            builder.AddMesh( subMesh.Cut );
-                        }
+                        (subMesh.FrontBackUsed, subMesh.CutUsed) =
+                            writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
+
+                        subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
+                        subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
                     }
 
-                    Model = builder.Create();
+                    if ( writer.CollisionMesh.Indices.Count == 0 )
+                    {
+                        subMesh.Shape?.Remove();
+                        subMesh.Shape = null;
+                    }
+                    else
+                    {
+                        if ( !subMesh.Shape.IsValid() )
+                        {
+                            if ( !PhysicsBody.IsValid() )
+                            {
+                                PhysicsBody = new PhysicsBody( Game.PhysicsWorld );
+                            }
+
+                            subMesh.Shape = PhysicsBody.AddMeshShape(
+                                writer.CollisionMesh.Vertices,
+                                writer.CollisionMesh.Indices );
+
+                            subMesh.Shape.AddTag( "solid" );
+                        }
+                        else
+                        {
+                            subMesh.Shape.UpdateMesh(
+                                writer.CollisionMesh.Vertices,
+                                writer.CollisionMesh.Indices );
+                        }
+                    }
                 }
+
+                if ( collisionOnly || SceneObject != null && !subMeshesChanged )
+                {
+                    return;
+                }
+
+                var builder = new ModelBuilder();
+
+                foreach ( var subMesh in SubMeshes.Values )
+                {
+                    if ( subMesh.FrontBackUsed )
+                    {
+                        builder.AddMesh( subMesh.Front );
+                        builder.AddMesh( subMesh.Back );
+                    }
+
+                    if ( subMesh.CutUsed )
+                    {
+                        builder.AddMesh( subMesh.Cut );
+                    }
+                }
+
+                if ( SceneObject == null )
+                {
+                    SceneObject ??= new SceneObject( Scene, builder.Create() );
+                }
+                else
+                {
+                    SceneObject.Model = builder.Create();
+                }
+
+                var maxDepth = Data.Materials.Max( x => x.Depth );
+
+                SceneObject.Bounds = new BBox( new Vector3( 0f, 0f, -maxDepth * 0.5f ),
+                    new Vector3( Data.Size, Data.Size, maxDepth * 0.5f ) );
             }
             finally
             {

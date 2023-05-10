@@ -13,7 +13,7 @@ namespace Sandbox.MarchingSquares
         private const int MaxPoolCount = 16;
         private static List<MarchingSquaresMeshWriter> Pool { get; } = new List<MarchingSquaresMeshWriter>();
 
-        public static MarchingSquaresMeshWriter Rent()
+        public static MarchingSquaresMeshWriter Rent( bool collisionOnly )
         {
             if ( Pool.Count > 0 )
             {
@@ -22,6 +22,8 @@ namespace Sandbox.MarchingSquares
 
                 writer._isInPool = false;
                 writer.Clear();
+
+                writer.CollisionOnly = collisionOnly;
 
                 return writer;
             }
@@ -229,9 +231,73 @@ namespace Sandbox.MarchingSquares
             }
         }
 
+        private class CollisionSubMesh : SubMesh<Vector3>
+        {
+            public Vector3 FrontOffset { get; set; }
+            public Vector3 BackOffset { get; set; }
+
+            private Dictionary<VertexKey, (int FrontIndex, int BackIndex)> Map { get; } = new();
+
+            public override VertexAttribute[] VertexLayout => throw new NotImplementedException();
+
+            public override void ClearMap()
+            {
+                Map.Clear();
+            }
+
+            private (int FrontIndex, int BackIndex) AddVertex( SdfArray2DLayer layer, float unitSize, VertexKey key )
+            {
+                if ( Map.TryGetValue( key, out var indices ) )
+                {
+                    return indices;
+                }
+
+                var pos = GetVertexPos( layer, key ) * unitSize;
+
+                var frontIndex = Vertices.Count;
+                var backIndex = frontIndex + 1;
+
+                Vertices.Add( pos + FrontOffset );
+                Vertices.Add( pos - FrontOffset );
+
+                Map.Add( key, (frontIndex, backIndex) );
+
+                return (frontIndex, backIndex);
+            }
+
+            public void AddFrontBackTriangle( SdfArray2DLayer layer, float unitSize, FrontBackTriangle triangle )
+            {
+                var (front0, back0) = AddVertex( layer, unitSize, triangle.V0 );
+                var (front1, back1) = AddVertex( layer, unitSize, triangle.V1 );
+                var (front2, back2) = AddVertex( layer, unitSize, triangle.V2 );
+
+                Indices.Add( front0 );
+                Indices.Add( front2 );
+                Indices.Add( front1 );
+
+                Indices.Add( back0 );
+                Indices.Add( back1 );
+                Indices.Add( back2 );
+            }
+
+            public void AddCutFace( SdfArray2DLayer layer, float unitSize, CutFace face )
+            {
+                var (front0, back0) = AddVertex( layer, unitSize, face.V0 );
+                var (front1, back1) = AddVertex( layer, unitSize, face.V1 );
+
+                Indices.Add( front0 );
+                Indices.Add( front1 );
+                Indices.Add( back0 );
+
+                Indices.Add( front1 );
+                Indices.Add( back1 );
+                Indices.Add( back0 );
+            }
+        }
+
         private class FrontBackSubMesh : SubMesh<FrontBackVertex>
         {
-            public Dictionary<VertexKey, int> Map { get; } = new();
+            private Dictionary<VertexKey, int> Map { get; } = new();
 
             public override VertexAttribute[] VertexLayout => FrontBackVertex.Layout;
 
@@ -354,11 +420,31 @@ namespace Sandbox.MarchingSquares
         private List<FrontBackTriangle> FrontBackTriangles { get; } = new();
         private List<CutFace> CutFaces { get; } = new();
 
+        private CollisionSubMesh Collision { get; } = new();
         private FrontBackSubMesh Front { get; } = new();
         private FrontBackSubMesh Back { get; } = new();
         private CutSubMesh Cut { get; } = new();
 
-        private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY );
+        public bool CollisionOnly { get; set; } = false;
+
+        private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
+        {
+            public ( FrontBackTriangle Tri0, FrontBackTriangle Tri1 ) Triangles
+            {
+                get
+                {
+                    var a = new VertexKey( MinX, MinY, NormalizedVertex.A );
+                    var b = new VertexKey( MaxX, MinY, NormalizedVertex.A );
+                    var c = new VertexKey( MinX, MaxY, NormalizedVertex.A );
+                    var d = new VertexKey( MaxX, MaxY, NormalizedVertex.A );
+
+                    var tri0 = new FrontBackTriangle( a, c, b );
+                    var tri1 = new FrontBackTriangle( c, d, b );
+
+                    return (tri0, tri1);
+                }
+            }
+        }
 
         private List<SolidBlock> SolidBlocks { get; } = new();
 
@@ -368,6 +454,7 @@ namespace Sandbox.MarchingSquares
             FrontBackTriangles.Clear();
             CutFaces.Clear();
 
+            Collision.Clear();
             Front.Clear();
             Back.Clear();
             Cut.Clear();
@@ -531,43 +618,68 @@ namespace Sandbox.MarchingSquares
                 }
             }
 
+            ReduceSolidBlocks( SolidBlocks );
+
+            Collision.ClearMap();
             Front.ClearMap();
             Back.ClearMap();
             Cut.ClearMap();
 
             Front.Normal = new Vector3( 0f, 0f, 1f );
-            Front.Offset = Cut.FrontOffset = Front.Normal * depth * 0.5f;
+            Front.Offset = Cut.FrontOffset = Collision.FrontOffset = Front.Normal * depth * 0.5f;
             Back.Normal = new Vector3( 0f, 0f, -1f );
-            Back.Offset = Cut.BackOffset = Back.Normal * depth * 0.5f;
+            Back.Offset = Cut.BackOffset = Collision.BackOffset = Back.Normal * depth * 0.5f;
 
-            foreach ( var triangle in FrontBackTriangles )
+            if ( CollisionOnly )
             {
-                Front.AddTriangle( layer, unitSize, triangle.Flipped );
-                Back.AddTriangle( layer, unitSize, triangle );
+                foreach ( var triangle in FrontBackTriangles )
+                {
+                    Collision.AddFrontBackTriangle( layer, unitSize, triangle );
+                }
+
+                foreach ( var block in SolidBlocks )
+                {
+                    var (tri0, tri1) = block.Triangles;
+
+                    Collision.AddFrontBackTriangle( layer, unitSize, tri0 );
+                    Collision.AddFrontBackTriangle( layer, unitSize, tri1 );
+                }
+
+                foreach ( var cutFace in CutFaces )
+                {
+                    Collision.AddCutFace( layer, unitSize, cutFace );
+                }
             }
-
-            ReduceSolidBlocks( SolidBlocks );
-
-            foreach ( var block in SolidBlocks )
+            else
             {
-                var a = new VertexKey( block.MinX, block.MinY, NormalizedVertex.A );
-                var b = new VertexKey( block.MaxX, block.MinY, NormalizedVertex.A );
-                var c = new VertexKey( block.MinX, block.MaxY, NormalizedVertex.A );
-                var d = new VertexKey( block.MaxX, block.MaxY, NormalizedVertex.A );
+                foreach ( var triangle in FrontBackTriangles )
+                {
+                    Collision.AddFrontBackTriangle( layer, unitSize, triangle );
 
-                var tri0 = new FrontBackTriangle( a, c, b );
-                var tri1 = new FrontBackTriangle( c, d, b );
+                    Front.AddTriangle( layer, unitSize, triangle.Flipped );
+                    Back.AddTriangle( layer, unitSize, triangle );
+                }
 
-                Front.AddTriangle( layer, unitSize, tri0.Flipped );
-                Front.AddTriangle( layer, unitSize, tri1.Flipped );
+                foreach ( var block in SolidBlocks )
+                {
+                    var (tri0, tri1) = block.Triangles;
 
-                Back.AddTriangle( layer, unitSize, tri0 );
-                Back.AddTriangle( layer, unitSize, tri1 );
-            }
+                    Collision.AddFrontBackTriangle( layer, unitSize, tri0 );
+                    Collision.AddFrontBackTriangle( layer, unitSize, tri1 );
 
-            foreach ( var cutFace in CutFaces )
-            {
-                Cut.AddQuad( layer, unitSize, cutFace );
+                    Front.AddTriangle( layer, unitSize, tri0.Flipped );
+                    Front.AddTriangle( layer, unitSize, tri1.Flipped );
+
+                    Back.AddTriangle( layer, unitSize, tri0 );
+                    Back.AddTriangle( layer, unitSize, tri1 );
+                }
+
+                foreach ( var cutFace in CutFaces )
+                {
+                    Collision.AddCutFace( layer, unitSize, cutFace );
+
+                    Cut.AddQuad( layer, unitSize, cutFace );
+                }
             }
         }
 
@@ -601,62 +713,74 @@ namespace Sandbox.MarchingSquares
             // Dumb and slow merging of vertically adjacent blocks
             // Only merge if at least one of the left or right sides are flush
 
-            for ( var i = blocks.Count - 2; i >= 0; --i )
+            var changed = true;
+            while ( changed )
             {
-                var prev = blocks[i];
+                changed = false;
 
-                for ( var j = i + 1; j < blocks.Count; ++j )
+                for ( var i = blocks.Count - 2; i >= 0; --i )
                 {
-                    var next = blocks[j];
+                    var prev = blocks[i];
 
-                    if ( next.MinY != prev.MaxY )
+                    for ( var j = i + 1; j < blocks.Count; ++j )
                     {
-                        continue;
-                    }
+                        var next = blocks[j];
 
-                    if ( next.MinX >= prev.MaxX || next.MaxX <= prev.MinX )
-                    {
-                        continue;
-                    }
+                        if ( next.MinY != prev.MaxY )
+                        {
+                            continue;
+                        }
 
-                    if ( next.MinX == prev.MinX && next.MaxX == prev.MaxX )
-                    {
-                        blocks[i] = prev with { MaxY = next.MaxY };
-                        blocks.RemoveAt( j );
-                        break;
-                    }
+                        if ( next.MinX >= prev.MaxX || next.MaxX <= prev.MinX )
+                        {
+                            continue;
+                        }
 
-                    if ( next.MinX != prev.MinX && next.MaxX != prev.MaxX )
-                    {
-                        break;
-                    }
+                        if ( next.MinX == prev.MinX && next.MaxX == prev.MaxX )
+                        {
+                            blocks[i] = prev = prev with { MaxY = next.MaxY };
+                            blocks.RemoveAt( j );
+                            j -= 1;
+                            changed = true;
+                            continue;
+                        }
 
-                    if ( next.MinX < prev.MinX )
-                    {
-                        blocks[j] = next with { MaxX = prev.MinX };
-                        blocks[i] = prev with { MaxY = next.MaxY };
-                        break;
-                    }
+                        if ( next.MinX != prev.MinX && next.MaxX != prev.MaxX )
+                        {
+                            continue;
+                        }
 
-                    if ( next.MinX > prev.MinX )
-                    {
-                        blocks[j] = next with { MinY = prev.MinY };
-                        blocks[i] = prev = prev with { MaxX = next.MinX };
-                        break;
-                    }
+                        if ( next.MinX < prev.MinX )
+                        {
+                            blocks[j] = next with { MaxX = prev.MinX };
+                            blocks[i] = prev = prev with { MaxY = next.MaxY };
+                            changed = true;
+                            continue;
+                        }
 
-                    if ( next.MaxX > prev.MaxX)
-                    {
-                        blocks[j] = next with { MinX = prev.MaxX };
-                        blocks[i] = prev with { MaxY = next.MaxY };
-                        break;
-                    }
+                        if ( next.MinX > prev.MinX )
+                        {
+                            blocks[j] = prev with { MaxX = next.MinX };
+                            blocks[i] = prev = next with { MinY = prev.MinY };
+                            changed = true;
+                            continue;
+                        }
 
-                    if ( next.MaxX < prev.MaxX )
-                    {
-                        blocks[j] = next with { MinY = prev.MinY };
-                        blocks[i] = prev = prev with { MinX = next.MaxX };
-                        break;
+                        if ( next.MaxX > prev.MaxX )
+                        {
+                            blocks[j] = next with { MinX = prev.MaxX };
+                            blocks[i] = prev = prev with { MaxY = next.MaxY };
+                            changed = true;
+                            continue;
+                        }
+
+                        if ( next.MaxX < prev.MaxX )
+                        {
+                            blocks[j] = prev with { MinX = next.MaxX };
+                            blocks[i] = prev = next with { MinY = prev.MinY };
+                            changed = true;
+                            continue;
+                        }
                     }
                 }
             }
@@ -677,6 +801,8 @@ namespace Sandbox.MarchingSquares
 
             return (Front.Indices.Count > 0, Cut.Indices.Count > 0);
         }
+
+        public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
     }
 
     [StructLayout( LayoutKind.Sequential )]
