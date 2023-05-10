@@ -124,37 +124,34 @@ namespace Sandbox.MarchingSquares
         private abstract class SubMesh<T>
             where T : unmanaged
         {
-            public List<T> Vertices { get; } = new List<T>();
-            public List<int> Indices { get; } = new List<int>();
+            public List<T> Vertices { get; } = new();
+            public List<int> Indices { get; } = new();
 
             public abstract VertexAttribute[] VertexLayout { get; }
 
             public abstract void ClearMap();
             
-            protected Vector3 GetVertexPos( float[] data, int baseIndex, int rowStride, VertexKey key )
+            protected Vector3 GetVertexPos( SdfArray2DLayer layer, VertexKey key )
             {
                 switch ( key.Vertex )
                 {
                     case NormalizedVertex.A:
                         return new Vector3( key.X, key.Y );
-                        break;
 
                     case NormalizedVertex.AB:
                     {
-                        var a = data[baseIndex + key.X + key.Y * rowStride];
-                        var b = data[baseIndex + key.X + key.Y * rowStride + 1];
+                        var a = layer[key.X, key.Y] - 127.5f;
+                        var b = layer[key.X + 1, key.Y] - 127.5f;
                         var t = a / (a - b);
                         return new Vector3( key.X + t, key.Y );
-                        break;
                     }
 
                     case NormalizedVertex.AC:
                     {
-                        var a = data[baseIndex + key.X + key.Y * rowStride];
-                        var b = data[baseIndex + key.X + key.Y * rowStride + rowStride];
-                        var t = a / (a - b);
+                        var a = layer[key.X, key.Y] - 127.5f;
+                        var c = layer[key.X, key.Y + 1] - 127.5f;
+                        var t = a / (a - c);
                         return new Vector3( key.X, key.Y + t );
-                        break;
                     }
 
                     default:
@@ -207,14 +204,14 @@ namespace Sandbox.MarchingSquares
                 Map.Clear();
             }
 
-            private int AddVertex( float[] data, int baseIndex, int rowStride, float unitSize, VertexKey key )
+            private int AddVertex( SdfArray2DLayer layer, float unitSize, VertexKey key )
             {
                 if ( Map.TryGetValue( key, out var index ) )
                 {
                     return index;
                 }
 
-                var pos = GetVertexPos( data, baseIndex, rowStride, key );
+                var pos = GetVertexPos( layer, key );
 
                 index = Vertices.Count;
 
@@ -229,11 +226,11 @@ namespace Sandbox.MarchingSquares
                 return index;
             }
 
-            public void AddTriangle( float[] data, int baseIndex, int rowStride, float unitSize, FrontBackTriangle triangle )
+            public void AddTriangle( SdfArray2DLayer layer, float unitSize, FrontBackTriangle triangle )
             {
-                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V0 ) );
-                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V1 ) );
-                Indices.Add( AddVertex( data, baseIndex, rowStride, unitSize, triangle.V2 ) );
+                Indices.Add( AddVertex( layer, unitSize, triangle.V0 ) );
+                Indices.Add( AddVertex( layer, unitSize, triangle.V1 ) );
+                Indices.Add( AddVertex( layer, unitSize, triangle.V2 ) );
             }
         }
 
@@ -291,10 +288,10 @@ namespace Sandbox.MarchingSquares
                 return (frontIndex, backIndex);
             }
 
-            public void AddQuad( float[] data, int baseIndex, int rowStride, float unitSize, CutFace face )
+            public void AddQuad( SdfArray2DLayer layer, float unitSize, CutFace face )
             {
-                var aPos = GetVertexPos( data, baseIndex, rowStride, face.V0 );
-                var bPos = GetVertexPos( data, baseIndex, rowStride, face.V1 );
+                var aPos = GetVertexPos( layer, face.V0 );
+                var bPos = GetVertexPos( layer, face.V1 );
 
                 var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
 
@@ -332,31 +329,29 @@ namespace Sandbox.MarchingSquares
             Cut.Clear();
         }
 
-        private float GetAdSubBc( float[] data, int baseIndex, int rowStride, int x, int y )
+        private static float GetAdSubBc( SdfArray2DLayer layer, int x, int y )
         {
-            var index = baseIndex + x + y * rowStride;
-
-            var a = data[index];
-            var b = data[index + 1];
-            var c = data[index + rowStride];
-            var d = data[index + rowStride + 1];
+            var a = layer[x, y] - 127.5f;
+            var b = layer[x + 1, y] - 127.5f;
+            var c = layer[x, y + 1] - 127.5f;
+            var d = layer[x + 1, y + 1] - 127.5f;
 
             return a * d - b * c;
         }
 
-        public void Write( float[] data, int baseIndex, int width, int height, int rowStride, float unitSize, float depth )
+        public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth )
         {
             FrontBackTriangles.Clear();
             CutFaces.Clear();
 
             for ( var y = 0; y < height; ++y )
             {
-                for ( int x = 0, index = baseIndex + y * rowStride; x < width; ++x, ++index )
+                for ( int x = 0, index = layer.BaseIndex + y * layer.RowStride; x < width; ++x, ++index )
                 {
-                    var a = data[index] < 0f ? SquareConfiguration.A : 0;
-                    var b = data[index + 1] < 0f ? SquareConfiguration.B : 0;
-                    var c = data[index + rowStride] < 0f ? SquareConfiguration.C : 0;
-                    var d = data[index + rowStride + 1] < 0f ? SquareConfiguration.D : 0;
+                    var a = layer.Samples[index] < 128 ? SquareConfiguration.A : 0;
+                    var b = layer.Samples[index + 1] < 128 ? SquareConfiguration.B : 0;
+                    var c = layer.Samples[index + layer.RowStride] < 128 ? SquareConfiguration.C : 0;
+                    var d = layer.Samples[index + layer.RowStride + 1] < 128 ? SquareConfiguration.D : 0;
 
                     var config = a | b | c | d;
 
@@ -412,7 +407,7 @@ namespace Sandbox.MarchingSquares
 
 
                         case SquareConfiguration.AD:
-                            if ( GetAdSubBc( data, baseIndex, rowStride, x, y ) > 0f )
+                            if ( GetAdSubBc( layer, x, y ) > 0f )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC, SquareVertex.D ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC, SquareVertex.CD ) );
@@ -432,7 +427,7 @@ namespace Sandbox.MarchingSquares
                             break;
 
                         case SquareConfiguration.BC:
-                            if ( GetAdSubBc( data, baseIndex, rowStride, x, y ) < 0f )
+                            if ( GetAdSubBc( layer, x, y ) < 0f )
                             {
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB, SquareVertex.C ) );
                                 FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB, SquareVertex.AC ) );
@@ -503,13 +498,13 @@ namespace Sandbox.MarchingSquares
 
             foreach ( var triangle in FrontBackTriangles )
             {
-                Front.AddTriangle( data, baseIndex, rowStride, unitSize, triangle.Flipped );
-                Back.AddTriangle( data, baseIndex, rowStride, unitSize, triangle );
+                Front.AddTriangle( layer, unitSize, triangle.Flipped );
+                Back.AddTriangle( layer, unitSize, triangle );
             }
 
             foreach ( var cutFace in CutFaces )
             {
-                Cut.AddQuad( data, baseIndex, rowStride, unitSize, cutFace );
+                Cut.AddQuad( layer, unitSize, cutFace );
             }
         }
 

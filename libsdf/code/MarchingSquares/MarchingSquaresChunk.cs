@@ -27,7 +27,7 @@ namespace Sandbox.MarchingSquares
         }
 
         private Dictionary<MarchingSquaresMaterial, SubMesh> SubMeshes { get; } = new ();
-
+        
         private SdfArray2D Data { get; set; }
 
         public MarchingSquaresChunk()
@@ -37,7 +37,7 @@ namespace Sandbox.MarchingSquares
 
         public MarchingSquaresChunk( int resolution, float size, float? maxDistance = null )
         {
-            Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution), NormalStyle.Flat );
+            Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution) );
         }
 
         public void Clear( MarchingSquaresMaterial material = null )

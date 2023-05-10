@@ -68,12 +68,6 @@ namespace Sandbox.Sdf
 			Preview?.Delete();
 		}
 
-		[GameEvent.PreRender]
-		private void Frame()
-		{
-
-        }
-
 		public override void Simulate()
 		{
 			if ( Preview != null )
@@ -83,23 +77,47 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			if ( Chunk != null )
-			{
-				var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+			var add = Input.Down( "attack1" );
 
-				Chunk.Clear( mat );
-				Chunk.Subtract( new CircleSdf( new Vector2( 256f, 256f ), 128f ) );
-				Chunk.Subtract( new CircleSdf( 0f, 64f )
-					.Transform( new Vector2( 256f, 256f ) + (Vector2) Rotation.FromAxis( new Vector3( 0f, 0f, 1f ), Time.Now * 22.5f ).Forward * 160f ) );
-                Chunk.UpdateMesh();
+            if ( Chunk != null )
+			{
+				if ( Input.Pressed( "attack1" ) || Input.Pressed( "attack2" ) )
+				{
+					var radius = 32f + MathF.Pow( Random.Shared.NextSingle(), 2f ) * 128f;
+
+					if ( Input.Pressed( "attack2" ) )
+					{
+						radius *= 0.5f;
+					}
+
+					var min = radius + 8f;
+					var max = 512f - 8f - radius;
+
+					var sdf = new CircleSdf( new Vector2(
+						Random.Shared.NextSingle() * (max - min) + min,
+						Random.Shared.NextSingle() * (max - min) + min ), radius );
+
+                    if ( Input.Pressed( "attack1" ) )
+                    {
+	                    var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
+                        Chunk.Add( sdf, mat );
+                    }
+					else
+                    {
+	                    Chunk.Subtract( sdf );
+                    }
+
+					Chunk.UpdateMesh();
+                }
 			}
+
+            return;
 
             if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}
 
-			var add = Input.Down( "attack1" );
 			var subtract = Input.Down( "attack2" );
 
 			IsDrawing &= add;
