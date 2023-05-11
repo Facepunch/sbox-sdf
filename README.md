@@ -55,7 +55,7 @@ You can convert it into a shape that you can add to / subtract from the world li
 
 ```csharp
 var fpSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/facepunch_sdf.png" );
-var fpSdf = new TextureSdf( mapSdfTexture, 64, 1024f );
+var fpSdf = new TextureSdf( fpSdfTexture, 64, 1024f );
 
 var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
 var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
