@@ -26,24 +26,54 @@ namespace Sandbox.Sdf
     /// </summary>
     public static class Sdf2DExtensions
     {
+        /// <summary>
+        /// Moves the given SDF by the specified offset.
+        /// </summary>
+        /// <typeparam name="T">SDF type</typeparam>
+        /// <param name="sdf">SDF to translate</param>
+        /// <param name="offset">Offset to translate by</param>
+        /// <returns>A translated version of <paramref name="sdf"/></returns>
         public static TranslatedSdf<T> Translate<T>( this T sdf, Vector2 offset )
             where T : ISdf2D
         {
             return new TranslatedSdf<T>( sdf, offset );
         }
 
+        /// <summary>
+        /// Scales, rotates, and translates the given SDF.
+        /// </summary>
+        /// <typeparam name="T">SDF type</typeparam>
+        /// <param name="sdf">SDF to transform</param>
+        /// <param name="transform">Transformation to apply</param>
+        /// <returns>A transformed version of <paramref name="sdf"/></returns>
         public static TransformedSdf<T> Transform<T>( this T sdf, Transform2D transform )
             where T : ISdf2D
         {
             return new TransformedSdf<T>( sdf, transform );
         }
 
+        /// <summary>
+        /// Scales, rotates, and translates the given SDF.
+        /// </summary>
+        /// <typeparam name="T">SDF type</typeparam>
+        /// <param name="sdf">SDF to transform</param>
+        /// <param name="translation">Offset to translate by</param>
+        /// <param name="rotation">Rotation to apply</param>
+        /// <param name="scale">Scale multiplier to apply</param>
+        /// <returns>A transformed version of <paramref name="sdf"/></returns>
         public static TransformedSdf<T> Transform<T>( this T sdf, Vector2? translation = null, Rotation2D? rotation = null, float scale = 1f)
             where T : ISdf2D
         {
             return new TransformedSdf<T>( sdf, new Transform2D( translation, rotation, scale ) );
         }
 
+        /// <summary>
+        /// Expands the surface of the given SDF by the specified margin.
+        /// </summary>
+        /// <typeparam name="T">SDF type</typeparam>
+        /// <param name="sdf">SDF to expand</param>
+        /// <param name="margin">Distance to expand by</param>
+        /// <returns>An expanded version of <paramref name="sdf"/></returns>
         public static ExpandedSdf<T> Expand<T>( this T sdf, float margin )
             where T : ISdf2D
         {
@@ -51,8 +81,19 @@ namespace Sandbox.Sdf
         }
     }
 
+    /// <summary>
+    /// Describes an axis-aligned rectangle with rounded corners.
+    /// </summary>
+    /// <param name="Min">Position of the corner with smallest X and Y values</param>
+    /// <param name="Max">Position of the corner with largest X and Y values</param>
+    /// <param name="CornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
     public record struct BoxSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f ) : ISdf2D
     {
+        /// <summary>
+        /// Describes an axis-aligned rectangle with rounded corners.
+        /// </summary>
+        /// <param name="rect">Size and position of the box</param>
+        /// <param name="cornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
         public BoxSdf( Rect rect, float cornerRadius = 0f )
             : this( rect.TopLeft, rect.BottomRight, cornerRadius )
         {
@@ -74,6 +115,11 @@ namespace Sandbox.Sdf
         }
     }
 
+    /// <summary>
+    /// Describes a circle with a position and radius.
+    /// </summary>
+    /// <param name="Center">Position of the center of the circle</param>
+    /// <param name="Radius">Distance from the center to the edge of the circle</param>
     public record struct CircleSdf( Vector2 Center, float Radius ) : ISdf2D
     {
         public Rect Bounds => new ( Center - Radius, Radius * 2f );
@@ -81,69 +127,9 @@ namespace Sandbox.Sdf
         public float this[ Vector2 pos ] => (pos - Center).Length - Radius;
     }
 
-    public record struct Rotation2D( float Cos, float Sin )
-    {
-        public static implicit operator Rotation2D( float degrees )
-        {
-            return new Rotation2D( degrees );
-        }
-
-        public static Rotation2D Identity { get; } = new Rotation2D( 1f, 0f );
-
-        public static Vector2 operator *( Rotation2D rotation, Vector2 vector )
-        {
-            return rotation.UnitX * vector.x + rotation.UnitY * vector.y;
-        }
-
-        public static Rotation2D operator *( Rotation2D lhs, Rotation2D rhs )
-        {
-            return new Rotation2D( lhs.Cos * rhs.Cos - lhs.Sin * rhs.Sin, lhs.Sin * rhs.Cos + lhs.Cos * rhs.Sin );
-        }
-
-        public Vector2 UnitX => new( Cos, -Sin );
-        public Vector2 UnitY => new( Sin, Cos );
-
-        public Rotation2D Inverse => this with { Sin = -Sin };
-
-        public Rotation2D Normalized
-        {
-            get
-            {
-                var length = MathF.Sqrt( Cos * Cos + Sin * Sin );
-                var scale = 1f / length;
-
-                return new Rotation2D( Cos * scale, Sin * scale );
-            }
-        }
-
-        public Rotation2D( float degrees )
-            : this( MathF.Cos( degrees * MathF.PI / 180f ), MathF.Sin( degrees * MathF.PI / 180f ) )
-        {
-
-        }
-    }
-
-    public record struct Transform2D( Vector2 Translation, Rotation2D Rotation, float Scale, float InverseScale )
-    {
-        public static Transform2D Identity { get; } = new( Vector2.Zero, Rotation2D.Identity );
-
-        public Transform2D( Vector2? translation = null, Rotation2D? rotation = null, float scale = 1f )
-            : this( translation ?? Vector2.Zero, rotation ?? Rotation2D.Identity, scale, 1f / scale )
-        {
-
-        }
-
-        public Vector2 TransformPoint( Vector2 pos )
-        {
-            return Translation + Rotation * (pos * Scale);
-        }
-
-        public Vector2 InverseTransformPoint( Vector2 pos )
-        {
-            return InverseScale * (Rotation.Inverse * (pos - Translation));
-        }
-    }
-
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Transform{T}(T,Transform2D)"/>
+    /// </summary>
     public record struct TransformedSdf<T>( T Sdf, Transform2D Transform, Rect Bounds ) : ISdf2D
         where T : ISdf2D
     {
@@ -171,6 +157,9 @@ namespace Sandbox.Sdf
         public float this[ Vector2 pos ] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
     }
 
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Translate{T}"/>
+    /// </summary>
     public record struct TranslatedSdf<T>( T Sdf, Vector2 Offset ) : ISdf2D
         where T : ISdf2D
     {
@@ -179,6 +168,9 @@ namespace Sandbox.Sdf
         public float this[Vector2 pos] => Sdf[pos - Offset];
     }
 
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Expand{T}"/>
+    /// </summary>
     public record struct ExpandedSdf<T>( T Sdf, float Margin ) : ISdf2D
         where T : ISdf2D
     {
@@ -187,6 +179,35 @@ namespace Sandbox.Sdf
         public float this[ Vector2 pos ] => Sdf[pos] - Margin;
     }
 
+    /// <summary>
+    /// RGBA pixel color channel.
+    /// </summary>
+    public enum ColorChannel
+    {
+        /// <summary>
+        /// Red component.
+        /// </summary>
+        R,
+
+        /// <summary>
+        /// Green component.
+        /// </summary>
+        G,
+
+        /// <summary>
+        /// Blue component.
+        /// </summary>
+        B,
+
+        /// <summary>
+        /// Alpha component.
+        /// </summary>
+        A
+    }
+
+    /// <summary>
+    /// A SDF loaded from a <see cref="Texture"/>.
+    /// </summary>
     public readonly struct TextureSdf : ISdf2D
     {
         private readonly Vector2 _worldSize;
@@ -194,7 +215,17 @@ namespace Sandbox.Sdf
         private readonly (int Width, int Height) _imageSize;
         private readonly float[] _samples;
 
-        public TextureSdf( Texture texture, int gradientWidthPixels, float worldWidth, bool invert = false )
+        /// <summary>
+        /// A SDF loaded from a color channel from a <see cref="Texture"/>.
+        /// By default, bright values represent the exterior, and light values represent the interior.
+        /// </summary>
+        /// <param name="texture">Texture to read from</param>
+        /// <param name="gradientWidthPixels">Distance, in pixels, between the lightest and darkest values of gradients in <paramref name="texture"/></param>
+        /// <param name="worldWidth">The desired width of the resulting SDF. The height will be determined using <paramref name="texture"/>'s aspect ratio.</param>
+        /// <param name="channel">Color channel to read from</param>
+        /// <param name="invert">If false (default), bright values are external. If true, bright values are internal.</param>
+        public TextureSdf( Texture texture, int gradientWidthPixels, float worldWidth,
+            ColorChannel channel = ColorChannel.R, bool invert = false )
         {
             _worldSize = new Vector2( worldWidth, worldWidth * texture.Height / texture.Width );
             _imageSize = (texture.Width, texture.Height);
@@ -205,9 +236,35 @@ namespace Sandbox.Sdf
 
             _samples = new float[_imageSize.Width * _imageSize.Height];
 
-            for ( var i = 0; i < colors.Length; ++i )
+            switch ( channel )
             {
-                _samples[i] = scale * (colors[i].r / 255f - 0.5f);
+                case ColorChannel.R:
+                    for ( var i = 0; i < colors.Length; ++i )
+                    {
+                        _samples[i] = scale * (colors[i].r / 255f - 0.5f);
+                    }
+                    break;
+
+                case ColorChannel.G:
+                    for ( var i = 0; i < colors.Length; ++i )
+                    {
+                        _samples[i] = scale * (colors[i].g / 255f - 0.5f);
+                    }
+                    break;
+
+                case ColorChannel.B:
+                    for ( var i = 0; i < colors.Length; ++i )
+                    {
+                        _samples[i] = scale * (colors[i].b / 255f - 0.5f);
+                    }
+                    break;
+
+                case ColorChannel.A:
+                    for ( var i = 0; i < colors.Length; ++i )
+                    {
+                        _samples[i] = scale * (colors[i].a / 255f - 0.5f);
+                    }
+                    break;
             }
         }
 

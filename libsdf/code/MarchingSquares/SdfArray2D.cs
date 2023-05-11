@@ -13,9 +13,7 @@ namespace Sandbox.MarchingSquares
         private const byte MaxEncoded = 255;
         public const int Margin = 1;
 
-        public int Resolution { get; private set; }
-        public float Size { get; private set; }
-        public float MaxDistance { get; private set; }
+        public Sdf2DWorldQuality Quality { get; private set; }
 
         private byte[] _samples;
 
@@ -31,21 +29,19 @@ namespace Sandbox.MarchingSquares
 
         }
 
-        public SdfArray2D( int resolution, float size, float maxDistance )
+        public SdfArray2D( Sdf2DWorldQuality quality )
         {
-            Init( resolution, size, maxDistance );
+            Init( quality );
         }
 
-        private void Init( int resolution, float size, float maxDistance )
+        private void Init( Sdf2DWorldQuality quality )
         {
-            Resolution = resolution;
-            Size = size;
-            MaxDistance = maxDistance;
+            Quality = quality;
 
-            _arraySize = Resolution + Margin * 2 + 1;
-            _unitSize = Size / Resolution;
-            _invUnitSize = Resolution / Size;
-            _invMaxDistance = 1f / MaxDistance;
+            _arraySize = Quality.ChunkResolution + Margin * 2 + 1;
+            _unitSize = Quality.ChunkSize / Quality.ChunkResolution;
+            _invUnitSize = Quality.ChunkResolution / Quality.ChunkSize;
+            _invMaxDistance = 1f / Quality.MaxDistance;
 
             _samples = new byte[_arraySize * _arraySize];
 
@@ -59,7 +55,7 @@ namespace Sandbox.MarchingSquares
 
         private float Decode( byte encoded )
         {
-            return (encoded * (1f / MaxEncoded) - 0.5f) * MaxDistance * 2f;
+            return (encoded * (1f / MaxEncoded) - 0.5f) * Quality.MaxDistance * 2f;
         }
 
         public void Clear( bool solid )
@@ -70,8 +66,8 @@ namespace Sandbox.MarchingSquares
 
         private (int MinX, int MinY, int MaxX, int MaxY) GetSampleRange( Rect bounds )
         {
-            var min = (bounds.TopLeft - MaxDistance) * _invUnitSize;
-            var max = (bounds.BottomRight + MaxDistance) * _invUnitSize;
+            var min = (bounds.TopLeft - Quality.MaxDistance) * _invUnitSize;
+            var max = (bounds.BottomRight + Quality.MaxDistance) * _invUnitSize;
 
             var minX = Math.Max( 0, (int) MathF.Ceiling( min.x ) + Margin );
             var minY = Math.Max( 0, (int) MathF.Ceiling( min.y ) + Margin );
@@ -86,6 +82,7 @@ namespace Sandbox.MarchingSquares
             where T : ISdf2D
         {
             var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
+            var maxDist = Quality.MaxDistance;
 
             var changed = false;
 
@@ -98,7 +95,7 @@ namespace Sandbox.MarchingSquares
                     var worldX = (x - Margin) * _unitSize;
                     var sampled = sdf[new Vector2( worldX, worldY )];
 
-                    if ( sampled >= MaxDistance ) continue;
+                    if ( sampled >= maxDist ) continue;
 
                     var encoded = Encode( sampled );
 
@@ -123,6 +120,7 @@ namespace Sandbox.MarchingSquares
             where T : ISdf2D
         {
             var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
+            var maxDist = Quality.MaxDistance;
 
             var changed = false;
 
@@ -135,7 +133,7 @@ namespace Sandbox.MarchingSquares
                     var worldX = (x - Margin) * _unitSize;
                     var sampled = sdf[new Vector2( worldX, worldY )];
 
-                    if ( sampled >= MaxDistance ) continue;
+                    if ( sampled >= maxDist ) continue;
 
                     var encoded = Encode( sampled );
 
@@ -159,16 +157,17 @@ namespace Sandbox.MarchingSquares
         public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DMaterial material, bool renderMesh, bool collisionMesh )
         {
             writer.Write( new SdfArray2DLayer( _samples, Margin * _arraySize + Margin, _arraySize ),
-                Resolution, Resolution, _unitSize, material.Depth, renderMesh, collisionMesh );
+                Quality.ChunkResolution, Quality.ChunkResolution, _unitSize, material.Depth, renderMesh, collisionMesh );
         }
 
         public void Read( ref NetRead net )
         {
-            var resolution = net.Read<int>();
-            var size = net.Read<float>();
-            var maxDistance = net.Read<float>();
+            var quality = new Sdf2DWorldQuality(
+                net.Read<int>(),
+                net.Read<float>(),
+                net.Read<float>() );
 
-            Init( resolution, size, maxDistance );
+            Init( quality );
 
             _samples = net.ReadUnmanagedArray( _samples );
 
@@ -177,9 +176,9 @@ namespace Sandbox.MarchingSquares
 
         public void Write( NetWrite net )
         {
-            net.Write( Resolution );
-            net.Write( Size );
-            net.Write( MaxDistance );
+            net.Write( Quality.ChunkResolution );
+            net.Write( Quality.ChunkSize );
+            net.Write( Quality.MaxDistance );
 
             net.WriteUnmanagedArray( _samples );
         }

@@ -29,11 +29,11 @@ namespace Sandbox.MarchingSquares
             OwnedByServer = true;
         }
 
-        public MarchingSquaresChunk( int resolution, float size, float maxDistance, Sdf2DMaterial material )
+        public MarchingSquaresChunk( Sdf2DWorldQuality quality, Sdf2DMaterial material )
         {
             OwnedByServer = Game.IsServer;
 
-            Data = new SdfArray2D( resolution, size, maxDistance );
+            Data = new SdfArray2D( quality );
             Material = material;
         }
 
