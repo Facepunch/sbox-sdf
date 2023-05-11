@@ -41,7 +41,7 @@ sdfWorld.Subtract( circle.Translate( new Vector2( 32f, 0f ) ), baseMat );
 ### Materials
 You can create your own `.sdflayer` resource by selecting "New SDF 2D Material" when creating a new asset.
 
-![image](https://github.com/Facepunch/sbox-sdf/assets/1110904/81ea6d19-49cf-40b6-be68-245e1568fba3)
+![sbox-dev_rfmug4wJSE](https://github.com/Facepunch/sbox-sdf/assets/1110904/41551730-6161-4ba7-bcd6-ea617a66e9f2)
 
 In the editor you can choose how deep the layer is, which collision tags it has, and which materials to use for the front, back, and side faces.
 If you remove all collision tags, the layer will have no physics shapes.
@@ -49,7 +49,7 @@ If you remove all collision tags, the layer will have no physics shapes.
 ### Load an SDF
 Let's say you have an SDF image like this:
 
-![facepunch_sdf](https://github.com/Facepunch/sbox-sdf/assets/1110904/12af13e2-adea-47e6-957e-287c78fbd091)
+![facepunch_sdf](https://github.com/Facepunch/sbox-sdf/assets/1110904/4474d35d-7899-45df-b195-b7d65009bd1b)
 
 You can convert it into a shape that you can add to / subtract from the world like this:
 
@@ -64,7 +64,7 @@ sdfWorld.Add( fpSdf, baseMat );
 sdfWorld.Add( fpSdf.Expand( 16f ), greyMat );
 ```
 
-![sbox-dev_qrBj4yCkWN](https://github.com/Facepunch/sbox-sdf/assets/1110904/9c58146d-e2f9-41b8-bc0e-bacdb8c051fa)
+![sbox-dev_qrBj4yCkWN](https://github.com/Facepunch/sbox-sdf/assets/1110904/1007398b-9c96-42d1-8139-746b9b6d37d8)
 
 Be careful to give the correct width of the gradient in pixels (64 in this example), so that any operations you perform on the SDF will be scaled correctly.
 
