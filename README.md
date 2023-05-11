@@ -1,4 +1,4 @@
-# sbox-sdf
+# facepunch.libsdf
 Allows you to define a 2D / 3D field of signed distances to a virtual surface, perform operations with primitive shapes, then generate a 3D mesh of the surface in real time.
 
 ## 2D
