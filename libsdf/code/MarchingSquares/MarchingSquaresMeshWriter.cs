@@ -344,7 +344,7 @@ namespace Sandbox.MarchingSquares
             private const float SmoothNormalThreshold = 33f;
             private static readonly float SmoothNormalDotTheshold = MathF.Cos( SmoothNormalThreshold * MathF.PI / 180f );
 
-            private record struct VertexInfo( int FrontIndex, int BackIndex, Vector3 Normal );
+            private record struct VertexInfo( int FrontIndex, int BackIndex, Vector3 Normal, float V );
 
             private Dictionary<VertexKey, VertexInfo> Map { get; } = new Dictionary<VertexKey, VertexInfo>();
 
@@ -357,6 +357,12 @@ namespace Sandbox.MarchingSquares
             {
                 var wasInMap = false;
 
+                var binormal = MathF.Abs( normal.y ) > RootHalf
+                    ? new Vector3( -MathF.Sign( normal.y ), 0f, 0f )
+                    : new Vector3( 0f, MathF.Sign( normal.x ), 0f );
+
+                var v = Vector3.Dot( pos, binormal ) * unitSize;
+
                 if ( Map.TryGetValue( key, out var info ) )
                 {
                     if ( Vector3.Dot( info.Normal, normal ) >= SmoothNormalDotTheshold )
@@ -366,7 +372,10 @@ namespace Sandbox.MarchingSquares
                         Vertices[info.FrontIndex] = Vertices[info.FrontIndex] with { Normal = normal };
                         Vertices[info.BackIndex] = Vertices[info.BackIndex] with { Normal = normal };
 
-                        return (info.FrontIndex, info.BackIndex);
+                        if ( MathF.Abs( v - info.V ) <= 1f )
+                        {
+                            return (info.FrontIndex, info.BackIndex);
+                        }
                     }
 
                     wasInMap = true;
@@ -376,13 +385,8 @@ namespace Sandbox.MarchingSquares
                 var backIndex = frontIndex + 1;
                 var tangent = new Vector3( 0f, 0f, 1f );
 
-                var binormal = MathF.Abs( normal.y ) > RootHalf
-                    ? new Vector3( -MathF.Sign( normal.y ), 0f, 0f )
-                    : new Vector3( 0f, MathF.Sign( normal.x ), 0f );
-
                 var uvScale = 1f / 16f;
                 var width = BackOffset.z - FrontOffset.z;
-                var v = Vector3.Dot( pos, binormal ) * unitSize;
 
                 Vertices.Add( new Vertex(
                     pos * unitSize + FrontOffset,
@@ -396,7 +400,7 @@ namespace Sandbox.MarchingSquares
 
                 if ( !wasInMap )
                 {
-                    Map[key] = new VertexInfo( frontIndex, backIndex, normal );
+                    Map[key] = new VertexInfo( frontIndex, backIndex, normal, v );
                 }
 
                 return (frontIndex, backIndex);
