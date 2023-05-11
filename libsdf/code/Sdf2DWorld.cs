@@ -63,7 +63,7 @@ namespace Sandbox.Sdf
         }
 
         private bool ModifyChunks<T>( in T sdf, Sdf2DMaterial material, bool createChunks,
-            Func<MarchingSquaresChunk, TransformedSdf<T>, bool> func )
+            Func<MarchingSquaresChunk, TranslatedSdf<T>, bool> func )
             where T : ISdf2D
         {
             AssertCanModify();
@@ -99,7 +99,7 @@ namespace Sandbox.Sdf
                         continue;
                     }
 
-                    changed |= func( chunk, sdf.Transform( translation: new Vector2( x * -_chunkSize, y * -_chunkSize ) ) );
+                    changed |= func( chunk, sdf.Translate( new Vector2( x * -_chunkSize, y * -_chunkSize ) ) );
                 }
             }
 

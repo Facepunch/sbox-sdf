@@ -1,14 +1,10 @@
-﻿using Sandbox.MarchingCubes;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using static Sandbox.Package;
-using static Sandbox.Prefab;
 
 namespace Sandbox.MarchingSquares
 {
-    public class MarchingSquaresMeshWriter
+    internal class MarchingSquaresMeshWriter
     {
         private const int MaxPoolCount = 16;
         private static List<MarchingSquaresMeshWriter> Pool { get; } = new List<MarchingSquaresMeshWriter>();

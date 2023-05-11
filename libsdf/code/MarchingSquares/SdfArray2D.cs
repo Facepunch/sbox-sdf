@@ -1,15 +1,14 @@
 ﻿using Sandbox.Sdf;
 using System;
-using System.Collections.Generic;
 
 namespace Sandbox.MarchingSquares
 {
-    public record struct SdfArray2DLayer( byte[] Samples, int BaseIndex, int RowStride )
+    internal record struct SdfArray2DLayer( byte[] Samples, int BaseIndex, int RowStride )
     {
         public byte this[ int x, int y ] => Samples[BaseIndex + x + y * RowStride];
     }
 
-    public partial class SdfArray2D : BaseNetworkable, INetworkSerializer
+    internal partial class SdfArray2D : BaseNetworkable, INetworkSerializer
     {
         private const byte MaxEncoded = 255;
         public const int Margin = 1;

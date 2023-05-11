@@ -1,11 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Sandbox.Diagnostics;
-using Sandbox.Sdf;
+﻿using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
 {
-    public partial class MarchingSquaresChunk : Entity
+    internal partial class MarchingSquaresChunk : Entity
     {
         public Mesh Front { get; set; }
         public Mesh Back { get; set; }

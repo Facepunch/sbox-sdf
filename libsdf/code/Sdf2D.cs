@@ -2,6 +2,9 @@
 
 namespace Sandbox.Sdf
 {
+    /// <summary>
+    /// Base interface for shapes that can be added to or subtracted from a <see cref="Sdf2DWorld"/>.
+    /// </summary>
     public interface ISdf2D
     {
         /// <summary>
@@ -18,8 +21,17 @@ namespace Sandbox.Sdf
         float this[ Vector2 pos ] { get; }
     }
 
+    /// <summary>
+    /// Some extension methods for <see cref="ISdf2D"/>.
+    /// </summary>
     public static class Sdf2DExtensions
     {
+        public static TranslatedSdf<T> Translate<T>( this T sdf, Vector2 offset )
+            where T : ISdf2D
+        {
+            return new TranslatedSdf<T>( sdf, offset );
+        }
+
         public static TransformedSdf<T> Transform<T>( this T sdf, Transform2D transform )
             where T : ISdf2D
         {
@@ -157,6 +169,14 @@ namespace Sandbox.Sdf
         }
 
         public float this[ Vector2 pos ] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
+    }
+
+    public record struct TranslatedSdf<T>( T Sdf, Vector2 Offset ) : ISdf2D
+        where T : ISdf2D
+    {
+        public Rect Bounds => new ( Sdf.Bounds.Position + Offset, Sdf.Bounds.Size );
+
+        public float this[Vector2 pos] => Sdf[pos - Offset];
     }
 
     public record struct ExpandedSdf<T>( T Sdf, float Margin ) : ISdf2D
