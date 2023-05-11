@@ -16,14 +16,15 @@
     "ProjectTemplate": null,
     "CsProjName": "",
     "Summary": "Marching cubes \u0026 squares mesh generation",
-    "Description": "WIP",
-    "Public": false,
+    "Description": "Sdf2DWorld is ready to use!\n\nMarching Cubes is WIP",
+    "Public": true,
     "Compiler": {
       "RootNamespace": "Sandbox",
       "DefineConstants": "SANDBOX;ADDON;DEBUG",
       "NoWarn": "1701;1702;1591;",
       "References": [],
       "DistinctReferences": []
-    }
+    },
+    "ReplaceTags": "procgen mesh 3d 2d"
   }
 }

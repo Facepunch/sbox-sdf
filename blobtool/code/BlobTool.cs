@@ -18,20 +18,20 @@ namespace Sandbox.Sdf
 		{
 			SdfWorld?.Delete();
 
-			SdfWorld = new Sdf2DWorld( Sdf2DWorldQuality.Low )
+			SdfWorld = new Sdf2DWorld( Sdf2DWorldQuality.Medium )
 			{
 				LocalPosition = new Vector3( -1024f, 1536f ),
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
 
-			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/example_sdf.png" );
-			var mapSdf = new TextureSdf( mapSdfTexture, 32, 2048f );
+			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/facepunch_sdf.png" );
+			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f );
 
 			var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
 			var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
 
-            SdfWorld.Add( mapSdf.Expand( 1f ), baseMat );
-			SdfWorld.Add( mapSdf, greyMat );
+            SdfWorld.Add( mapSdf, baseMat );
+			SdfWorld.Add( mapSdf.Expand( 16f ), greyMat );
         }
 
 		public const float MinDistanceBetweenEdits = 4f;
