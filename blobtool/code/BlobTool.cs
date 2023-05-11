@@ -20,16 +20,19 @@ namespace Sandbox.Sdf
 
 			SdfWorld = new Sdf2DWorld( resolution, 256f )
 			{
-				LocalPosition = new Vector3( -256f, -2470f ),
+				LocalPosition = new Vector3( -1024f, 1536f ),
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
 
 			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/example_sdf.png" );
 			var mapSdf = new TextureSdf( mapSdfTexture, 32, 2048f );
-			var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
 
-			SdfWorld.Add( mapSdf, mat );
-		}
+			var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
+			var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
+
+            SdfWorld.Add( mapSdf.Expand( 1f ), baseMat );
+			SdfWorld.Add( mapSdf, greyMat );
+        }
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
@@ -105,17 +108,20 @@ namespace Sandbox.Sdf
 			            var radius = 64f;
 			            var localPos = SdfWorld.Transform.PointToLocal( hitPos );
 
-			            var sdf = new CircleSdf( new Vector2( localPos.x, localPos.y ), radius );
+						var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
+						var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
 
-			            if ( add )
-			            {
-				            var mat = ResourceLibrary.Get<MarchingSquaresMaterial>( "materials/sdf2d_default.msmat" );
-				            SdfWorld.Add( sdf, mat );
-			            }
-			            else
-			            {
-				            SdfWorld.Subtract( sdf );
-			            }
+						var sdf = new CircleSdf( new Vector2( localPos.x, localPos.y ), radius );
+
+						if ( add )
+						{
+						    SdfWorld.Add( sdf, greyMat );
+						}
+						else
+						{
+						    SdfWorld.Subtract( sdf.Expand( 8f ), baseMat );
+						    SdfWorld.Subtract( sdf, greyMat );
+						}
                     }
 	            }
             }

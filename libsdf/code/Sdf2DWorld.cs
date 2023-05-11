@@ -7,6 +7,8 @@ namespace Sandbox.Sdf
 {
     public partial class Sdf2DWorld : Entity
     {
+        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks );
+
         private readonly int _chunkResolution;
         private readonly float _chunkSize;
         private readonly float _maxDistance;
@@ -14,7 +16,7 @@ namespace Sandbox.Sdf
 
         public bool OwnedByServer { get; }
 
-        private static Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks { get; } = new ();
+        private static Dictionary<Sdf2DMaterial, Layer> Layers { get; } = new ();
 
         public Sdf2DWorld()
         {
@@ -31,15 +33,22 @@ namespace Sandbox.Sdf
             _maxDistance = maxDistance ?? (chunkSize * 4f / chunkResolution);
         }
 
-        private MarchingSquaresChunk GetChunk( int chunkX, int chunkY )
+        private MarchingSquaresChunk GetChunk( Sdf2DMaterial material, int chunkX, int chunkY )
         {
-            return Chunks.TryGetValue( (chunkX, chunkY), out var chunk ) ? chunk : null;
+            return Layers.TryGetValue( material, out var layer )
+                && layer.Chunks.TryGetValue( (chunkX, chunkY), out var chunk ) ? chunk : null;
         }
 
-        private MarchingSquaresChunk GetOrCreateChunk( int chunkX, int chunkY )
+        private MarchingSquaresChunk GetOrCreateChunk( Sdf2DMaterial material, int chunkX, int chunkY )
         {
-            return Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
-                ? chunk : Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( _chunkResolution, _chunkSize, _maxDistance )
+            if ( !Layers.TryGetValue( material, out var layer ) )
+            {
+                layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() );
+                Layers.Add( material, layer );
+            }
+
+            return layer.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
+                ? chunk : layer.Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( _chunkResolution, _chunkSize, _maxDistance, material )
                 {
                     Parent = this,
                     LocalPosition = new Vector3( chunkX * _chunkSize, chunkY * _chunkSize ),
@@ -53,11 +62,16 @@ namespace Sandbox.Sdf
             Assert.True( OwnedByServer == Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
         }
 
-        private bool ModifyChunks<T>( in T sdf, MarchingSquaresMaterial material, bool createChunks,
-            Func<MarchingSquaresChunk, TransformedSdf<T>, MarchingSquaresMaterial, bool> func )
+        private bool ModifyChunks<T>( in T sdf, Sdf2DMaterial material, bool createChunks,
+            Func<MarchingSquaresChunk, TransformedSdf<T>, bool> func )
             where T : ISdf2D
         {
             AssertCanModify();
+
+            if ( material == null )
+            {
+                throw new ArgumentNullException( nameof(material) );
+            }
 
             var bounds = sdf.Bounds;
 
@@ -77,37 +91,44 @@ namespace Sandbox.Sdf
                 for ( var x = minX; x < maxX; ++x )
                 {
                     var chunk = !createChunks
-                        ? GetChunk( x, y )
-                        : GetOrCreateChunk( x, y );
+                        ? GetChunk( material, x, y )
+                        : GetOrCreateChunk( material, x, y );
 
                     if ( chunk == null )
                     {
                         continue;
                     }
 
-                    changed |= func( chunk, sdf.Transform( translation: new Vector2( x * -_chunkSize, y * -_chunkSize ) ), material );
+                    changed |= func( chunk, sdf.Transform( translation: new Vector2( x * -_chunkSize, y * -_chunkSize ) ) );
                 }
             }
 
             return changed;
         }
 
-        public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
+        public bool Add<T>( in T sdf, Sdf2DMaterial material )
             where T : ISdf2D
         {
-            return ModifyChunks( sdf, material, true, ( chunk, sdf, mat ) => chunk.Add( sdf, mat ) );
+            return ModifyChunks( sdf, material, true, ( chunk, sdf ) => chunk.Add( sdf ) );
         }
 
-        public bool Replace<T>( in T sdf, MarchingSquaresMaterial material )
+        public bool Subtract<T>( in T sdf, Sdf2DMaterial material )
             where T : ISdf2D
         {
-            return ModifyChunks( sdf, material, false, ( chunk, sdf, mat ) => chunk.Replace( sdf, mat ) );
+            return ModifyChunks( sdf, material, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
         }
 
         public bool Subtract<T>( in T sdf )
             where T : ISdf2D
         {
-            return ModifyChunks( sdf, null, false, ( chunk, sdf, _ ) => chunk.Subtract( sdf ) );
+            var changed = false;
+
+            foreach ( var material in Layers.Keys )
+            {
+                changed |= ModifyChunks( sdf, material, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
+            }
+
+            return changed;
         }
     }
 }

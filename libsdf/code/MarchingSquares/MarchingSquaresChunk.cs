@@ -7,18 +7,16 @@ namespace Sandbox.MarchingSquares
 {
     public partial class MarchingSquaresChunk : Entity
     {
-        private class SubMesh
-        {
-            public Mesh Front { get; set; }
-            public Mesh Back { get; set; }
-            public Mesh Cut { get; set; }
-            public PhysicsShape Shape { get; set; }
+        public Mesh Front { get; set; }
+        public Mesh Back { get; set; }
+        public Mesh Cut { get; set; }
+        public PhysicsShape Shape { get; set; }
 
-            public bool FrontBackUsed { get; set; }
-            public bool CutUsed { get; set; }
-        }
+        [Net]
+        public Sdf2DMaterial Material { get; set; }
 
-        private Dictionary<MarchingSquaresMaterial, SubMesh> SubMeshes { get; } = new ();
+        public bool FrontBackUsed { get; set; }
+        public bool CutUsed { get; set; }
 
         [Net]
         private SdfArray2D Data { get; set; }
@@ -34,10 +32,19 @@ namespace Sandbox.MarchingSquares
             OwnedByServer = true;
         }
 
-        public MarchingSquaresChunk( int resolution, float size, float? maxDistance = null )
+        public MarchingSquaresChunk( int resolution, float size, float maxDistance, Sdf2DMaterial material )
         {
             OwnedByServer = Game.IsServer;
-            Data = new SdfArray2D( resolution, size, maxDistance ?? (size * 4f / resolution) );
+
+            Data = new SdfArray2D( resolution, size, maxDistance );
+            Material = material;
+        }
+
+        public override void Spawn()
+        {
+            base.Spawn();
+
+            Transmit = TransmitType.Always;
         }
 
         protected override void OnDestroy()
@@ -51,9 +58,9 @@ namespace Sandbox.MarchingSquares
             SceneObject = null;
         }
 
-        public void Clear( MarchingSquaresMaterial material = null )
+        public void Clear( bool solid )
         {
-            Data.Clear( material );
+            Data.Clear( solid );
 
             if ( Game.IsServer )
             {
@@ -61,10 +68,10 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
+        public bool Add<T>( in T sdf )
             where T : ISdf2D
         {
-            if ( !Data.Add( in sdf, material ) )
+            if ( !Data.Add( in sdf ) )
             {
                 return false;
             }
@@ -76,27 +83,21 @@ namespace Sandbox.MarchingSquares
 
             return true;
         }
-
-        public bool Replace<T>( in T sdf, MarchingSquaresMaterial material )
-            where T : ISdf2D
-        {
-            if ( !Data.Replace( in sdf, material ) )
-            {
-                return false;
-            }
-
-            if ( Game.IsServer )
-            {
-                Data.WriteNetworkData();
-            }
-
-            return true;
-        }
-
+        
         public bool Subtract<T>( in T sdf )
             where T : ISdf2D
         {
-            return Add( sdf, null );
+            if ( !Data.Subtract( in sdf ) )
+            {
+                return false;
+            }
+
+            if ( Game.IsServer )
+            {
+                Data.WriteNetworkData();
+            }
+
+            return true;
         }
 
         [GameEvent.Tick]
@@ -137,79 +138,73 @@ namespace Sandbox.MarchingSquares
 
             UpdateMesh();
 
-            var collisionOnly = Game.IsServer;
-
-            var writer = MarchingSquaresMeshWriter.Rent( collisionOnly );
+            var writer = MarchingSquaresMeshWriter.Rent();
             var subMeshesChanged = false;
             var anyMeshes = false;
 
+            var tags = Material.SplitCollisionTags;
+
+            var enableRenderMesh = !Game.IsServer;
+            var enableCollisionMesh = tags.Length > 0;
+
             try
             {
-                foreach ( var mat in Data.Materials )
+                Data.WriteTo( writer, Material, enableRenderMesh, enableCollisionMesh );
+
+                if ( enableRenderMesh )
                 {
-                    if ( !SubMeshes.TryGetValue( mat, out var subMesh ) )
-                    {
-                        subMesh = new SubMesh();
+                    subMeshesChanged |= Front == null;
 
-                        if ( !collisionOnly )
-                        {
-                            subMesh.Front = new Mesh( mat.FrontFaceMaterial );
-                            subMesh.Back = new Mesh( mat.BackFaceMaterial );
-                            subMesh.Cut = new Mesh( mat.CutFaceMaterial );
-                        }
+                    Front ??= new Mesh( Material.FrontFaceMaterial );
+                    Back ??= new Mesh( Material.BackFaceMaterial );
+                    Cut ??= new Mesh( Material.CutFaceMaterial );
 
-                        SubMeshes.Add( mat, subMesh );
+                    var (wasFrontBackUsed, wasCutUsed) = (FrontBackUsed, CutUsed);
 
-                        subMeshesChanged = true;
-                    }
+                    (FrontBackUsed, CutUsed) =
+                        writer.ApplyTo( Front, Back, Cut );
 
-                    writer.Clear();
+                    subMeshesChanged |= wasFrontBackUsed != FrontBackUsed;
+                    subMeshesChanged |= wasCutUsed != CutUsed;
 
-                    Data.WriteTo( writer, mat );
+                    anyMeshes |= FrontBackUsed || CutUsed;
+                }
 
-                    if ( !collisionOnly )
-                    {
-                        var (wasFrontBackUsed, wasCutUsed) = (subMesh.FrontBackUsed, subMesh.CutUsed);
-
-                        (subMesh.FrontBackUsed, subMesh.CutUsed) =
-                            writer.ApplyTo( subMesh.Front, subMesh.Back, subMesh.Cut );
-
-                        subMeshesChanged |= wasFrontBackUsed != subMesh.FrontBackUsed;
-                        subMeshesChanged |= wasCutUsed != subMesh.CutUsed;
-
-                        anyMeshes |= subMesh.FrontBackUsed || subMesh.CutUsed;
-                    }
-
+                if ( enableCollisionMesh )
+                {
                     if ( writer.CollisionMesh.Indices.Count == 0 )
                     {
-                        subMesh.Shape?.Remove();
-                        subMesh.Shape = null;
+                        Shape?.Remove();
+                        Shape = null;
                     }
                     else
                     {
-                        if ( !subMesh.Shape.IsValid() )
+                        if ( !Shape.IsValid() )
                         {
                             if ( !PhysicsBody.IsValid() )
                             {
                                 PhysicsBody = new PhysicsBody( Game.PhysicsWorld );
                             }
 
-                            subMesh.Shape = PhysicsBody.AddMeshShape(
+                            Shape = PhysicsBody.AddMeshShape(
                                 writer.CollisionMesh.Vertices,
                                 writer.CollisionMesh.Indices );
 
-                            subMesh.Shape.AddTag( "solid" );
+                            foreach ( var tag in tags )
+                            {
+                                Shape.AddTag( tag );
+                            }
                         }
                         else
                         {
-                            subMesh.Shape.UpdateMesh(
+                            Shape.UpdateMesh(
                                 writer.CollisionMesh.Vertices,
                                 writer.CollisionMesh.Indices );
                         }
                     }
                 }
 
-                if ( collisionOnly || (SceneObject == null == anyMeshes) && !subMeshesChanged )
+                if ( !enableRenderMesh || SceneObject == null == anyMeshes && !subMeshesChanged )
                 {
                     return;
                 }
@@ -223,18 +218,15 @@ namespace Sandbox.MarchingSquares
                 {
                     var builder = new ModelBuilder();
 
-                    foreach ( var subMesh in SubMeshes.Values )
+                    if ( FrontBackUsed )
                     {
-                        if ( subMesh.FrontBackUsed )
-                        {
-                            builder.AddMesh( subMesh.Front );
-                            builder.AddMesh( subMesh.Back );
-                        }
+                        builder.AddMesh( Front );
+                        builder.AddMesh( Back );
+                    }
 
-                        if ( subMesh.CutUsed )
-                        {
-                            builder.AddMesh( subMesh.Cut );
-                        }
+                    if ( CutUsed )
+                    {
+                        builder.AddMesh( Cut );
                     }
 
                     if ( SceneObject == null )

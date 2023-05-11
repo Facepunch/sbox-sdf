@@ -18,9 +18,7 @@ namespace Sandbox.MarchingSquares
         public float Size { get; private set; }
         public float MaxDistance { get; private set; }
 
-        private Dictionary<MarchingSquaresMaterial, byte[]> Layers { get; } = new();
-
-        public IEnumerable<MarchingSquaresMaterial> Materials => Layers.Keys;
+        private byte[] _samples;
 
         private int _arraySize;
         private float _unitSize;
@@ -49,6 +47,10 @@ namespace Sandbox.MarchingSquares
             _unitSize = Size / Resolution;
             _invUnitSize = Resolution / Size;
             _invMaxDistance = 1f / MaxDistance;
+
+            _samples = new byte[_arraySize * _arraySize];
+
+            Clear( false );
         }
 
         private byte Encode( float distance )
@@ -61,45 +63,14 @@ namespace Sandbox.MarchingSquares
             return (encoded * (1f / MaxEncoded) - 0.5f) * MaxDistance * 2f;
         }
 
-        private byte[] GetOrCreateLayer( MarchingSquaresMaterial material, float fill )
+        public void Clear( bool solid )
         {
-            if ( Layers.TryGetValue( material, out var layer ) )
-            {
-                return layer;
-            }
-
-            var encoded = Encode( fill );
-
-            layer = new byte[_arraySize * _arraySize];
-            Array.Fill( layer, encoded );
-            Layers.Add( material, layer );
-
-            ++ModificationCount;
-
-            return layer;
-        }
-
-        public void Clear( MarchingSquaresMaterial material = null )
-        {
-            foreach ( var layer in Layers )
-            {
-                var encoded = Encode( layer.Key == material ? -MaxDistance : MaxDistance );
-                Array.Fill( layer.Value, encoded );
-            }
-
-            if ( material != null )
-            {
-                GetOrCreateLayer( material, -MaxDistance );
-            }
-
+            Array.Fill( _samples, solid ? (byte) 0 : (byte) 255 );
             ++ModificationCount;
         }
 
-        public bool Add<T>( in T sdf, MarchingSquaresMaterial material )
-            where T : ISdf2D
+        private (int MinX, int MinY, int MaxX, int MaxY) GetSampleRange( Rect bounds )
         {
-            var bounds = sdf.Bounds;
-
             var min = (bounds.TopLeft - MaxDistance) * _invUnitSize;
             var max = (bounds.BottomRight + MaxDistance) * _invUnitSize;
 
@@ -109,62 +80,35 @@ namespace Sandbox.MarchingSquares
             var maxX = Math.Min( _arraySize, (int) MathF.Ceiling( max.x ) + Margin );
             var maxY = Math.Min( _arraySize, (int) MathF.Ceiling( max.y ) + Margin );
 
+            return (minX, minY, maxX, maxY);
+        }
+
+        public bool Add<T>( in T sdf )
+            where T : ISdf2D
+        {
+            var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
+
             var changed = false;
 
-            foreach ( var (mat, layer) in Layers )
+            for ( var y = minY; y < maxY; ++y )
             {
-                if ( mat == material )
+                var worldY = (y - Margin) * _unitSize;
+
+                for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
                 {
-                    continue;
-                }
+                    var worldX = (x - Margin) * _unitSize;
+                    var sampled = sdf[new Vector2( worldX, worldY )];
 
-                for ( var y = minY; y < maxY; ++y )
-                {
-                    var worldY = (y - Margin) * _unitSize;
+                    if ( sampled >= MaxDistance ) continue;
 
-                    for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
-                    {
-                        var worldX = (x - Margin) * _unitSize;
-                        var sampled = sdf[new Vector2( worldX, worldY )];
+                    var encoded = Encode( sampled );
 
-                        if ( sampled >= MaxDistance ) continue;
+                    var oldValue = _samples[index];
+                    var newValue = Math.Min( encoded, oldValue );
 
-                        var encoded = Encode( sampled );
+                    _samples[index] = newValue;
 
-                        var oldValue = layer[index];
-                        var newValue = Math.Max( (byte) (MaxEncoded - encoded), oldValue );
-
-                        layer[index] = newValue;
-
-                        changed |= oldValue != newValue;
-                    }
-                }
-            }
-
-            if ( material != null )
-            {
-                var layer = GetOrCreateLayer( material, MaxDistance );
-
-                for ( var y = minY; y < maxY; ++y )
-                {
-                    var worldY = (y - Margin) * _unitSize;
-
-                    for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
-                    {
-                        var worldX = (x - Margin) * _unitSize;
-                        var sampled = sdf[new Vector2( worldX, worldY )];
-
-                        if ( sampled >= MaxDistance ) continue;
-
-                        var encoded = Encode( sampled );
-
-                        var oldValue = layer[index];
-                        var newValue = Math.Min( encoded, oldValue );
-
-                        layer[index] = newValue;
-
-                        changed |= oldValue != newValue;
-                    }
+                    changed |= oldValue != newValue;
                 }
             }
 
@@ -176,52 +120,32 @@ namespace Sandbox.MarchingSquares
             return changed;
         }
 
-        public bool Replace<T>( in T sdf, MarchingSquaresMaterial material )
+        public bool Subtract<T>( in T sdf )
             where T : ISdf2D
         {
-            var bounds = sdf.Bounds;
-
-            var min = (bounds.TopLeft - MaxDistance) * _invUnitSize;
-            var max = (bounds.BottomRight + MaxDistance) * _invUnitSize;
-
-            var minX = Math.Max( 0, (int) MathF.Ceiling( min.x ) + Margin );
-            var minY = Math.Max( 0, (int) MathF.Ceiling( min.y ) + Margin );
-
-            var maxX = Math.Min( _arraySize, (int) MathF.Ceiling( max.x ) + Margin );
-            var maxY = Math.Min( _arraySize, (int) MathF.Ceiling( max.y ) + Margin );
+            var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
 
             var changed = false;
 
-            var dstLayer = GetOrCreateLayer( material, MaxDistance );
-
-            foreach ( var (mat, layer) in Layers )
+            for ( var y = minY; y < maxY; ++y )
             {
-                if ( mat == material )
+                var worldY = (y - Margin) * _unitSize;
+
+                for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
                 {
-                    continue;
-                }
+                    var worldX = (x - Margin) * _unitSize;
+                    var sampled = sdf[new Vector2( worldX, worldY )];
 
-                for ( var y = minY; y < maxY; ++y )
-                {
-                    var worldY = (y - Margin) * _unitSize;
+                    if ( sampled >= MaxDistance ) continue;
 
-                    for ( int x = minX, index = minX + y * _arraySize; x < maxX; ++x, ++index )
-                    {
-                        var worldX = (x - Margin) * _unitSize;
-                        var sampled = sdf[new Vector2( worldX, worldY )];
+                    var encoded = Encode( sampled );
 
-                        if ( sampled >= MaxDistance ) continue;
+                    var oldValue = _samples[index];
+                    var newValue = Math.Max( (byte) (MaxEncoded - encoded), oldValue );
 
-                        var encoded = Encode( sampled );
+                    _samples[index] = newValue;
 
-                        var oldValue = layer[index];
-                        var newValue = Math.Max( (byte) (MaxEncoded - encoded), oldValue );
-
-                        layer[index] = newValue;
-                        dstLayer[index] = Math.Min( dstLayer[index], Math.Max( encoded, oldValue ) );
-
-                        changed |= oldValue != newValue;
-                    }
+                    changed |= oldValue != newValue;
                 }
             }
 
@@ -233,56 +157,21 @@ namespace Sandbox.MarchingSquares
             return changed;
         }
 
-        public void WriteTo( MarchingSquaresMeshWriter writer, MarchingSquaresMaterial material )
+        public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DMaterial material, bool renderMesh, bool collisionMesh )
         {
-            if ( !Layers.TryGetValue( material, out var layer ) )
-            {
-                return;
-            }
-
-            writer.Write( new SdfArray2DLayer( layer, Margin * _arraySize + Margin, _arraySize ),
-                Resolution, Resolution, _unitSize, material.Depth );
+            writer.Write( new SdfArray2DLayer( _samples, Margin * _arraySize + Margin, _arraySize ),
+                Resolution, Resolution, _unitSize, material.Depth, renderMesh, collisionMesh );
         }
-
-        [ThreadStatic] private static HashSet<MarchingSquaresMaterial> RemovedLayers;
 
         public void Read( ref NetRead net )
         {
             var resolution = net.Read<int>();
             var size = net.Read<float>();
             var maxDistance = net.Read<float>();
-            var layerCount = net.Read<int>();
 
             Init( resolution, size, maxDistance );
 
-            RemovedLayers ??= new HashSet<MarchingSquaresMaterial>();
-            RemovedLayers.Clear();
-
-            foreach ( var layer in Layers )
-            {
-                RemovedLayers.Add( layer.Key );
-            }
-
-            for ( var i = 0; i < layerCount; ++i )
-            {
-                var key = net.ReadClass<MarchingSquaresMaterial>();
-
-                RemovedLayers.Remove( key );
-
-                if ( !Layers.TryGetValue( key, out var layer ) )
-                {
-                    layer = null;
-                }
-
-                Layers[key] = net.ReadUnmanagedArray( layer );
-            }
-
-            foreach ( var layer in RemovedLayers )
-            {
-                Layers.Remove( layer );
-            }
-
-            RemovedLayers.Clear();
+            _samples = net.ReadUnmanagedArray( _samples );
 
             ++ModificationCount;
         }
@@ -292,13 +181,8 @@ namespace Sandbox.MarchingSquares
             net.Write( Resolution );
             net.Write( Size );
             net.Write( MaxDistance );
-            net.Write( Layers.Count );
 
-            foreach ( var layer in Layers )
-            {
-                net.Write( layer.Key );
-                net.WriteUnmanagedArray( layer.Value );
-            }
+            net.WriteUnmanagedArray( _samples );
         }
     }
 }

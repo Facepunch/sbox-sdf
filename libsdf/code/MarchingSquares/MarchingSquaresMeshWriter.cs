@@ -13,7 +13,7 @@ namespace Sandbox.MarchingSquares
         private const int MaxPoolCount = 16;
         private static List<MarchingSquaresMeshWriter> Pool { get; } = new List<MarchingSquaresMeshWriter>();
 
-        public static MarchingSquaresMeshWriter Rent( bool collisionOnly )
+        public static MarchingSquaresMeshWriter Rent()
         {
             if ( Pool.Count > 0 )
             {
@@ -22,8 +22,6 @@ namespace Sandbox.MarchingSquares
 
                 writer._isInPool = false;
                 writer.Clear();
-
-                writer.CollisionOnly = collisionOnly;
 
                 return writer;
             }
@@ -295,11 +293,11 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        private class FrontBackSubMesh : SubMesh<FrontBackVertex>
+        private class FrontBackSubMesh : SubMesh<Vertex>
         {
             private Dictionary<VertexKey, int> Map { get; } = new();
 
-            public override VertexAttribute[] VertexLayout => FrontBackVertex.Layout;
+            public override VertexAttribute[] VertexLayout => Vertex.Layout;
 
             public Vector3 Normal { get; set; }
             public Vector3 Offset { get; set; }
@@ -320,7 +318,7 @@ namespace Sandbox.MarchingSquares
 
                 index = Vertices.Count;
 
-                Vertices.Add( new FrontBackVertex(
+                Vertices.Add( new Vertex(
                     pos * unitSize + Offset,
                     Normal,
                     new Vector3( 1f, 0f, 0f ),
@@ -339,8 +337,10 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        private class CutSubMesh : SubMesh<CutVertex>
+        private class CutSubMesh : SubMesh<Vertex>
         {
+            private const float RootHalf = 1.41421f * 0.5f;
+
             private const float SmoothNormalThreshold = 33f;
             private static readonly float SmoothNormalDotTheshold = MathF.Cos( SmoothNormalThreshold * MathF.PI / 180f );
 
@@ -348,7 +348,7 @@ namespace Sandbox.MarchingSquares
 
             private Dictionary<VertexKey, VertexInfo> Map { get; } = new Dictionary<VertexKey, VertexInfo>();
 
-            public override VertexAttribute[] VertexLayout => CutVertex.Layout;
+            public override VertexAttribute[] VertexLayout => Vertex.Layout;
 
             public Vector3 FrontOffset { get; set; }
             public Vector3 BackOffset { get; set; }
@@ -376,13 +376,23 @@ namespace Sandbox.MarchingSquares
                 var backIndex = frontIndex + 1;
                 var tangent = new Vector3( 0f, 0f, 1f );
 
-                Vertices.Add( new CutVertex(
-                    pos * unitSize + FrontOffset,
-                    normal, tangent ) );
+                var binormal = MathF.Abs( normal.y ) > RootHalf
+                    ? new Vector3( -MathF.Sign( normal.y ), 0f, 0f )
+                    : new Vector3( 0f, MathF.Sign( normal.x ), 0f );
 
-                Vertices.Add( new CutVertex(
+                var uvScale = 1f / 16f;
+                var width = BackOffset.z - FrontOffset.z;
+                var v = Vector3.Dot( pos, binormal ) * unitSize;
+
+                Vertices.Add( new Vertex(
+                    pos * unitSize + FrontOffset,
+                    normal, tangent,
+                    new Vector2( 0f, v ) * uvScale ) );
+
+                Vertices.Add( new Vertex(
                     pos * unitSize + BackOffset,
-                    normal, tangent ) );
+                    normal, tangent,
+                    new Vector2( width, v ) * uvScale ) );
 
                 if ( !wasInMap )
                 {
@@ -424,8 +434,6 @@ namespace Sandbox.MarchingSquares
         private FrontBackSubMesh Front { get; } = new();
         private FrontBackSubMesh Back { get; } = new();
         private CutSubMesh Cut { get; } = new();
-
-        public bool CollisionOnly { get; set; } = false;
 
         private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
         {
@@ -470,7 +478,7 @@ namespace Sandbox.MarchingSquares
             return a * d - b * c;
         }
 
-        public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth )
+        public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth, bool renderMesh, bool collisionMesh )
         {
             SolidBlocks.Clear();
             FrontBackTriangles.Clear();
@@ -630,7 +638,7 @@ namespace Sandbox.MarchingSquares
             Back.Normal = new Vector3( 0f, 0f, -1f );
             Back.Offset = Cut.BackOffset = Collision.BackOffset = Back.Normal * depth * 0.5f;
 
-            if ( CollisionOnly )
+            if ( collisionMesh )
             {
                 foreach ( var triangle in FrontBackTriangles )
                 {
@@ -650,12 +658,11 @@ namespace Sandbox.MarchingSquares
                     Collision.AddCutFace( layer, unitSize, cutFace );
                 }
             }
-            else
+
+            if ( renderMesh )
             {
                 foreach ( var triangle in FrontBackTriangles )
                 {
-                    Collision.AddFrontBackTriangle( layer, unitSize, triangle );
-
                     Front.AddTriangle( layer, unitSize, triangle.Flipped );
                     Back.AddTriangle( layer, unitSize, triangle );
                 }
@@ -663,9 +670,6 @@ namespace Sandbox.MarchingSquares
                 foreach ( var block in SolidBlocks )
                 {
                     var (tri0, tri1) = block.Triangles;
-
-                    Collision.AddFrontBackTriangle( layer, unitSize, tri0 );
-                    Collision.AddFrontBackTriangle( layer, unitSize, tri1 );
 
                     Front.AddTriangle( layer, unitSize, tri0.Flipped );
                     Front.AddTriangle( layer, unitSize, tri1.Flipped );
@@ -806,7 +810,7 @@ namespace Sandbox.MarchingSquares
     }
 
     [StructLayout( LayoutKind.Sequential )]
-    public record struct FrontBackVertex( Vector3 Position, Vector3 Normal, Vector3 Tangent, Vector2 TexCoord )
+    public record struct Vertex( Vector3 Position, Vector3 Normal, Vector3 Tangent, Vector2 TexCoord )
     {
         public static VertexAttribute[] Layout { get; } =
         {
@@ -814,17 +818,6 @@ namespace Sandbox.MarchingSquares
             new (VertexAttributeType.Normal, VertexAttributeFormat.Float32),
             new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32),
             new (VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2)
-        };
-    }
-
-    [StructLayout( LayoutKind.Sequential )]
-    public record struct CutVertex( Vector3 Position, Vector3 Normal, Vector3 Tangent )
-    {
-        public static VertexAttribute[] Layout { get; } =
-        {
-            new (VertexAttributeType.Position, VertexAttributeFormat.Float32),
-            new (VertexAttributeType.Normal, VertexAttributeFormat.Float32),
-            new (VertexAttributeType.Tangent, VertexAttributeFormat.Float32)
         };
     }
 }

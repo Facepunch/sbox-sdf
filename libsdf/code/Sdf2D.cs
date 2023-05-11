@@ -31,6 +31,12 @@ namespace Sandbox.Sdf
         {
             return new TransformedSdf<T>( sdf, new Transform2D( translation, rotation, scale ) );
         }
+
+        public static ExpandedSdf<T> Expand<T>( this T sdf, float margin )
+            where T : ISdf2D
+        {
+            return new ExpandedSdf<T>( sdf, margin );
+        }
     }
 
     public record struct BoxSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f ) : ISdf2D
@@ -151,6 +157,14 @@ namespace Sandbox.Sdf
         }
 
         public float this[ Vector2 pos ] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
+    }
+
+    public record struct ExpandedSdf<T>( T Sdf, float Margin ) : ISdf2D
+        where T : ISdf2D
+    {
+        public Rect Bounds => Sdf.Bounds.Grow( Margin );
+
+        public float this[ Vector2 pos ] => Sdf[pos] - Margin;
     }
 
     public readonly struct TextureSdf : ISdf2D
