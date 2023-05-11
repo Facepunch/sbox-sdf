@@ -2,6 +2,8 @@
 Allows you to define a 2D / 3D field of signed distances to a virtual surface, perform operations with primitive shapes, then generate a 3D mesh of the surface in real time.
 
 ## 2D
+https://github.com/Facepunch/sbox-sdf/assets/1110904/b85d065d-14b0-46af-97d3-2fe2d799aa97
+
 ### Create a world
 On the server, create a SDF 2D world like this:
 
