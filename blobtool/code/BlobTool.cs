@@ -14,11 +14,11 @@ namespace Sandbox.Sdf
 		public static Sdf2DWorld SdfWorld { get; set; }
 
 		[ConCmd.Admin("sdf_2d_test")]
-		public static async Task Sdf2DTest( int resolution = 16 )
+		public static async Task Sdf2DTest()
 		{
 			SdfWorld?.Delete();
 
-			SdfWorld = new Sdf2DWorld( resolution, 256f )
+			SdfWorld = new Sdf2DWorld
 			{
 				LocalPosition = new Vector3( -1024f, 1536f ),
 				LocalRotation = Rotation.FromRoll( 90f )
