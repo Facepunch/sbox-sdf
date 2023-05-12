@@ -164,9 +164,9 @@ namespace Sandbox.MarchingSquares
                 {
                     subMeshesChanged |= Front == null;
 
-                    Front ??= new Mesh( Material.FrontFaceMaterial );
-                    Back ??= new Mesh( Material.BackFaceMaterial );
-                    Cut ??= new Mesh( Material.CutFaceMaterial );
+                    Front ??= Material.FrontFaceMaterial != null ? new Mesh( Material.FrontFaceMaterial ) : null;
+                    Back ??= Material.FrontFaceMaterial != null ? new Mesh( Material.BackFaceMaterial ) : null;
+                    Cut ??= Material.FrontFaceMaterial != null ? new Mesh( Material.CutFaceMaterial ) : null;
 
                     var (wasFrontBackUsed, wasCutUsed) = (FrontBackUsed, CutUsed);
 
@@ -234,11 +234,18 @@ namespace Sandbox.MarchingSquares
 
                     if ( FrontBackUsed )
                     {
-                        builder.AddMesh( Front );
-                        builder.AddMesh( Back );
+                        if ( Front != null )
+                        {
+                            builder.AddMesh( Front );
+                        }
+
+                        if ( Back != null )
+                        {
+                            builder.AddMesh( Back );
+                        }
                     }
 
-                    if ( CutUsed )
+                    if ( CutUsed && Cut != null )
                     {
                         builder.AddMesh( Cut );
                     }

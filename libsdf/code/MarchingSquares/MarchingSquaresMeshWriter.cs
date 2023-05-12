@@ -794,16 +794,23 @@ namespace Sandbox.MarchingSquares
         {
             if ( Front.Indices.Count > 0 )
             {
-                Front.ApplyTo( front );
-                Back.ApplyTo( back );
+                if ( front != null )
+                {
+                    Front.ApplyTo( front );
+                }
+
+                if ( back != null )
+                {
+                    Back.ApplyTo( back );
+                }
             }
 
-            if ( Cut.Indices.Count > 0 )
+            if ( Cut.Indices.Count > 0 && Cut != null )
             {
                 Cut.ApplyTo( cut );
             }
 
-            return (Front.Indices.Count > 0, Cut.Indices.Count > 0);
+            return (Front.Indices.Count > 0 && (front ?? back) != null, Cut.Indices.Count > 0 && cut != null);
         }
 
         public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
