@@ -49,5 +49,10 @@ namespace Sandbox.Sdf
         /// back of this layer.
         /// </summary>
         public Material CutFaceMaterial { get; set; }
+
+        /// <summary>
+        /// Controls mesh visual quality, affecting performance and networking costs.
+        /// </summary>
+        public WorldQuality Quality { get; set; } = WorldQuality.Medium;
     }
 }

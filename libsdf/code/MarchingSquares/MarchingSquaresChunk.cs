@@ -44,7 +44,7 @@ namespace Sandbox.MarchingSquares
             OwnedByServer = Game.IsServer;
 
             World = world;
-            Data = new SdfArray2D( world.Quality );
+            Data = new SdfArray2D( material.Quality );
             Material = material;
 
             ChunkX = chunkX;

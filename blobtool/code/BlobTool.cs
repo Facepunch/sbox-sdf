@@ -18,7 +18,7 @@ namespace Sandbox.Sdf
 		{
 			SdfWorld?.Delete();
 
-			SdfWorld = new Sdf2DWorld( Sdf2DWorldQuality.Medium )
+			SdfWorld = new Sdf2DWorld
 			{
 				LocalPosition = new Vector3( -1024f, 1536f ),
 				LocalRotation = Rotation.FromRoll( 90f )

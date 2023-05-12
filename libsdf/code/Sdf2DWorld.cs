@@ -6,29 +6,53 @@ using Sandbox.MarchingSquares;
 namespace Sandbox.Sdf
 {
     /// <summary>
-    /// Quality settings for <see cref="Sdf2DWorld"/> instances.
+    /// Quality settings for <see cref="Sdf2DMaterial"/>.
     /// </summary>
-    /// <param name="ChunkResolution">How many rows / columns of samples are stored per chunk.</param>
-    /// <param name="ChunkSize">Size of a chunk in world space.</param>
-    /// <param name="MaxDistance">
-    /// Maximum world space distance stored in the SDF. Larger values mean more samples are taken when adding / subtracting.
-    /// </param>
-    public record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
+    public enum WorldQuality
     {
         /// <summary>
         /// Cheap and cheerful, suitable for frequent (per-frame) edits.
         /// </summary>
-        public static Sdf2DWorldQuality Low { get; } = new Sdf2DWorldQuality( 8, 256f, 32f );
+        Low,
 
         /// <summary>
         /// Recommended quality for most cases.
         /// </summary>
-        public static Sdf2DWorldQuality Medium { get; } = new Sdf2DWorldQuality( 16, 256f, 64f );
+        Medium,
 
         /// <summary>
         /// More expensive to update and network, but a much smoother result.
         /// </summary>
+        High
+    }
+    
+    internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
+    {
+        public static implicit operator Sdf2DWorldQuality( WorldQuality quality )
+        {
+            switch ( quality )
+            {
+                case WorldQuality.Low:
+                    return Low;
+
+                case WorldQuality.Medium:
+                    return Medium;
+
+                case WorldQuality.High:
+                    return High;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public static Sdf2DWorldQuality Low { get; } = new Sdf2DWorldQuality( 8, 256f, 32f );
+
+        public static Sdf2DWorldQuality Medium { get; } = new Sdf2DWorldQuality( 16, 256f, 64f );
+
         public static Sdf2DWorldQuality High { get; } = new Sdf2DWorldQuality( 32, 256f, 96f );
+
+        public float UnitSize => ChunkSize / ChunkResolution;
     }
 
     /// <summary>
@@ -37,34 +61,9 @@ namespace Sandbox.Sdf
     /// </summary>
     public partial class Sdf2DWorld : ModelEntity
     {
-        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks );
-
-        public Sdf2DWorldQuality Quality { get; }
-
-        private readonly float _unitSize;
-
+        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks, float UnitSize );
+        
         private static Dictionary<Sdf2DMaterial, Layer> Layers { get; } = new ();
-
-        /// <summary>
-        /// Constructor used internally.
-        /// </summary>
-        public Sdf2DWorld()
-            : this( Sdf2DWorldQuality.Medium )
-        {
-
-        }
-
-        /// <summary>
-        /// Main entity for creating a 2D surface that can be added to and subtracted from.
-        /// Multiple layers can be added to this entity with different materials.
-        /// </summary>
-        /// <param name="quality">Controls the </param>
-        public Sdf2DWorld( Sdf2DWorldQuality quality )
-        {
-            Quality = quality;
-
-            _unitSize = quality.ChunkSize / quality.ChunkResolution;
-        }
 
         public override void Spawn()
         {
@@ -126,9 +125,12 @@ namespace Sandbox.Sdf
 
         private MarchingSquaresChunk GetOrCreateChunk( Sdf2DMaterial material, int chunkX, int chunkY )
         {
+            var quality = (Sdf2DWorldQuality) material.Quality;
+
             if ( !Layers.TryGetValue( material, out var layer ) )
             {
-                layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() );
+                layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>(),
+                    quality.UnitSize );
                 Layers.Add( material, layer );
             }
 
@@ -136,7 +138,7 @@ namespace Sandbox.Sdf
                 ? chunk : layer.Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( this, material, chunkX, chunkY )
                 {
                     Parent = this,
-                    LocalPosition = new Vector3( chunkX * Quality.ChunkSize, chunkY * Quality.ChunkSize ),
+                    LocalPosition = new Vector3( chunkX * quality.ChunkSize, chunkY * quality.ChunkSize ),
                     LocalRotation = Rotation.Identity,
                     LocalScale = 1f
                 };
@@ -170,9 +172,11 @@ namespace Sandbox.Sdf
             }
 
             var bounds = sdf.Bounds;
+            var quality = (Sdf2DWorldQuality) material.Quality;
+            var unitSize = quality.UnitSize;
 
-            var min = (bounds.TopLeft - Quality.MaxDistance - _unitSize) / Quality.ChunkSize;
-            var max = (bounds.BottomRight + Quality.MaxDistance + _unitSize) / Quality.ChunkSize;
+            var min = (bounds.TopLeft - quality.MaxDistance - unitSize) / quality.ChunkSize;
+            var max = (bounds.BottomRight + quality.MaxDistance + unitSize) / quality.ChunkSize;
 
             var minX = (int) MathF.Floor( min.x );
             var minY = (int) MathF.Floor( min.y );
@@ -195,7 +199,7 @@ namespace Sandbox.Sdf
                         continue;
                     }
 
-                    changed |= func( chunk, sdf.Translate( new Vector2( x, y ) * -Quality.ChunkSize ) );
+                    changed |= func( chunk, sdf.Translate( new Vector2( x, y ) * -quality.ChunkSize ) );
                 }
             }
 
