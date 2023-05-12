@@ -1,0 +1,9 @@
+{
+  "CollisionTags": "",
+  "Depth": 128,
+  "Offset": 0,
+  "FrontFaceMaterial": "materials/black_matte.vmat",
+  "BackFaceMaterial": null,
+  "CutFaceMaterial": null,
+  "Quality": "Low"
+}

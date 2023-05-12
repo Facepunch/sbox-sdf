@@ -1,0 +1,10 @@
+{
+  "CollisionTags": "solid",
+  "Depth": 64,
+  "Offset": -64,
+  "TexCoordSize": 256,
+  "FrontFaceMaterial": "models/rust_nature/rocks/rock_quarry.vmat",
+  "BackFaceMaterial": null,
+  "CutFaceMaterial": "models/rust_nature/rocks/rock_quarry.vmat",
+  "Quality": "Low"
+}

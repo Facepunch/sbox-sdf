@@ -1,0 +1,9 @@
+{
+  "CollisionTags": "solid",
+  "Depth": 64,
+  "Offset": 0,
+  "FrontFaceMaterial": "materials/3_rock.vmat",
+  "BackFaceMaterial": null,
+  "CutFaceMaterial": "materials/3_rock.vmat",
+  "Quality": "Medium"
+}
