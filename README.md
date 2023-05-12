@@ -12,7 +12,7 @@ using Sandbox.Sdf;
 
 // ...
 
-var sdfWorld = new Sdf2DWorld( Sdf2DWorldQuality.Medium )
+var sdfWorld = new Sdf2DWorld
 {
     // Rotate so that Y is up
     LocalRotation = Rotation.FromRoll( 90f )
@@ -41,9 +41,10 @@ sdfWorld.Subtract( circle.Translate( new Vector2( 32f, 0f ) ), baseMat );
 ### Materials
 You can create your own `.sdflayer` resource by selecting "New SDF 2D Material" when creating a new asset.
 
-![sbox-dev_rfmug4wJSE](https://github.com/Facepunch/sbox-sdf/assets/1110904/41551730-6161-4ba7-bcd6-ea617a66e9f2)
+![image](https://github.com/Facepunch/sbox-sdf/assets/1110904/0796e5f1-978c-44e9-9eec-26cb47d06765)
 
-In the editor you can choose how deep the layer is, which collision tags it has, and which materials to use for the front, back, and side faces.
+SDF 2D Materials control the appearance and physical properties of a layer.
+You can leave any of the front, back or cut material properties as empty to skip generating geometry for that face.
 If you remove all collision tags, the layer will have no physics shapes.
 
 ### Load an SDF
