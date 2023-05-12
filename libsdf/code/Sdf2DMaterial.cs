@@ -23,9 +23,16 @@ namespace Sandbox.Sdf
             CollisionTags?.Split( SplitChars, StringSplitOptions.RemoveEmptyEntries ) ?? Array.Empty<string>();
 
         /// <summary>
-        /// How wide this layer is in the z-axis.
+        /// How wide this layer is in the z-axis. This can help prevent
+        /// z-fighting for overlapping layers.
         /// </summary>
         public float Depth { get; set; } = 64f;
+
+        /// <summary>
+        /// How far to offset this layer in the z-axis.
+        /// Useful for things like background / foreground layers.
+        /// </summary>
+        public float Offset { get; set; } = 0f;
 
         /// <summary>
         /// Material used by the front face of this layer.

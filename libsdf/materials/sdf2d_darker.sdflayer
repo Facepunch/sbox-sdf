@@ -1,6 +1,7 @@
 {
   "CollisionTags": "solid",
-  "Depth": 30,
+  "Depth": 16,
+  "Offset": -24,
   "FrontFaceMaterial": "materials/dev/dev_measuregeneric01b.vmat",
   "BackFaceMaterial": "materials/dev/dev_measuregeneric01b.vmat",
   "CutFaceMaterial": "materials/dev/dev_measuregeneric01b.vmat"

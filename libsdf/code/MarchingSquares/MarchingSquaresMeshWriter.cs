@@ -478,7 +478,7 @@ namespace Sandbox.MarchingSquares
             return a * d - b * c;
         }
 
-        public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth, bool renderMesh, bool collisionMesh )
+        public void Write( SdfArray2DLayer layer, int width, int height, float unitSize, float depth, float offset, bool renderMesh, bool collisionMesh )
         {
             SolidBlocks.Clear();
             FrontBackTriangles.Clear();
@@ -634,9 +634,9 @@ namespace Sandbox.MarchingSquares
             Cut.ClearMap();
 
             Front.Normal = new Vector3( 0f, 0f, 1f );
-            Front.Offset = Cut.FrontOffset = Collision.FrontOffset = Front.Normal * depth * 0.5f;
+            Front.Offset = Cut.FrontOffset = Collision.FrontOffset = Front.Normal * (depth * 0.5f + offset);
             Back.Normal = new Vector3( 0f, 0f, -1f );
-            Back.Offset = Cut.BackOffset = Collision.BackOffset = Back.Normal * depth * 0.5f;
+            Back.Offset = Cut.BackOffset = Collision.BackOffset = Back.Normal * (depth * 0.5f - offset);
 
             if ( collisionMesh )
             {
