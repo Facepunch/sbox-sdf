@@ -35,6 +35,11 @@ namespace Sandbox.Sdf
         public float Offset { get; set; } = 0f;
 
         /// <summary>
+        /// How wide a single tile of the texture should be.
+        /// </summary>
+        public float TexCoordSize { get; set; } = 256f;
+
+        /// <summary>
         /// Material used by the front face of this layer.
         /// </summary>
         public Material FrontFaceMaterial { get; set; }

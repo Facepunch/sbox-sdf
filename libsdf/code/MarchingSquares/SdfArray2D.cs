@@ -157,7 +157,7 @@ namespace Sandbox.MarchingSquares
         public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DMaterial material, bool renderMesh, bool collisionMesh )
         {
             writer.Write( new SdfArray2DLayer( _samples, Margin * _arraySize + Margin, _arraySize ),
-                Quality.ChunkResolution, Quality.ChunkResolution, _unitSize, material.Depth, material.Offset, renderMesh, collisionMesh );
+                material, renderMesh, collisionMesh );
         }
 
         public void Read( ref NetRead net )
