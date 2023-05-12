@@ -128,6 +128,55 @@ namespace Sandbox.Sdf
     }
 
     /// <summary>
+    /// Describes a line between two points with rounded ends of a given radius.
+    /// </summary>
+    /// <param name="PointA">Start point of the line</param>
+    /// <param name="PointB">End point of the line</param>
+    /// <param name="Radius">Radius of the end caps, and half the width of the line</param>
+    /// <param name="Along">
+    /// Internal helper vector for optimization.
+    /// Please use the other constructor instead of specifying this yourself.
+    /// </param>
+    public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vector2 Along ) : ISdf2D
+    {
+        /// <summary>
+        /// Describes a line between two points with rounded ends of a given radius.
+        /// </summary>
+        /// <param name="pointA">Start point of the line</param>
+        /// <param name="pointB">End point of the line</param>
+        /// <param name="radius">Radius of the end caps, and half the width of the line</param>
+        public LineSdf( Vector2 pointA, Vector2 pointB, float radius )
+            : this( pointA, pointB, radius, pointA.AlmostEqual( pointB )
+                ? Vector2.Zero
+                : (pointB - pointA) / (pointB - pointA).LengthSquared )
+        {
+
+        }
+
+        public Rect Bounds
+        {
+            get
+            {
+                var min = Vector2.Min( PointA, PointB );
+                var max = Vector2.Max( PointA, PointB );
+
+                return new Rect( min - Radius, max - min + Radius * 2f );
+            }
+        }
+
+        public float this[ Vector2 pos ]
+        {
+            get
+            {
+                var t = Vector2.Dot( pos - PointA, Along );
+                var closest = Vector2.Lerp( PointA, PointB, t );
+
+                return (pos - closest).Length - Radius;
+            }
+        }
+    }
+
+    /// <summary>
     /// Helper struct returned by <see cref="Sdf2DExtensions.Transform{T}(T,Transform2D)"/>
     /// </summary>
     public record struct TransformedSdf<T>( T Sdf, Transform2D Transform, Rect Bounds ) : ISdf2D

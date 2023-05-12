@@ -30,7 +30,7 @@ namespace Sandbox.Sdf
 			var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
 			var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
 
-            SdfWorld.Add( mapSdf, baseMat );
+			SdfWorld.Add( mapSdf, baseMat );
 			SdfWorld.Add( mapSdf.Expand( 16f ), greyMat );
         }
 
@@ -42,6 +42,7 @@ namespace Sandbox.Sdf
 		public MarchingCubesEntity MarchingCubes { get; private set; }
 
 		public Vector3? LastEditPos { get; set; }
+		public Vector2? LastEditPos2D { get; set; }
 
 		[Net]
 		public float EditDistance { get; set; }
@@ -106,12 +107,12 @@ namespace Sandbox.Sdf
 		            if ( hit is { } hitPos )
 		            {
 			            var radius = 64f;
-			            var localPos = SdfWorld.Transform.PointToLocal( hitPos );
+			            var localPos = (Vector2) SdfWorld.Transform.PointToLocal( hitPos );
 
 						var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
 						var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
 
-						var sdf = new CircleSdf( new Vector2( localPos.x, localPos.y ), radius );
+						var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
 
 						if ( add )
 						{
@@ -122,7 +123,13 @@ namespace Sandbox.Sdf
 						    SdfWorld.Subtract( sdf.Expand( 8f ), baseMat );
 						    SdfWorld.Subtract( sdf, greyMat );
 						}
-                    }
+
+						LastEditPos2D = localPos;
+		            }
+	            }
+	            else
+	            {
+		            LastEditPos2D = null;
 	            }
             }
 
