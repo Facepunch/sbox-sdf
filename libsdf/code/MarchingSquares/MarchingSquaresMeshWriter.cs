@@ -252,7 +252,7 @@ namespace Sandbox.MarchingSquares
                 var backIndex = frontIndex + 1;
 
                 Vertices.Add( pos + FrontOffset );
-                Vertices.Add( pos - FrontOffset );
+                Vertices.Add( pos + BackOffset );
 
                 Map.Add( key, (frontIndex, backIndex) );
 
