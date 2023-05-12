@@ -1,9 +1,20 @@
-﻿using Sandbox.Sdf;
+﻿using System;
+using System.Collections.Generic;
+using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
 {
     internal partial class MarchingSquaresChunk : Entity
     {
+        [Net]
+        public Sdf2DWorld World { get; set; }
+
+        [Net]
+        public int ChunkX { get; set; }
+
+        [Net]
+        public int ChunkY { get; set; }
+
         public Mesh Front { get; set; }
         public Mesh Back { get; set; }
         public Mesh Cut { get; set; }
@@ -20,7 +31,6 @@ namespace Sandbox.MarchingSquares
 
         public bool OwnedByServer { get; }
         public SceneObject SceneObject { get; private set; }
-        public PhysicsBody PhysicsBody { get; private set; }
 
         private int _lastModificationCount;
 
@@ -29,12 +39,16 @@ namespace Sandbox.MarchingSquares
             OwnedByServer = true;
         }
 
-        public MarchingSquaresChunk( Sdf2DWorldQuality quality, Sdf2DMaterial material )
+        public MarchingSquaresChunk( Sdf2DWorld world, Sdf2DMaterial material, int chunkX, int chunkY )
         {
             OwnedByServer = Game.IsServer;
 
-            Data = new SdfArray2D( quality );
+            World = world;
+            Data = new SdfArray2D( world.Quality );
             Material = material;
+
+            ChunkX = chunkX;
+            ChunkY = chunkY;
         }
 
         public override void Spawn()
@@ -48,8 +62,8 @@ namespace Sandbox.MarchingSquares
         {
             base.OnDestroy();
 
-            PhysicsBody?.Remove();
-            PhysicsBody = null;
+            Shape?.Remove();
+            Shape = null;
 
             SceneObject?.Delete();
             SceneObject = null;
@@ -101,11 +115,6 @@ namespace Sandbox.MarchingSquares
         public void Tick()
         {
             UpdateMesh();
-
-            if ( PhysicsBody.IsValid() )
-            {
-                PhysicsBody.Transform = Transform;
-            }
         }
 
         [GameEvent.PreRender]
@@ -113,15 +122,18 @@ namespace Sandbox.MarchingSquares
         {
             UpdateMesh();
 
-            if ( SceneObject.IsValid() )
+            if ( SceneObject != null )
             {
                 SceneObject.Transform = Transform;
             }
         }
 
+        [ThreadStatic]
+        private static List<Vector3> TransformedVertices;
+
         public void UpdateMesh()
         {
-            if ( Data == null )
+            if ( Data == null || World == null )
             {
                 return;
             }
@@ -176,15 +188,20 @@ namespace Sandbox.MarchingSquares
                     }
                     else
                     {
+                        TransformedVertices ??= new List<Vector3>();
+                        TransformedVertices.Clear();
+
+                        var offset = new Vector3( ChunkX, ChunkY ) * Data.Quality.ChunkSize;
+
+                        foreach ( var vertex in writer.CollisionMesh.Vertices )
+                        {
+                            TransformedVertices.Add( vertex + offset );
+                        }
+
                         if ( !Shape.IsValid() )
                         {
-                            if ( !PhysicsBody.IsValid() )
-                            {
-                                PhysicsBody = new PhysicsBody( Game.PhysicsWorld );
-                            }
-
-                            Shape = PhysicsBody.AddMeshShape(
-                                writer.CollisionMesh.Vertices,
+                            Shape = World.AddMeshShape(
+                                TransformedVertices,
                                 writer.CollisionMesh.Indices );
 
                             foreach ( var tag in tags )
@@ -195,7 +212,7 @@ namespace Sandbox.MarchingSquares
                         else
                         {
                             Shape.UpdateMesh(
-                                writer.CollisionMesh.Vertices,
+                                TransformedVertices,
                                 writer.CollisionMesh.Indices );
                         }
                     }
@@ -229,6 +246,7 @@ namespace Sandbox.MarchingSquares
                     if ( SceneObject == null )
                     {
                         SceneObject = new SceneObject( Scene, builder.Create() );
+                        SceneObject.Transform = Transform;
                     }
                     else
                     {

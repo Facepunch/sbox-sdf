@@ -35,7 +35,7 @@ namespace Sandbox.Sdf
     /// Main entity for creating a 2D surface that can be added to and subtracted from.
     /// Multiple layers can be added to this entity with different materials.
     /// </summary>
-    public partial class Sdf2DWorld : Entity
+    public partial class Sdf2DWorld : ModelEntity
     {
         private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks );
 
@@ -64,6 +64,13 @@ namespace Sandbox.Sdf
             Quality = quality;
 
             _unitSize = quality.ChunkSize / quality.ChunkResolution;
+        }
+
+        public override void Spawn()
+        {
+            base.Spawn();
+
+            Transmit = TransmitType.Always;
         }
 
         /// <summary>
@@ -126,7 +133,7 @@ namespace Sandbox.Sdf
             }
 
             return layer.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
-                ? chunk : layer.Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( Quality, material )
+                ? chunk : layer.Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( this, material, chunkX, chunkY )
                 {
                     Parent = this,
                     LocalPosition = new Vector3( chunkX * Quality.ChunkSize, chunkY * Quality.ChunkSize ),
@@ -138,6 +145,17 @@ namespace Sandbox.Sdf
         private void AssertCanModify()
         {
             Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
+        }
+
+        internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
+        {
+            if ( PhysicsBody == null )
+            {
+                SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
+                PhysicsBody!.ClearShapes();
+            }
+
+            return PhysicsBody.AddMeshShape( vertices, indices );
         }
 
         private bool ModifyChunks<T>( in T sdf, Sdf2DMaterial material, bool createChunks,
