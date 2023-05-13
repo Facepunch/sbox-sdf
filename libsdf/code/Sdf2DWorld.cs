@@ -55,7 +55,7 @@ namespace Sandbox.Sdf
     /// </summary>
     public partial class Sdf2DWorld : ModelEntity
     {
-        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks, float UnitSize );
+        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks );
         
         private static Dictionary<Sdf2DMaterial, Layer> Layers { get; } = new ();
 
@@ -64,6 +64,46 @@ namespace Sandbox.Sdf
             base.Spawn();
 
             Transmit = TransmitType.Always;
+        }
+
+        internal bool IsDestroying { get; private set; }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            IsDestroying = true;
+        }
+
+        /// <summary>
+        /// Removes all layers, making this equivalent to a brand new empty world.
+        /// </summary>
+        public void Clear()
+        {
+            foreach ( var layer in Layers.Values )
+            {
+                foreach ( var chunk in layer.Chunks.Values )
+                {
+                    chunk.Delete();
+                }
+            }
+
+            Layers.Clear();
+        }
+
+        /// <summary>
+        /// Removes the given layer.
+        /// </summary>
+        /// <param name="material">Material of the layer to clear</param>
+        public void Clear( Sdf2DMaterial material )
+        {
+            if ( Layers.Remove( material, out var layer ) )
+            {
+                foreach ( var chunk in layer.Chunks.Values )
+                {
+                    chunk.Delete();
+                }
+            }
         }
 
         /// <summary>
@@ -123,8 +163,7 @@ namespace Sandbox.Sdf
 
             if ( !Layers.TryGetValue( material, out var layer ) )
             {
-                layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>(),
-                    quality.UnitSize );
+                layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() );
                 Layers.Add( material, layer );
             }
 

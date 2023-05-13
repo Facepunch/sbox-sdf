@@ -49,6 +49,8 @@ namespace Sandbox.MarchingSquares
 
             ChunkX = chunkX;
             ChunkY = chunkY;
+
+            Name = $"Chunk {material.ResourceName} {chunkX} {chunkY}";
         }
 
         public override void Spawn()
@@ -62,10 +64,17 @@ namespace Sandbox.MarchingSquares
         {
             base.OnDestroy();
 
-            Shape?.Remove();
-            Shape = null;
+            if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() )
+            {
+                Shape.Remove();
+            }
 
-            SceneObject?.Delete();
+            if ( SceneObject.IsValid() )
+            {
+                SceneObject.Delete();
+            }
+
+            Shape = null;
             SceneObject = null;
         }
 
