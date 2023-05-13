@@ -58,6 +58,41 @@ namespace Sandbox.Sdf
         /// <summary>
         /// Controls mesh visual quality, affecting performance and networking costs.
         /// </summary>
-        public WorldQuality Quality { get; set; } = WorldQuality.Medium;
+        public WorldQuality QualityLevel { get; set; } = WorldQuality.Medium;
+
+        /// <summary>
+        /// How many rows / columns of samples are stored per chunk.
+        /// Higher means more needs to be sent over the network, and more work for the mesh generator.
+        /// Medium quality is 16.
+        /// </summary>
+        [ShowIf(nameof(QualityLevel), WorldQuality.Custom)]
+        public int ChunkResolution { get; set; } = 16;
+
+        /// <summary>
+        /// How wide / tall a chunk is in world space. If you'll always make small
+        /// edits to this layer, you can reduce this to add detail.
+        /// Medium quality is 256.
+        /// </summary>
+        [ShowIf( nameof( QualityLevel ), WorldQuality.Custom )]
+        public float ChunkSize { get; set; } = 256f;
+
+        /// <summary>
+        /// Largest absolute value stored in a chunk's SDF.
+        /// Higher means more samples are written to when doing modifications.
+        /// I'd arbitrarily recommend ChunkSize / ChunkResolution * 4.
+        /// </summary>
+        [ShowIf( nameof( QualityLevel ), WorldQuality.Custom )]
+        public float MaxDistance { get; set; } = 64f;
+
+        [HideInEditor, JsonIgnore]
+        internal Sdf2DWorldQuality Quality => QualityLevel switch
+        {
+            WorldQuality.Low => Sdf2DWorldQuality.Low,
+            WorldQuality.Medium => Sdf2DWorldQuality.Medium,
+            WorldQuality.High => Sdf2DWorldQuality.High,
+            WorldQuality.Extreme => Sdf2DWorldQuality.Extreme,
+            WorldQuality.Custom => new Sdf2DWorldQuality( ChunkResolution, ChunkSize, MaxDistance ),
+            _ => throw new NotImplementedException()
+        };
     }
 }

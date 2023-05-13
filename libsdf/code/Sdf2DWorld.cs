@@ -23,34 +23,28 @@ namespace Sandbox.Sdf
         /// <summary>
         /// More expensive to update and network, but a much smoother result.
         /// </summary>
-        High
+        High,
+
+        /// <summary>
+        /// Only use this for small, detailed objects!
+        /// </summary>
+        Extreme,
+
+        /// <summary>
+        /// Manually tweak quality parameters.
+        /// </summary>
+        Custom = -1
     }
     
     internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
     {
-        public static implicit operator Sdf2DWorldQuality( WorldQuality quality )
-        {
-            switch ( quality )
-            {
-                case WorldQuality.Low:
-                    return Low;
-
-                case WorldQuality.Medium:
-                    return Medium;
-
-                case WorldQuality.High:
-                    return High;
-
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
         public static Sdf2DWorldQuality Low { get; } = new Sdf2DWorldQuality( 8, 256f, 32f );
 
         public static Sdf2DWorldQuality Medium { get; } = new Sdf2DWorldQuality( 16, 256f, 64f );
 
         public static Sdf2DWorldQuality High { get; } = new Sdf2DWorldQuality( 32, 256f, 96f );
+
+        public static Sdf2DWorldQuality Extreme { get; } = new Sdf2DWorldQuality( 16, 128f, 32f );
 
         public float UnitSize => ChunkSize / ChunkResolution;
     }
@@ -125,7 +119,7 @@ namespace Sandbox.Sdf
 
         private MarchingSquaresChunk GetOrCreateChunk( Sdf2DMaterial material, int chunkX, int chunkY )
         {
-            var quality = (Sdf2DWorldQuality) material.Quality;
+            var quality = material.Quality;
 
             if ( !Layers.TryGetValue( material, out var layer ) )
             {
@@ -172,7 +166,7 @@ namespace Sandbox.Sdf
             }
 
             var bounds = sdf.Bounds;
-            var quality = (Sdf2DWorldQuality) material.Quality;
+            var quality = material.Quality;
             var unitSize = quality.UnitSize;
 
             var min = (bounds.TopLeft - quality.MaxDistance - unitSize) / quality.ChunkSize;

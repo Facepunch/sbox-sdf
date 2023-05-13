@@ -484,7 +484,7 @@ namespace Sandbox.MarchingSquares
             FrontBackTriangles.Clear();
             CutFaces.Clear();
 
-            var quality = (Sdf2DWorldQuality)material.Quality;
+            var quality = material.Quality;
             var size = quality.ChunkResolution;
 
             for ( var y = 0; y < size; ++y )
