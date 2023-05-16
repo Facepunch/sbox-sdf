@@ -33,10 +33,10 @@ namespace Sandbox.Sdf
         /// <param name="sdf">SDF to translate</param>
         /// <param name="offset">Offset to translate by</param>
         /// <returns>A translated version of <paramref name="sdf"/></returns>
-        public static TranslatedSdf<T> Translate<T>( this T sdf, Vector2 offset )
+        public static TranslatedSdf2D<T> Translate<T>( this T sdf, Vector2 offset )
             where T : ISdf2D
         {
-            return new TranslatedSdf<T>( sdf, offset );
+            return new TranslatedSdf2D<T>( sdf, offset );
         }
 
         /// <summary>
@@ -46,10 +46,10 @@ namespace Sandbox.Sdf
         /// <param name="sdf">SDF to transform</param>
         /// <param name="transform">Transformation to apply</param>
         /// <returns>A transformed version of <paramref name="sdf"/></returns>
-        public static TransformedSdf<T> Transform<T>( this T sdf, Transform2D transform )
+        public static TransformedSdf2D<T> Transform<T>( this T sdf, Transform2D transform )
             where T : ISdf2D
         {
-            return new TransformedSdf<T>( sdf, transform );
+            return new TransformedSdf2D<T>( sdf, transform );
         }
 
         /// <summary>
@@ -61,10 +61,10 @@ namespace Sandbox.Sdf
         /// <param name="rotation">Rotation to apply</param>
         /// <param name="scale">Scale multiplier to apply</param>
         /// <returns>A transformed version of <paramref name="sdf"/></returns>
-        public static TransformedSdf<T> Transform<T>( this T sdf, Vector2? translation = null, Rotation2D? rotation = null, float scale = 1f)
+        public static TransformedSdf2D<T> Transform<T>( this T sdf, Vector2? translation = null, Rotation2D? rotation = null, float scale = 1f)
             where T : ISdf2D
         {
-            return new TransformedSdf<T>( sdf, new Transform2D( translation, rotation, scale ) );
+            return new TransformedSdf2D<T>( sdf, new Transform2D( translation, rotation, scale ) );
         }
 
         /// <summary>
@@ -74,10 +74,10 @@ namespace Sandbox.Sdf
         /// <param name="sdf">SDF to expand</param>
         /// <param name="margin">Distance to expand by</param>
         /// <returns>An expanded version of <paramref name="sdf"/></returns>
-        public static ExpandedSdf<T> Expand<T>( this T sdf, float margin )
+        public static ExpandedSdf2D<T> Expand<T>( this T sdf, float margin )
             where T : ISdf2D
         {
-            return new ExpandedSdf<T>( sdf, margin );
+            return new ExpandedSdf2D<T>( sdf, margin );
         }
     }
 
@@ -87,20 +87,20 @@ namespace Sandbox.Sdf
     /// <param name="Min">Position of the corner with smallest X and Y values</param>
     /// <param name="Max">Position of the corner with largest X and Y values</param>
     /// <param name="CornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
-    public record struct BoxSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f ) : ISdf2D
+    public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f ) : ISdf2D
     {
         /// <summary>
         /// Describes an axis-aligned rectangle with rounded corners.
         /// </summary>
         /// <param name="rect">Size and position of the box</param>
         /// <param name="cornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
-        public BoxSdf( Rect rect, float cornerRadius = 0f )
+        public RectSdf( Rect rect, float cornerRadius = 0f )
             : this( rect.TopLeft, rect.BottomRight, cornerRadius )
         {
 
         }
 
-        public Rect Bounds => new ( Min.x, Min.y, Max.x - Min.x, Max.y - Min.y );
+        public Rect Bounds => new ( Min, Max - Min );
 
         public float this[ Vector2 pos ]
         {
@@ -174,58 +174,6 @@ namespace Sandbox.Sdf
                 return (pos - closest).Length - Radius;
             }
         }
-    }
-
-    /// <summary>
-    /// Helper struct returned by <see cref="Sdf2DExtensions.Transform{T}(T,Transform2D)"/>
-    /// </summary>
-    public record struct TransformedSdf<T>( T Sdf, Transform2D Transform, Rect Bounds ) : ISdf2D
-        where T : ISdf2D
-    {
-        private static Rect CalculateBounds( T sdf, Transform2D transform )
-        {
-            var inner = sdf.Bounds;
-
-            var a = transform.TransformPoint( inner.TopLeft );
-            var b = transform.TransformPoint( inner.TopRight );
-            var c = transform.TransformPoint( inner.BottomLeft );
-            var d = transform.TransformPoint( inner.BottomRight );
-
-            var min = Vector2.Min( Vector2.Min( a, b ), Vector2.Min( c, d ) );
-            var max = Vector2.Max( Vector2.Max( a, b ), Vector2.Max( c, d ) );
-
-            return new Rect( min.x, min.y, max.x - min.x, max.y - min.y );
-        }
-
-        public TransformedSdf( T sdf, Transform2D transform )
-            : this( sdf, transform, CalculateBounds( sdf, transform ) )
-        {
-
-        }
-
-        public float this[ Vector2 pos ] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
-    }
-
-    /// <summary>
-    /// Helper struct returned by <see cref="Sdf2DExtensions.Translate{T}"/>
-    /// </summary>
-    public record struct TranslatedSdf<T>( T Sdf, Vector2 Offset ) : ISdf2D
-        where T : ISdf2D
-    {
-        public Rect Bounds => new ( Sdf.Bounds.Position + Offset, Sdf.Bounds.Size );
-
-        public float this[Vector2 pos] => Sdf[pos - Offset];
-    }
-
-    /// <summary>
-    /// Helper struct returned by <see cref="Sdf2DExtensions.Expand{T}"/>
-    /// </summary>
-    public record struct ExpandedSdf<T>( T Sdf, float Margin ) : ISdf2D
-        where T : ISdf2D
-    {
-        public Rect Bounds => Sdf.Bounds.Grow( Margin );
-
-        public float this[ Vector2 pos ] => Sdf[pos] - Margin;
     }
 
     /// <summary>
@@ -344,5 +292,57 @@ namespace Sandbox.Sdf
                 return _samples[x + y * _imageSize.Width];
             }
         }
+    }
+
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Transform{T}(T,Transform2D)"/>
+    /// </summary>
+    public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bounds ) : ISdf2D
+        where T : ISdf2D
+    {
+        private static Rect CalculateBounds( T sdf, Transform2D transform )
+        {
+            var inner = sdf.Bounds;
+
+            var a = transform.TransformPoint( inner.TopLeft );
+            var b = transform.TransformPoint( inner.TopRight );
+            var c = transform.TransformPoint( inner.BottomLeft );
+            var d = transform.TransformPoint( inner.BottomRight );
+
+            var min = Vector2.Min( Vector2.Min( a, b ), Vector2.Min( c, d ) );
+            var max = Vector2.Max( Vector2.Max( a, b ), Vector2.Max( c, d ) );
+
+            return new Rect( min.x, min.y, max.x - min.x, max.y - min.y );
+        }
+
+        public TransformedSdf2D( T sdf, Transform2D transform )
+            : this( sdf, transform, CalculateBounds( sdf, transform ) )
+        {
+
+        }
+
+        public float this[Vector2 pos] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
+    }
+
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Translate{T}"/>
+    /// </summary>
+    public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
+        where T : ISdf2D
+    {
+        public Rect Bounds => new( Sdf.Bounds.Position + Offset, Sdf.Bounds.Size );
+
+        public float this[Vector2 pos] => Sdf[pos - Offset];
+    }
+
+    /// <summary>
+    /// Helper struct returned by <see cref="Sdf2DExtensions.Expand{T}"/>
+    /// </summary>
+    public record struct ExpandedSdf2D<T>( T Sdf, float Margin ) : ISdf2D
+        where T : ISdf2D
+    {
+        public Rect Bounds => Sdf.Bounds.Grow( Margin );
+
+        public float this[Vector2 pos] => Sdf[pos] - Margin;
     }
 }
