@@ -68,5 +68,4 @@ namespace Sandbox.Sdf
             return InverseScale * (Rotation.Inverse * (pos - Translation));
         }
     }
-
 }
