@@ -14,18 +14,19 @@ namespace Sandbox.Sdf
 		public static Sdf2DWorld SdfWorld { get; set; }
 
 		[ConCmd.Admin("sdf_2d_test")]
-		public static async Task Sdf2DTest()
+		public static async Task Sdf2DTest( float angle )
 		{
-			SdfWorld?.Delete();
-
-			SdfWorld = new Sdf2DWorld
+			SdfWorld ??= new Sdf2DWorld
 			{
-				LocalPosition = new Vector3( -1024f, 1536f ),
+				LocalPosition = new Vector3( -1024f, 1536f, 512f ),
 				LocalRotation = Rotation.FromRoll( 90f )
 			};
 
+			SdfWorld.Clear();
+
 			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/facepunch_sdf.png" );
-			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f );
+			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f )
+				.Transform( rotation: angle );
 
 			var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
 			var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );

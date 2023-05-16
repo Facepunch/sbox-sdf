@@ -260,6 +260,7 @@ namespace Sandbox.Sdf
     public readonly struct TextureSdf : ISdf2D
     {
         private readonly Vector2 _worldSize;
+        private readonly Vector2 _worldOffset;
         private readonly Vector2 _invSampleSize;
         private readonly (int Width, int Height) _imageSize;
         private readonly float[] _samples;
@@ -271,12 +272,17 @@ namespace Sandbox.Sdf
         /// <param name="texture">Texture to read from</param>
         /// <param name="gradientWidthPixels">Distance, in pixels, between the lightest and darkest values of gradients in <paramref name="texture"/></param>
         /// <param name="worldWidth">The desired width of the resulting SDF. The height will be determined using <paramref name="texture"/>'s aspect ratio.</param>
+        /// <param name="pivot">
+        /// Relative position of the origin in this SDF. This is also the point that the SDF will rotate around.
+        /// (0, 0) is the bottom-left, (1, 1) is the top-right, and therefore (0.5, 0.5) is the center (default).
+        /// </param>
         /// <param name="channel">Color channel to read from</param>
         /// <param name="invert">If false (default), bright values are external. If true, bright values are internal.</param>
         public TextureSdf( Texture texture, int gradientWidthPixels, float worldWidth,
-            ColorChannel channel = ColorChannel.R, bool invert = false )
+            Vector2? pivot = null, ColorChannel channel = ColorChannel.R, bool invert = false )
         {
             _worldSize = new Vector2( worldWidth, worldWidth * texture.Height / texture.Width );
+            _worldOffset = _worldSize * -(pivot ?? new Vector2( 0.5f, 0.5f ));
             _imageSize = (texture.Width, texture.Height);
             _invSampleSize = new Vector2( _imageSize.Width, _imageSize.Height ) / _worldSize;
 
@@ -317,13 +323,13 @@ namespace Sandbox.Sdf
             }
         }
 
-        public Rect Bounds => new Rect( 0f, 0f, _worldSize.x, _worldSize.y );
+        public Rect Bounds => new( _worldOffset, _worldSize );
 
         public float this[ Vector2 pos ]
         {
             get
             {
-                var localPos = pos * _invSampleSize;
+                var localPos = (pos - _worldOffset) * _invSampleSize;
 
                 var x = (int) MathF.Round( localPos.x );
                 var y = (int) MathF.Round( localPos.y );
