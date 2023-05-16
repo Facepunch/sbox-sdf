@@ -1,59 +1,99 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Sandbox.Sdf
 {
     /// <summary>
+    /// References a layer that will be used as a texture when rendering.
+    /// </summary>
+    public class LayerTexture
+    {
+        /// <summary>
+        /// Material attribute name to set for the materials used by this layer.
+        /// </summary>
+        public string TargetAttribute { get; set; }
+
+        /// <summary>
+        /// Source layer that will provide the texture. The texture will have a single channel,
+        /// with 0 representing -<see cref="Sdf2DLayer.MaxDistance"/> of the source layer,
+        /// and 1 representing +<see cref="Sdf2DLayer.MaxDistance"/>.
+        /// </summary>
+        public Sdf2DLayer SourceLayer { get; set; }
+    }
+
+    /// <summary>
     /// Controls the appearance and physical properties of a layer in a <see cref="Sdf2DWorld"/>.
     /// </summary>
-    [GameResource("SDF 2D Material", "sdflayer", $"Material used by {nameof(Sdf2DWorld)}", Icon = "brush")]
-    public class Sdf2DMaterial : GameResource
+    [GameResource("SDF 2D Layer", "sdflayer", $"Properties of a layer in a {nameof(Sdf2DWorld)}", Icon = "layers")]
+    public class Sdf2DLayer : GameResource
     {
         private static char[] SplitChars { get; } = new[] { ' ' };
 
         /// <summary>
-        /// Tags that physics shapes with this material should have, separated by spaces.
+        /// If true, this layer is only used as a texture source by other layers.
+        /// This will disable collision shapes and render mesh generation for this layer.
+        /// </summary>
+        public bool IsTextureSourceOnly { get; set; }
+
+        /// <summary>
+        /// Tags that physics shapes created by this layer should have, separated by spaces.
         /// If empty, no physics shapes will be created.
         /// </summary>
         [Editor( "tags" )]
+        [HideIf( nameof(IsTextureSourceOnly), true )]
         public string CollisionTags { get; set; } = "solid";
 
         [HideInEditor, JsonIgnore]
-        public string[] SplitCollisionTags =>
-            CollisionTags?.Split( SplitChars, StringSplitOptions.RemoveEmptyEntries ) ?? Array.Empty<string>();
+        public string[] SplitCollisionTags => IsTextureSourceOnly
+            ? Array.Empty<string>()
+            : CollisionTags?.Split( SplitChars, StringSplitOptions.RemoveEmptyEntries ) ?? Array.Empty<string>();
 
         /// <summary>
         /// How wide this layer is in the z-axis. This can help prevent
         /// z-fighting for overlapping layers.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public float Depth { get; set; } = 64f;
 
         /// <summary>
         /// How far to offset this layer in the z-axis.
         /// Useful for things like background / foreground layers.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public float Offset { get; set; } = 0f;
 
         /// <summary>
         /// How wide a single tile of the texture should be.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public float TexCoordSize { get; set; } = 256f;
 
         /// <summary>
         /// Material used by the front face of this layer.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public Material FrontFaceMaterial { get; set; }
 
         /// <summary>
         /// Material used by the back face of this layer.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public Material BackFaceMaterial { get; set; }
 
         /// <summary>
         /// Material used by the cut face connecting the front and
         /// back of this layer.
         /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
         public Material CutFaceMaterial { get; set; }
+
+        /// <summary>
+        /// References to layers that will be used as textures when rendering this layer.
+        /// All referenced layers must have the same chunk size as this layer.
+        /// </summary>
+        [HideIf( nameof( IsTextureSourceOnly ), true )]
+        public List<LayerTexture> LayerTextures { get; set; }
 
         /// <summary>
         /// Controls mesh visual quality, affecting performance and networking costs.

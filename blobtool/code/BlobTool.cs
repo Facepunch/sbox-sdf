@@ -28,8 +28,8 @@ namespace Sandbox.Sdf
 			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f )
 				.Transform( rotation: angle );
 
-			var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
-			var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
+			var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_default.sdflayer" );
+			var greyMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_darker.sdflayer" );
 
 			SdfWorld.Add( mapSdf, baseMat );
 			SdfWorld.Add( mapSdf.Expand( 16f ), greyMat );
@@ -110,15 +110,16 @@ namespace Sandbox.Sdf
 			            var radius = 64f;
 			            var localPos = (Vector2) SdfWorld.Transform.PointToLocal( hitPos );
 
-						var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
-						var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
+						var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_default.sdflayer" );
+						var greyMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_darker.sdflayer" );
 
 						var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
 
 						if ( add )
 						{
-						    SdfWorld.Add( sdf, greyMat );
-						}
+							SdfWorld.Add( sdf, baseMat );
+							SdfWorld.Add( sdf.Expand( 8f ), greyMat );
+                        }
 						else
 						{
 						    SdfWorld.Subtract( sdf.Expand( 8f ), baseMat );

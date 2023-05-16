@@ -3,7 +3,7 @@ using System;
 
 namespace Sandbox.MarchingSquares
 {
-    internal record struct SdfArray2DLayer( byte[] Samples, int BaseIndex, int RowStride )
+    internal record struct SdfArray2DData( byte[] Samples, int BaseIndex, int RowStride )
     {
         public byte this[ int x, int y ] => Samples[BaseIndex + x + y * RowStride];
     }
@@ -22,6 +22,9 @@ namespace Sandbox.MarchingSquares
         private float _invUnitSize;
         private float _invMaxDistance;
 
+        private bool _textureInvalid = true;
+        private Texture _texture;
+
         public int ModificationCount { get; set; }
 
         public SdfArray2D()
@@ -32,6 +35,47 @@ namespace Sandbox.MarchingSquares
         public SdfArray2D( Sdf2DWorldQuality quality )
         {
             Init( quality );
+        }
+
+        public Vector4 TextureRect
+        {
+            get
+            {
+                var margin = (Margin + 0.5f) / _arraySize;
+                var scale = 1f / Quality.ChunkSize;
+                var size = 1f - (Margin * 2 + 1f) / _arraySize;
+
+                return new Vector4( margin, margin, scale * size, scale * size );
+            }
+        }
+
+        public Texture Texture
+        {
+            get
+            {
+                if ( !_textureInvalid && _texture != null )
+                {
+                    return _texture;
+                }
+
+                _textureInvalid = false;
+
+                if ( _texture == null )
+                {
+                    _texture = new Texture2DBuilder()
+                        .WithFormat( ImageFormat.I8 )
+                        .WithSize( _arraySize, _arraySize )
+                        .WithData( _samples )
+                        .WithAnonymous( true )
+                        .Finish();
+                }
+                else
+                {
+                    _texture.Update( _samples );
+                }
+
+                return _texture;
+            }
         }
 
         private void Init( Sdf2DWorldQuality quality )
@@ -111,6 +155,7 @@ namespace Sandbox.MarchingSquares
             if ( changed )
             {
                 ++ModificationCount;
+                _textureInvalid = true;
             }
 
             return changed;
@@ -149,15 +194,16 @@ namespace Sandbox.MarchingSquares
             if ( changed )
             {
                 ++ModificationCount;
+                _textureInvalid = true;
             }
 
             return changed;
         }
 
-        public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DMaterial material, bool renderMesh, bool collisionMesh )
+        public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
         {
-            writer.Write( new SdfArray2DLayer( _samples, Margin * _arraySize + Margin, _arraySize ),
-                material, renderMesh, collisionMesh );
+            writer.Write( new SdfArray2DData( _samples, Margin * _arraySize + Margin, _arraySize ),
+                layer, renderMesh, collisionMesh );
         }
 
         public void Read( ref NetRead net )
@@ -172,6 +218,7 @@ namespace Sandbox.MarchingSquares
             _samples = net.ReadUnmanagedArray( _samples );
 
             ++ModificationCount;
+            _textureInvalid = true;
         }
 
         public void Write( NetWrite net )

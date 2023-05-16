@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.PortableExecutable;
 using Sandbox.Sdf;
 
 namespace Sandbox.MarchingSquares
@@ -18,10 +19,11 @@ namespace Sandbox.MarchingSquares
         public Mesh Front { get; set; }
         public Mesh Back { get; set; }
         public Mesh Cut { get; set; }
+
         public PhysicsShape Shape { get; set; }
 
         [Net]
-        public Sdf2DMaterial Material { get; set; }
+        public Sdf2DLayer Layer { get; set; }
 
         public bool FrontBackUsed { get; set; }
         public bool CutUsed { get; set; }
@@ -39,18 +41,18 @@ namespace Sandbox.MarchingSquares
             OwnedByServer = true;
         }
 
-        public MarchingSquaresChunk( Sdf2DWorld world, Sdf2DMaterial material, int chunkX, int chunkY )
+        public MarchingSquaresChunk( Sdf2DWorld world, Sdf2DLayer layer, int chunkX, int chunkY )
         {
             OwnedByServer = Game.IsServer;
 
             World = world;
-            Data = new SdfArray2D( material.Quality );
-            Material = material;
+            Data = new SdfArray2D( layer.Quality );
+            Layer = layer;
 
             ChunkX = chunkX;
             ChunkY = chunkY;
 
-            Name = $"Chunk {material.ResourceName} {chunkX} {chunkY}";
+            Name = $"Chunk {layer.ResourceName} {chunkX} {chunkY}";
         }
 
         public override void Spawn()
@@ -60,9 +62,33 @@ namespace Sandbox.MarchingSquares
             Transmit = TransmitType.Always;
         }
 
+        public override void ClientSpawn()
+        {
+            base.ClientSpawn();
+
+            if ( World == null )
+            {
+                Log.Warning( "World is null!" );
+                return;
+            }
+
+            if ( Layer == null )
+            {
+                Log.Warning( "Layer is null!" );
+                return;
+            }
+
+            World.AddClientChunk( this );
+        }
+
         protected override void OnDestroy()
         {
             base.OnDestroy();
+
+            if ( Game.IsClient && !World.IsDestroying )
+            {
+                World.RemoveClientChunk( this );
+            }
 
             if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() )
             {
@@ -140,6 +166,25 @@ namespace Sandbox.MarchingSquares
         [ThreadStatic]
         private static List<Vector3> TransformedVertices;
 
+        public void UpdateLayerTexture( MarchingSquaresChunk sourceChunk )
+        {
+            if ( Layer.LayerTextures == null || SceneObject == null )
+            {
+                return;
+            }
+
+            foreach ( var reference in Layer.LayerTextures )
+            {
+                if ( reference.SourceLayer != sourceChunk.Layer )
+                {
+                    continue;
+                }
+
+                SceneObject.Attributes.Set( reference.TargetAttribute, sourceChunk.Data.Texture );
+                SceneObject.Attributes.Set( $"{reference.TargetAttribute}Rect", sourceChunk.Data.TextureRect );
+            }
+        }
+
         public void UpdateMesh()
         {
             if ( Data == null || World == null )
@@ -154,28 +199,33 @@ namespace Sandbox.MarchingSquares
 
             _lastModificationCount = Data.ModificationCount;
 
-            UpdateMesh();
+            World.ChunkMeshUpdated( this );
+
+            if ( Layer.IsTextureSourceOnly )
+            {
+                return;
+            }
 
             var writer = MarchingSquaresMeshWriter.Rent();
             var subMeshesChanged = false;
             var anyMeshes = false;
 
-            var tags = Material.SplitCollisionTags;
+            var tags = Layer.SplitCollisionTags;
 
             var enableRenderMesh = !Game.IsServer;
             var enableCollisionMesh = tags.Length > 0;
 
             try
             {
-                Data.WriteTo( writer, Material, enableRenderMesh, enableCollisionMesh );
+                Data.WriteTo( writer, Layer, enableRenderMesh, enableCollisionMesh );
 
                 if ( enableRenderMesh )
                 {
                     subMeshesChanged |= Front == null;
 
-                    Front ??= Material.FrontFaceMaterial != null ? new Mesh( Material.FrontFaceMaterial ) : null;
-                    Back ??= Material.FrontFaceMaterial != null ? new Mesh( Material.BackFaceMaterial ) : null;
-                    Cut ??= Material.FrontFaceMaterial != null ? new Mesh( Material.CutFaceMaterial ) : null;
+                    Front ??= Layer.FrontFaceMaterial != null ? new Mesh( Layer.FrontFaceMaterial ) : null;
+                    Back ??= Layer.FrontFaceMaterial != null ? new Mesh( Layer.BackFaceMaterial ) : null;
+                    Cut ??= Layer.FrontFaceMaterial != null ? new Mesh( Layer.CutFaceMaterial ) : null;
 
                     var (wasFrontBackUsed, wasCutUsed) = (FrontBackUsed, CutUsed);
 
@@ -227,46 +277,74 @@ namespace Sandbox.MarchingSquares
                     }
                 }
 
-                if ( !enableRenderMesh || SceneObject == null == anyMeshes && !subMeshesChanged )
+                if ( !enableRenderMesh )
                 {
                     return;
                 }
 
-                if ( !anyMeshes )
+                if ( SceneObject == null != anyMeshes || subMeshesChanged )
                 {
-                    SceneObject?.Delete();
-                    SceneObject = null;
-                }
-                else
-                {
-                    var builder = new ModelBuilder();
-
-                    if ( FrontBackUsed )
+                    if ( !anyMeshes )
                     {
-                        if ( Front != null )
-                        {
-                            builder.AddMesh( Front );
-                        }
-
-                        if ( Back != null )
-                        {
-                            builder.AddMesh( Back );
-                        }
-                    }
-
-                    if ( CutUsed && Cut != null )
-                    {
-                        builder.AddMesh( Cut );
-                    }
-
-                    if ( SceneObject == null )
-                    {
-                        SceneObject = new SceneObject( Scene, builder.Create() );
-                        SceneObject.Transform = Transform;
+                        SceneObject?.Delete();
+                        SceneObject = null;
                     }
                     else
                     {
-                        SceneObject.Model = builder.Create();
+                        var builder = new ModelBuilder();
+
+                        if ( FrontBackUsed )
+                        {
+                            if ( Front != null )
+                            {
+                                builder.AddMesh( Front );
+                            }
+
+                            if ( Back != null )
+                            {
+                                builder.AddMesh( Back );
+                            }
+                        }
+
+                        if ( CutUsed && Cut != null )
+                        {
+                            builder.AddMesh( Cut );
+                        }
+
+                        if ( SceneObject == null )
+                        {
+                            SceneObject = new SceneObject( Scene, builder.Create() )
+                            {
+                                Transform = Transform,
+                                Batchable = Layer.LayerTextures is not { Count: > 0}
+                            };
+                        }
+                        else
+                        {
+                            SceneObject.Model = builder.Create();
+                        }
+                    }
+                }
+
+                if ( anyMeshes && SceneObject != null && Layer.LayerTextures != null )
+                {
+                    foreach ( var reference in Layer.LayerTextures )
+                    {
+                        // ReSharper disable once CompareOfFloatsByEqualityOperator
+                        if ( reference.SourceLayer.Quality.ChunkSize != Layer.Quality.ChunkSize )
+                        {
+                            Log.Warning( $"Layer {Layer.ResourceName} references {reference.SourceLayer.ResourceName} " +
+                                $"as a texture source, but their chunk sizes don't match" );
+                            continue;
+                        }
+
+                        var matching = World.GetChunk( reference.SourceLayer, ChunkX, ChunkY );
+
+                        if ( matching != null )
+                        {
+                            SceneObject.Attributes.Set( reference.TargetAttribute, matching.Data.Texture );
+                            SceneObject.Attributes.Set( $"{reference.TargetAttribute}Rect", matching.Data.TextureRect );
+                        }
                     }
                 }
             }

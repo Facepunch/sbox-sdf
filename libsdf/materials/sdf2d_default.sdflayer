@@ -1,8 +1,20 @@
 {
+  "IsTextureSourceOnly": false,
   "CollisionTags": "solid",
   "Depth": 32,
   "Offset": 0,
-  "FrontFaceMaterial": "materials/dev/dev_measuregeneric01.vmat",
+  "TexCoordSize": 256,
+  "FrontFaceMaterial": "materials/sdf2d/example_grey.vmat",
   "BackFaceMaterial": null,
-  "CutFaceMaterial": "materials/dev/dev_measuregeneric01.vmat"
+  "CutFaceMaterial": "materials/sdf2d/example_grey.vmat",
+  "LayerTextures": [
+    {
+      "TargetAttribute": "TestLayer",
+      "SourceLayer": "materials/sdf2d_default.sdflayer"
+    }
+  ],
+  "QualityLevel": "Medium",
+  "ChunkResolution": 16,
+  "ChunkSize": 256,
+  "MaxDistance": 64
 }
