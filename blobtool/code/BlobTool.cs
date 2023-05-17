@@ -111,19 +111,19 @@ namespace Sandbox.Sdf
 			            var localPos = (Vector2) SdfWorld.Transform.PointToLocal( hitPos );
 
 						var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_default.sdflayer" );
-						var greyMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_darker.sdflayer" );
+						var scorchMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_scorch.sdflayer" );
 
-						var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
+                        var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
 
 						if ( add )
 						{
 							SdfWorld.Add( sdf, baseMat );
-							SdfWorld.Add( sdf.Expand( 8f ), greyMat );
+							SdfWorld.Subtract( sdf.Expand( 32f ), scorchMat );
                         }
 						else
 						{
-						    SdfWorld.Subtract( sdf.Expand( 8f ), baseMat );
-						    SdfWorld.Subtract( sdf, greyMat );
+						    SdfWorld.Subtract( sdf, baseMat );
+						    SdfWorld.Add( sdf, scorchMat );
 						}
 
 						LastEditPos2D = localPos;

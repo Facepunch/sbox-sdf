@@ -180,8 +180,29 @@ namespace Sandbox.MarchingSquares
                     continue;
                 }
 
-                SceneObject.Attributes.Set( reference.TargetAttribute, sourceChunk.Data.Texture );
-                SceneObject.Attributes.Set( $"{reference.TargetAttribute}Rect", sourceChunk.Data.TextureRect );
+                UpdateLayerTexture( reference.TargetAttribute, sourceChunk );
+            }
+        }
+
+        public void UpdateLayerTexture( string targetAttribute, MarchingSquaresChunk sourceChunk )
+        {
+            if ( sourceChunk != null )
+            {
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if ( sourceChunk.Layer.Quality.ChunkSize != Layer.Quality.ChunkSize )
+                {
+                    Log.Warning( $"Layer {Layer.ResourceName} references {sourceChunk.Layer.ResourceName} " +
+                                 $"as a texture source, but their chunk sizes don't match" );
+                    return;
+                }
+
+                SceneObject.Attributes.Set( targetAttribute, sourceChunk.Data.Texture );
+                SceneObject.Attributes.Set( $"{targetAttribute}_Params", sourceChunk.Data.TextureParams );
+            }
+            else
+            {
+                SceneObject.Attributes.Set( targetAttribute, Texture.White );
+                SceneObject.Attributes.Set( $"{targetAttribute}_Params", new Vector4( 0f, 0f, 1f, 1f ) );
             }
         }
 
@@ -330,21 +351,8 @@ namespace Sandbox.MarchingSquares
                 {
                     foreach ( var reference in Layer.LayerTextures )
                     {
-                        // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        if ( reference.SourceLayer.Quality.ChunkSize != Layer.Quality.ChunkSize )
-                        {
-                            Log.Warning( $"Layer {Layer.ResourceName} references {reference.SourceLayer.ResourceName} " +
-                                $"as a texture source, but their chunk sizes don't match" );
-                            continue;
-                        }
-
                         var matching = World.GetChunk( reference.SourceLayer, ChunkX, ChunkY );
-
-                        if ( matching != null )
-                        {
-                            SceneObject.Attributes.Set( reference.TargetAttribute, matching.Data.Texture );
-                            SceneObject.Attributes.Set( $"{reference.TargetAttribute}Rect", matching.Data.TextureRect );
-                        }
+                        UpdateLayerTexture( reference.TargetAttribute, matching );
                     }
                 }
             }

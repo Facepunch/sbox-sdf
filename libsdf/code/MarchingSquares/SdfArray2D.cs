@@ -37,7 +37,7 @@ namespace Sandbox.MarchingSquares
             Init( quality );
         }
 
-        public Vector4 TextureRect
+        public Vector4 TextureParams
         {
             get
             {
@@ -45,7 +45,7 @@ namespace Sandbox.MarchingSquares
                 var scale = 1f / Quality.ChunkSize;
                 var size = 1f - (Margin * 2 + 1f) / _arraySize;
 
-                return new Vector4( margin, margin, scale * size, scale * size );
+                return new Vector4( margin, margin, scale * size, 1f );
             }
         }
 

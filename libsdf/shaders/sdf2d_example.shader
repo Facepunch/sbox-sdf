@@ -18,6 +18,7 @@ FEATURES
 COMMON
 {
 	#include "common/shared.hlsl"
+	#include "sdf2d/shared.hlsl"	
 }
 
 //=========================================================================================================================
@@ -41,6 +42,7 @@ struct PixelInput
 VS
 {
 	#include "common/vertex.hlsl"
+
 	//
 	// Main
 	//
@@ -60,16 +62,18 @@ PS
 {
     #include "common/pixel.hlsl"
 
-	CreateTexture2D( g_tTestLayer ) <
-		Attribute( "TestLayer" );
-		SrgbRead( false );
-		Filter( BILINEAR );
-		AddressU( CLAMP );
-		AddressV( CLAMP );
-		Default( 1.0 );
-	>;
+	CreateSdfLayerTexture( ScorchLayer );
 
-	float4 g_flTestLayerRect < Default4( 0.0, 0.0, 1.0, 1.0 ); Attribute( "TestLayerRect" ); >;
+	CreateInputTexture2D( ScorchColor, Srgb, 8, "", "_color",  "Scorch,10/10", Default3( 1.0, 1.0, 1.0 ) );
+	CreateInputTexture2D( ScorchBlendMask, Linear, 8, "", "_height", "Scorch,10/20", Default( 1.0 ) );
+	CreateInputTexture2D( ScorchRoughness, Linear, 8, "", "_rough", "Scorch,10/30", Default( 0.5 ) );
+	CreateInputTexture2D( ScorchMetalness, Linear, 8, "", "_metal", "Scorch,10/40", Default( 1.0 ) );
+	CreateInputTexture2D( ScorchAmbientOcclusion, Linear, 8, "", "_ao", "Scorch,10/50", Default( 1.0 ) );
+	CreateInputTexture2D( ScorchNormal, Linear, 8, "NormalizeNormals", "_normal", "Scorch,10/60", Default3( 0.5, 0.5, 1.0 ) );
+	
+	CreateTexture2D( g_tScorchColor ) < Channel( RGB, Box( ScorchColor ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); > ;
+	CreateTexture2D( g_tScorchNormal ) < Channel( RGB, Box( ScorchNormal ), Linear ); Channel( A, Box( ScorchBlendMask ), Linear ); OutputFormat( DXT5 ); SrgbRead( false );  >;
+	CreateTexture2D( g_tScorchRma ) < Channel( R, Box( ScorchRoughness ), Linear ); Channel( G, Box( ScorchMetalness ), Linear ); Channel( B, Box( ScorchAmbientOcclusion ), Linear ); OutputFormat( BC7 ); SrgbRead( false ); >;
 
 	//
 	// Main
@@ -78,9 +82,20 @@ PS
 	{
 		Material m = GatherMaterial( i );
 		
-		float signedDist = Tex2D( g_tTestLayer, i.vPositionOs.xy * g_flTestLayerRect.zw + g_flTestLayerRect.xy ).r - 0.5;
+		float signedDist = SdfLayerTex( ScorchLayer, i.vPositionOs.xy ).r;
+		float3 scorchColor = Tex2D( g_tScorchColor, i.vTextureCoords.xy ).rgb;
+		float3 scorchRma = Tex2D( g_tScorchRma, i.vTextureCoords.xy ).xyz;
+		float4 scorchMat = Tex2D( g_tScorchNormal, i.vTextureCoords.xy );
+		float scorchMask = scorchMat.a;
 
-		m.Albedo.rgb *= 1.0 - clamp( (signedDist + 0.125) * 8.0, 0.0, 1.0 );
+		float scorch = 1.0 - clamp( (signedDist - scorchMask * 0.5) * 64.0, 0.0, 1.0 );
+		float3 scorchNormal = TransformNormal( i, DecodeNormal( scorchMat.xyz ) );
+
+		m.Albedo.rgb = lerp( m.Albedo, scorchColor, scorch );
+		m.Normal.xyz = normalize( lerp( m.Normal.xyz, scorchNormal, scorch ) );
+		m.Roughness = lerp( m.Roughness, scorchRma.x, scorch );
+		m.Metalness = lerp( m.Metalness, scorchRma.y, scorch );
+		m.AmbientOcclusion = lerp( m.AmbientOcclusion, scorchRma.z, scorch );
 
 		ShadingModelValveStandard sm;
 		return FinalizePixelMaterial( i, m, sm );

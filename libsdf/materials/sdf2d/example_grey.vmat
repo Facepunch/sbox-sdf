@@ -8,11 +8,20 @@ Layer0
 	g_bFogEnabled "1"
 
 	//---- Material ----
-	TextureAmbientOcclusion "materials/default/default_ao.tga"
-	TextureColor "materials/default/default_color.tga"
-	TextureMetalness "materials/default/default_metal.tga"
-	TextureNormal "materials/default/default_normal.tga"
-	TextureRoughness "materials/default/default_rough.tga"
+	g_flTintColor "[1.000000 1.000000 1.000000 0.000000]"
+	TextureAmbientOcclusion "materials/foam-grip1-ao.png"
+	TextureColor "materials/dev/simple/simple_tile_color.png"
+	TextureMetalness "materials/foam-grip1-metallic.psd"
+	TextureNormal "materials/foam-grip1_normal.png"
+	TextureRoughness "materials/dev/simple/simple_tile_rough.png"
 	TextureTintMask "materials/default/default.tga"
 	TextureTranslucency "materials/default/default_trans.tga"
+
+	//---- Scorch ----
+	ScorchAmbientOcclusion "materials/nature/leaves_ao.png"
+	ScorchBlendMask "materials/nature/leaves_height.png"
+	ScorchColor "materials/nature/leaves_color.png"
+	ScorchMetalness "[0.020000 0.020000 0.020000 0.000000]"
+	ScorchNormal "materials/nature/leaves_normal.png"
+	ScorchRoughness "materials/nature/leaves_rough.png"
 }

@@ -9,8 +9,8 @@
   "CutFaceMaterial": "materials/sdf2d/example_grey.vmat",
   "LayerTextures": [
     {
-      "TargetAttribute": "TestLayer",
-      "SourceLayer": "materials/sdf2d_default.sdflayer"
+      "TargetAttribute": "ScorchLayer",
+      "SourceLayer": "materials/sdf2d_scorch.sdflayer"
     }
   ],
   "QualityLevel": "Medium",

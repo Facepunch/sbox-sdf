@@ -234,14 +234,6 @@ namespace Sandbox.Sdf
                         continue;
                     }
 
-                    // ReSharper disable once CompareOfFloatsByEqualityOperator
-                    if ( key.Quality.ChunkSize != chunk.Layer.Quality.ChunkSize )
-                    {
-                        Log.Warning( $"Layer {key.ResourceName} references {chunk.Layer.ResourceName} " +
-                            $"as a texture source, but their chunk sizes don't match" );
-                        continue;
-                    }
-
                     if ( value.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var matching ) )
                     {
                         matching.UpdateLayerTexture( chunk );
