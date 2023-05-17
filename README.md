@@ -29,7 +29,7 @@ Still in server-side code, you can modify the SDF world like this:
 var circle = new CircleSdf( new Vector2( localPos.x, localPos.y ), radius );
 
 // Load the material to use
-var material = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
+var material = ResourceLibrary.Get<Sdf2DLayer>( "layers/sdf2d/checkerboard.sdflayer" );
 
 // Draw the circle!
 sdfWorld.Add( circle, material );
@@ -39,11 +39,11 @@ sdfWorld.Subtract( circle.Translate( new Vector2( 32f, 0f ) ), baseMat );
 ```
 
 ### Materials
-You can create your own `.sdflayer` resource by selecting "New SDF 2D Material" when creating a new asset.
+You can create your own `.sdflayer` resource by selecting "New SDF 2D Layer" when creating a new asset.
 
 ![image](https://github.com/Facepunch/sbox-sdf/assets/1110904/0796e5f1-978c-44e9-9eec-26cb47d06765)
 
-SDF 2D Materials control the appearance and physical properties of a layer.
+SDF 2D Layers control the appearance and physical properties of a layer.
 You can leave any of the front, back or cut material properties as empty to skip generating geometry for that face.
 If you remove all collision tags, the layer will have no physics shapes.
 
@@ -58,11 +58,11 @@ You can convert it into a shape that you can add to / subtract from the world li
 var fpSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/facepunch_sdf.png" );
 var fpSdf = new TextureSdf( fpSdfTexture, 64, 1024f );
 
-var baseMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_default.sdflayer" );
-var greyMat = ResourceLibrary.Get<Sdf2DMaterial>( "materials/sdf2d_darker.sdflayer" );
+var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "layers/sdf2d/checkerboard.sdflayer" );
+var backMat = ResourceLibrary.Get<Sdf2DLayer>( "layers/sdf2d/background.sdflayer" );
 
 sdfWorld.Add( fpSdf, baseMat );
-sdfWorld.Add( fpSdf.Expand( 16f ), greyMat );
+sdfWorld.Add( fpSdf.Expand( 16f ), backMat );
 ```
 
 ![sbox-dev_qrBj4yCkWN](https://github.com/Facepunch/sbox-sdf/assets/1110904/1007398b-9c96-42d1-8139-746b9b6d37d8)
