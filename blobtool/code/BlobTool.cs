@@ -11,7 +11,15 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
-		public static Sdf2DWorld SdfWorld { get; set; }
+		private static Sdf2DLayer _scorchLayer;
+		private static Sdf2DLayer _defaultLayer;
+		private static Sdf2DLayer _backgroundLayer;
+
+		public static Sdf2DLayer ScorchLayer => _scorchLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/scorch.sdflayer" );
+		public static Sdf2DLayer DefaultLayer => _defaultLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/checkerboard.sdflayer" );
+		public static Sdf2DLayer BackgroundLayer => _backgroundLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/background.sdflayer" );
+
+        public static Sdf2DWorld SdfWorld { get; set; }
 
 		[ConCmd.Admin("sdf_2d_test")]
 		public static async Task Sdf2DTest( float angle )
@@ -28,11 +36,8 @@ namespace Sandbox.Sdf
 			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f )
 				.Transform( rotation: angle );
 
-			var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_default.sdflayer" );
-			var greyMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_darker.sdflayer" );
-
-			SdfWorld.Add( mapSdf, baseMat );
-			SdfWorld.Add( mapSdf.Expand( 16f ), greyMat );
+			SdfWorld.Add( mapSdf, DefaultLayer );
+			SdfWorld.Add( mapSdf.Expand( 16f ), BackgroundLayer );
         }
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -110,20 +115,17 @@ namespace Sandbox.Sdf
 			            var radius = 64f;
 			            var localPos = (Vector2) SdfWorld.Transform.PointToLocal( hitPos );
 
-						var baseMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_default.sdflayer" );
-						var scorchMat = ResourceLibrary.Get<Sdf2DLayer>( "materials/sdf2d_scorch.sdflayer" );
-
                         var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
 
 						if ( add )
 						{
-							SdfWorld.Add( sdf, baseMat );
-							SdfWorld.Subtract( sdf.Expand( 32f ), scorchMat );
+							SdfWorld.Add( sdf, DefaultLayer );
+							SdfWorld.Subtract( sdf.Expand( 32f ), ScorchLayer );
                         }
 						else
 						{
-						    SdfWorld.Subtract( sdf, baseMat );
-						    SdfWorld.Add( sdf, scorchMat );
+						    SdfWorld.Subtract( sdf, DefaultLayer );
+						    SdfWorld.Add( sdf, ScorchLayer );
 						}
 
 						LastEditPos2D = localPos;
