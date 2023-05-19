@@ -174,15 +174,7 @@ namespace Sandbox.Sdf
                 Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() ) );
             }
 
-            if ( layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY), out var oldChunk ) )
-            {
-                oldChunk.Delete();
-            }
-
-            if ( !layer.Chunks.TryAdd( (chunk.ChunkX, chunk.ChunkY), chunk ) )
-            {
-                Log.Warning( "Chunk already added!" );
-            }
+            layer.Chunks[(chunk.ChunkX, chunk.ChunkY)] = chunk;
         }
 
         internal void RemoveClientChunk( MarchingSquaresChunk chunk )
@@ -192,7 +184,10 @@ namespace Sandbox.Sdf
                 return;
             }
 
-            layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY) );
+            if ( layer.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var existing ) && existing == chunk )
+            {
+                layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY) );
+            }
         }
 
         internal MarchingSquaresChunk GetChunk( Sdf2DLayer layer, int chunkX, int chunkY )
