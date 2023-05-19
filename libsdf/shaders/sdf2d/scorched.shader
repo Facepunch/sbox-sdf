@@ -18,7 +18,7 @@ FEATURES
 COMMON
 {
 	#include "common/shared.hlsl"
-	#include "sdf2d/shared.hlsl"	
+	#include "sdf2d/shared.hlsl"
 }
 
 //=========================================================================================================================

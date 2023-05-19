@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Sandbox.Diagnostics;
 using Sandbox.MarchingSquares;
 
@@ -48,6 +47,20 @@ namespace Sandbox.Sdf
         public static Sdf2DWorldQuality Extreme { get; } = new Sdf2DWorldQuality( 16, 128f, 32f );
 
         public float UnitSize => ChunkSize / ChunkResolution;
+        
+        public Vector4 TextureParams
+        {
+            get
+            {
+                var arraySize = ChunkResolution + SdfArray2D.Margin * 2 + 1;
+
+                var margin = (SdfArray2D.Margin + 0.5f) / arraySize;
+                var scale = 1f / ChunkSize;
+                var size = 1f - (SdfArray2D.Margin * 2 + 1f) / arraySize;
+
+                return new Vector4( margin, margin, scale * size, MaxDistance * 2f );
+            }
+        }
     }
 
     /// <summary>

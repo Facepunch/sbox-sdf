@@ -180,30 +180,30 @@ namespace Sandbox.MarchingSquares
                     continue;
                 }
 
-                UpdateLayerTexture( reference.TargetAttribute, sourceChunk );
+                UpdateLayerTexture( reference.TargetAttribute, reference.SourceLayer, sourceChunk );
             }
         }
 
-        public void UpdateLayerTexture( string targetAttribute, MarchingSquaresChunk sourceChunk )
+        public void UpdateLayerTexture( string targetAttribute, Sdf2DLayer layer, MarchingSquaresChunk sourceChunk )
         {
             if ( sourceChunk != null )
             {
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if ( sourceChunk.Layer.Quality.ChunkSize != Layer.Quality.ChunkSize )
                 {
-                    Log.Warning( $"Layer {Layer.ResourceName} references {sourceChunk.Layer.ResourceName} " +
+                    Log.Warning( $"Layer {Layer.ResourceName} references {layer.ResourceName} " +
                                  $"as a texture source, but their chunk sizes don't match" );
                     return;
                 }
 
                 SceneObject.Attributes.Set( targetAttribute, sourceChunk.Data.Texture );
-                SceneObject.Attributes.Set( $"{targetAttribute}_Params", sourceChunk.Data.TextureParams );
             }
             else
             {
                 SceneObject.Attributes.Set( targetAttribute, Texture.White );
-                SceneObject.Attributes.Set( $"{targetAttribute}_Params", new Vector4( 0f, 0f, 1f, 1f ) );
             }
+
+            SceneObject.Attributes.Set( $"{targetAttribute}_Params", layer.Quality.TextureParams );
         }
 
         public void UpdateMesh()
@@ -352,7 +352,7 @@ namespace Sandbox.MarchingSquares
                     foreach ( var reference in Layer.LayerTextures )
                     {
                         var matching = World.GetChunk( reference.SourceLayer, ChunkX, ChunkY );
-                        UpdateLayerTexture( reference.TargetAttribute, matching );
+                        UpdateLayerTexture( reference.TargetAttribute, reference.SourceLayer, matching );
                     }
                 }
             }
