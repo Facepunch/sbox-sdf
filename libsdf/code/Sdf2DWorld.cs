@@ -174,6 +174,11 @@ namespace Sandbox.Sdf
                 Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() ) );
             }
 
+            if ( layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY), out var oldChunk ) )
+            {
+                oldChunk.Delete();
+            }
+
             if ( !layer.Chunks.TryAdd( (chunk.ChunkX, chunk.ChunkY), chunk ) )
             {
                 Log.Warning( "Chunk already added!" );
