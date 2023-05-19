@@ -187,6 +187,8 @@ namespace Sandbox.Sdf
             if ( layer.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var existing ) && existing == chunk )
             {
                 layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY) );
+
+                ChunkMeshUpdated( chunk, true );
             }
         }
 
@@ -221,7 +223,7 @@ namespace Sandbox.Sdf
             Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
         }
 
-        internal void ChunkMeshUpdated( MarchingSquaresChunk chunk )
+        internal void ChunkMeshUpdated( MarchingSquaresChunk chunk, bool removed )
         {
             if ( !Game.IsClient )
             {
@@ -249,7 +251,7 @@ namespace Sandbox.Sdf
 
                     if ( value.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var matching ) )
                     {
-                        matching.UpdateLayerTexture( chunk );
+                        matching.UpdateLayerTexture( chunk.Layer, removed ? null : chunk );
                     }
                 }
             }

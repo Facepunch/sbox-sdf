@@ -166,7 +166,7 @@ namespace Sandbox.MarchingSquares
         [ThreadStatic]
         private static List<Vector3> TransformedVertices;
 
-        public void UpdateLayerTexture( MarchingSquaresChunk sourceChunk )
+        public void UpdateLayerTexture( Sdf2DLayer layer, MarchingSquaresChunk sourceChunk )
         {
             if ( Layer.LayerTextures == null || SceneObject == null )
             {
@@ -175,7 +175,7 @@ namespace Sandbox.MarchingSquares
 
             foreach ( var reference in Layer.LayerTextures )
             {
-                if ( reference.SourceLayer != sourceChunk.Layer )
+                if ( reference.SourceLayer != layer )
                 {
                     continue;
                 }
@@ -220,7 +220,7 @@ namespace Sandbox.MarchingSquares
 
             _lastModificationCount = Data.ModificationCount;
 
-            World.ChunkMeshUpdated( this );
+            World.ChunkMeshUpdated( this, false );
 
             if ( Layer.IsTextureSourceOnly )
             {
