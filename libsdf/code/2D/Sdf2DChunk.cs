@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection.PortableExecutable;
-using Sandbox.Sdf;
 
-namespace Sandbox.MarchingSquares
+namespace Sandbox.Sdf
 {
-    internal partial class MarchingSquaresChunk : Entity
+    internal partial class Sdf2DChunk : Entity
     {
         [Net]
         public Sdf2DWorld World { get; set; }
@@ -29,24 +27,24 @@ namespace Sandbox.MarchingSquares
         public bool CutUsed { get; set; }
 
         [Net]
-        private SdfArray2D Data { get; set; }
+        private Sdf2DArray Data { get; set; }
 
         public bool OwnedByServer { get; }
         public SceneObject SceneObject { get; private set; }
 
         private int _lastModificationCount;
 
-        public MarchingSquaresChunk()
+        public Sdf2DChunk()
         {
             OwnedByServer = true;
         }
 
-        public MarchingSquaresChunk( Sdf2DWorld world, Sdf2DLayer layer, int chunkX, int chunkY )
+        public Sdf2DChunk( Sdf2DWorld world, Sdf2DLayer layer, int chunkX, int chunkY )
         {
             OwnedByServer = Game.IsServer;
 
             World = world;
-            Data = new SdfArray2D( layer.Quality );
+            Data = new Sdf2DArray( layer.Quality );
             Layer = layer;
 
             ChunkX = chunkX;
@@ -166,7 +164,7 @@ namespace Sandbox.MarchingSquares
         [ThreadStatic]
         private static List<Vector3> TransformedVertices;
 
-        public void UpdateLayerTexture( Sdf2DLayer layer, MarchingSquaresChunk sourceChunk )
+        public void UpdateLayerTexture( Sdf2DLayer layer, Sdf2DChunk sourceChunk )
         {
             if ( Layer.LayerTextures == null || SceneObject == null )
             {
@@ -184,7 +182,7 @@ namespace Sandbox.MarchingSquares
             }
         }
 
-        public void UpdateLayerTexture( string targetAttribute, Sdf2DLayer layer, MarchingSquaresChunk sourceChunk )
+        public void UpdateLayerTexture( string targetAttribute, Sdf2DLayer layer, Sdf2DChunk sourceChunk )
         {
             if ( sourceChunk != null )
             {
@@ -227,7 +225,7 @@ namespace Sandbox.MarchingSquares
                 return;
             }
 
-            var writer = MarchingSquaresMeshWriter.Rent();
+            var writer = Sdf2DMeshWriter.Rent();
             var subMeshesChanged = false;
             var anyMeshes = false;
 

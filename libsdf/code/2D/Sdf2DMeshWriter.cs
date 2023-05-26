@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Sandbox.Sdf;
 
-namespace Sandbox.MarchingSquares
+namespace Sandbox.Sdf
 {
-    internal class MarchingSquaresMeshWriter
+    internal class Sdf2DMeshWriter
     {
         private const int MaxPoolCount = 16;
-        private static List<MarchingSquaresMeshWriter> Pool { get; } = new List<MarchingSquaresMeshWriter>();
+        private static List<Sdf2DMeshWriter> Pool { get; } = new List<Sdf2DMeshWriter>();
 
-        public static MarchingSquaresMeshWriter Rent()
+        public static Sdf2DMeshWriter Rent()
         {
             if ( Pool.Count > 0 )
             {
@@ -23,7 +22,7 @@ namespace Sandbox.MarchingSquares
                 return writer;
             }
 
-            return new MarchingSquaresMeshWriter();
+            return new Sdf2DMeshWriter();
         }
 
         public void Return()

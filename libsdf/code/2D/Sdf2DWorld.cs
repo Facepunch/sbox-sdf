@@ -1,41 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Sandbox.Diagnostics;
-using Sandbox.MarchingSquares;
 
 namespace Sandbox.Sdf
 {
-    /// <summary>
-    /// Quality settings for <see cref="Sdf2DLayer"/>.
-    /// </summary>
-    public enum WorldQuality
-    {
-        /// <summary>
-        /// Cheap and cheerful, suitable for frequent (per-frame) edits.
-        /// </summary>
-        Low,
-
-        /// <summary>
-        /// Recommended quality for most cases.
-        /// </summary>
-        Medium,
-
-        /// <summary>
-        /// More expensive to update and network, but a much smoother result.
-        /// </summary>
-        High,
-
-        /// <summary>
-        /// Only use this for small, detailed objects!
-        /// </summary>
-        Extreme,
-
-        /// <summary>
-        /// Manually tweak quality parameters.
-        /// </summary>
-        Custom = -1
-    }
-    
     internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
     {
         public static Sdf2DWorldQuality Low { get; } = new Sdf2DWorldQuality( 8, 256f, 32f );
@@ -52,11 +20,11 @@ namespace Sandbox.Sdf
         {
             get
             {
-                var arraySize = ChunkResolution + SdfArray2D.Margin * 2 + 1;
+                var arraySize = ChunkResolution + Sdf2DArray.Margin * 2 + 1;
 
-                var margin = (SdfArray2D.Margin + 0.5f) / arraySize;
+                var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
                 var scale = 1f / ChunkSize;
-                var size = 1f - (SdfArray2D.Margin * 2 + 1f) / arraySize;
+                var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
 
                 return new Vector4( margin, margin, scale * size, MaxDistance * 2f );
             }
@@ -69,7 +37,7 @@ namespace Sandbox.Sdf
     /// </summary>
     public partial class Sdf2DWorld : ModelEntity
     {
-        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk> Chunks );
+        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk> Chunks );
         
         private static Dictionary<Sdf2DLayer, Layer> Layers { get; } = new ();
 
@@ -165,19 +133,19 @@ namespace Sandbox.Sdf
             return changed;
         }
 
-        internal void AddClientChunk( MarchingSquaresChunk chunk )
+        internal void AddClientChunk( Sdf2DChunk chunk )
         {
             Assert.True( Game.IsClient );
 
             if ( !Layers.TryGetValue( chunk.Layer, out var layer ) )
             {
-                Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() ) );
+                Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() ) );
             }
 
             layer.Chunks[(chunk.ChunkX, chunk.ChunkY)] = chunk;
         }
 
-        internal void RemoveClientChunk( MarchingSquaresChunk chunk )
+        internal void RemoveClientChunk( Sdf2DChunk chunk )
         {
             if ( !Layers.TryGetValue( chunk.Layer, out var layer ) )
             {
@@ -192,24 +160,24 @@ namespace Sandbox.Sdf
             }
         }
 
-        internal MarchingSquaresChunk GetChunk( Sdf2DLayer layer, int chunkX, int chunkY )
+        internal Sdf2DChunk GetChunk( Sdf2DLayer layer, int chunkX, int chunkY )
         {
             return Layers.TryGetValue( layer, out var layerData )
                 && layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk ) ? chunk : null;
         }
 
-        private MarchingSquaresChunk GetOrCreateChunk( Sdf2DLayer layer, int chunkX, int chunkY )
+        private Sdf2DChunk GetOrCreateChunk( Sdf2DLayer layer, int chunkX, int chunkY )
         {
             var quality = layer.Quality;
 
             if ( !Layers.TryGetValue( layer, out var layerData ) )
             {
-                layerData = new Layer( new Dictionary<(int ChunkX, int ChunkY), MarchingSquaresChunk>() );
+                layerData = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() );
                 Layers.Add( layer, layerData );
             }
 
             return layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
-                ? chunk : layerData.Chunks[(chunkX, chunkY)] = new MarchingSquaresChunk( this, layer, chunkX, chunkY )
+                ? chunk : layerData.Chunks[(chunkX, chunkY)] = new Sdf2DChunk( this, layer, chunkX, chunkY )
                 {
                     Parent = this,
                     LocalPosition = new Vector3( chunkX * quality.ChunkSize, chunkY * quality.ChunkSize ),
@@ -223,7 +191,7 @@ namespace Sandbox.Sdf
             Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
         }
 
-        internal void ChunkMeshUpdated( MarchingSquaresChunk chunk, bool removed )
+        internal void ChunkMeshUpdated( Sdf2DChunk chunk, bool removed )
         {
             if ( !Game.IsClient )
             {
@@ -269,7 +237,7 @@ namespace Sandbox.Sdf
         }
 
         private bool ModifyChunks<T>( in T sdf, Sdf2DLayer layer, bool createChunks,
-            Func<MarchingSquaresChunk, TranslatedSdf<T>, bool> func )
+            Func<Sdf2DChunk, TranslatedSdf2D<T>, bool> func )
             where T : ISdf2D
         {
             AssertCanModify();

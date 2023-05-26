@@ -1,14 +1,13 @@
-﻿using Sandbox.Sdf;
-using System;
+﻿using System;
 
-namespace Sandbox.MarchingSquares
+namespace Sandbox.Sdf
 {
     internal record struct SdfArray2DData( byte[] Samples, int BaseIndex, int RowStride )
     {
         public byte this[ int x, int y ] => Samples[BaseIndex + x + y * RowStride];
     }
 
-    internal partial class SdfArray2D : BaseNetworkable, INetworkSerializer
+    internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
     {
         private const byte MaxEncoded = 255;
         public const int Margin = 1;
@@ -27,12 +26,12 @@ namespace Sandbox.MarchingSquares
 
         public int ModificationCount { get; set; }
 
-        public SdfArray2D()
+        public Sdf2DArray()
         {
 
         }
 
-        public SdfArray2D( Sdf2DWorldQuality quality )
+        public Sdf2DArray( Sdf2DWorldQuality quality )
         {
             Init( quality );
         }
@@ -188,7 +187,7 @@ namespace Sandbox.MarchingSquares
             return changed;
         }
 
-        public void WriteTo( MarchingSquaresMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
+        public void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
         {
             writer.Write( new SdfArray2DData( _samples, Margin * _arraySize + Margin, _arraySize ),
                 layer, renderMesh, collisionMesh );

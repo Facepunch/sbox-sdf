@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Sandbox.MarchingCubes;
-using Sandbox.MarchingSquares;
-using Sandbox.Physics;
 using Sandbox.Tools;
 
 namespace Sandbox.Sdf
@@ -11,41 +8,12 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
-		private static Sdf2DLayer _scorchLayer;
-		private static Sdf2DLayer _defaultLayer;
-		private static Sdf2DLayer _backgroundLayer;
-
-		public static Sdf2DLayer ScorchLayer => _scorchLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/scorch.sdflayer" );
-		public static Sdf2DLayer DefaultLayer => _defaultLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/checkerboard.sdflayer" );
-		public static Sdf2DLayer BackgroundLayer => _backgroundLayer ??= ResourceLibrary.Get<Sdf2DLayer>( "layers/examples/background.sdflayer" );
-
-        public static Sdf2DWorld SdfWorld { get; set; }
-
-		[ConCmd.Admin("sdf_2d_test")]
-		public static async Task Sdf2DTest( float angle )
-		{
-			SdfWorld ??= new Sdf2DWorld
-			{
-				LocalPosition = new Vector3( -1024f, 1536f, 512f ),
-				LocalRotation = Rotation.FromRoll( 90f )
-			};
-
-			SdfWorld.Clear();
-
-			var mapSdfTexture = await Texture.LoadAsync( FileSystem.Mounted, "textures/facepunch_sdf.png" );
-			var mapSdf = new TextureSdf( mapSdfTexture, 64, 1024f )
-				.Transform( rotation: angle );
-
-			SdfWorld.Add( mapSdf, DefaultLayer );
-			SdfWorld.Add( mapSdf.Expand( 16f ), BackgroundLayer );
-        }
+        public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
 
 		private Task _lastEditTask;
-
-		public MarchingCubesEntity MarchingCubes { get; private set; }
 
 		public Vector3? LastEditPos { get; set; }
 		public Vector2? LastEditPos2D { get; set; }
@@ -69,7 +37,7 @@ namespace Sandbox.Sdf
 
 			if ( Game.IsServer )
 			{
-				MarchingCubes ??= Entity.All.OfType<MarchingCubesEntity>().FirstOrDefault() ?? new MarchingCubesEntity( 256f );
+                Sdf3DWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld( 256f );
 			}
 			else
 			{
