@@ -158,7 +158,7 @@ internal class Sdf2DMeshWriter
 
 		public abstract void ClearMap();
 
-		protected Vector3 GetVertexPos( SdfArray2DData data, VertexKey key )
+		protected Vector3 GetVertexPos( Sdf2DArrayData data, VertexKey key )
 		{
 			switch ( key.Vertex )
 			{
@@ -231,7 +231,7 @@ internal class Sdf2DMeshWriter
 			Map.Clear();
 		}
 
-		private (int FrontIndex, int BackIndex) AddVertex( SdfArray2DData data, float unitSize, VertexKey key )
+		private (int FrontIndex, int BackIndex) AddVertex( Sdf2DArrayData data, float unitSize, VertexKey key )
 		{
 			if ( Map.TryGetValue( key, out var indices ) ) return indices;
 
@@ -248,7 +248,7 @@ internal class Sdf2DMeshWriter
 			return (frontIndex, backIndex);
 		}
 
-		public void AddFrontBackTriangle( SdfArray2DData data, float unitSize, FrontBackTriangle triangle )
+		public void AddFrontBackTriangle( Sdf2DArrayData data, float unitSize, FrontBackTriangle triangle )
 		{
 			var (front0, back0) = AddVertex( data, unitSize, triangle.V0 );
 			var (front1, back1) = AddVertex( data, unitSize, triangle.V1 );
@@ -263,7 +263,7 @@ internal class Sdf2DMeshWriter
 			Indices.Add( back2 );
 		}
 
-		public void AddCutFace( SdfArray2DData data, float unitSize, CutFace face )
+		public void AddCutFace( Sdf2DArrayData data, float unitSize, CutFace face )
 		{
 			var (front0, back0) = AddVertex( data, unitSize, face.V0 );
 			var (front1, back1) = AddVertex( data, unitSize, face.V1 );
@@ -292,7 +292,7 @@ internal class Sdf2DMeshWriter
 			Map.Clear();
 		}
 
-		private int AddVertex( SdfArray2DData data, float unitSize, float uvScale, VertexKey key )
+		private int AddVertex( Sdf2DArrayData data, float unitSize, float uvScale, VertexKey key )
 		{
 			if ( Map.TryGetValue( key, out var index ) ) return index;
 
@@ -311,7 +311,7 @@ internal class Sdf2DMeshWriter
 			return index;
 		}
 
-		public void AddTriangle( SdfArray2DData data, float unitSize, float uvScale, FrontBackTriangle triangle )
+		public void AddTriangle( Sdf2DArrayData data, float unitSize, float uvScale, FrontBackTriangle triangle )
 		{
 			Indices.Add( AddVertex( data, unitSize, uvScale, triangle.V0 ) );
 			Indices.Add( AddVertex( data, unitSize, uvScale, triangle.V1 ) );
@@ -382,7 +382,7 @@ internal class Sdf2DMeshWriter
 			return (frontIndex, backIndex);
 		}
 
-		public void AddQuad( SdfArray2DData data, float unitSize, float uvScale, CutFace face )
+		public void AddQuad( Sdf2DArrayData data, float unitSize, float uvScale, CutFace face )
 		{
 			var aPos = GetVertexPos( data, face.V0 );
 			var bPos = GetVertexPos( data, face.V1 );
@@ -448,7 +448,7 @@ internal class Sdf2DMeshWriter
 		Cut.Clear();
 	}
 
-	private static float GetAdSubBc( SdfArray2DData data, int x, int y )
+	private static float GetAdSubBc( Sdf2DArrayData data, int x, int y )
 	{
 		var a = data[x, y] - 127.5f;
 		var b = data[x + 1, y] - 127.5f;
@@ -458,7 +458,7 @@ internal class Sdf2DMeshWriter
 		return a * d - b * c;
 	}
 
-	public void Write( SdfArray2DData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
+	public void Write( Sdf2DArrayData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
 		SolidBlocks.Clear();
 		FrontBackTriangles.Clear();

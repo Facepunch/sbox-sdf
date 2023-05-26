@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -11,10 +7,13 @@ internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
 	protected const byte MaxEncoded = 255;
 	public const int Margin = 1;
 
+	public int Dimensions { get; }
+
 	public WorldQuality Quality { get; private set; }
 	public byte[] Samples { get; private set; }
 	public int ModificationCount { get; set; }
 	public int ArraySize { get; private set; }
+	public int SampleCount { get; private set; }
 
 	protected float UnitSize { get; private set; }
 	protected float InvUnitSize { get; private set; }
@@ -23,14 +22,22 @@ internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
 	private bool _textureInvalid = true;
 	private Texture _texture;
 
-	protected SdfArray()
+	protected SdfArray( int dimensions )
 	{
-
+		Dimensions = dimensions;
 	}
 
-	protected SdfArray( WorldQuality quality )
+	protected SdfArray( int dimensions, WorldQuality quality )
 	{
+		Dimensions = dimensions;
+
 		Init( quality );
+	}
+	
+	protected (int Min, int Max) GetSampleRange( float localMin, float localMax )
+	{
+		return (Math.Max( 0, (int) MathF.Ceiling( (localMin - Quality.MaxDistance) * InvUnitSize ) + Margin ),
+			Math.Min( ArraySize, (int) MathF.Ceiling( (localMax + Quality.MaxDistance) * InvUnitSize ) + Margin ));
 	}
 
 	protected byte Encode( float distance )
@@ -78,7 +85,14 @@ internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
 		InvUnitSize = Quality.ChunkResolution / Quality.ChunkSize;
 		InvMaxDistance = 1f / Quality.MaxDistance;
 
-		Samples = new byte[ArraySize * ArraySize];
+		SampleCount = 1;
+
+		for ( var i = 0; i < Dimensions; ++i )
+		{
+			SampleCount *= ArraySize;
+		}
+
+		Samples = new byte[SampleCount];
 
 		Clear( false );
 	}

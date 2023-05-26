@@ -2,7 +2,7 @@
 
 namespace Sandbox.Sdf;
 
-internal record struct SdfArray2DData( byte[] Samples, int BaseIndex, int RowStride )
+internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
 {
 	public byte this[int x, int y] => Samples[BaseIndex + x + y * RowStride];
 }
@@ -10,11 +10,12 @@ internal record struct SdfArray2DData( byte[] Samples, int BaseIndex, int RowStr
 internal partial class Sdf2DArray : SdfArray
 {
 	public Sdf2DArray()
+		: base( 2 )
 	{
 	}
 
 	public Sdf2DArray( WorldQuality quality )
-		: base( quality )
+		: base( 2, quality )
 	{
 
 	}
@@ -36,14 +37,8 @@ internal partial class Sdf2DArray : SdfArray
 
 	private (int MinX, int MinY, int MaxX, int MaxY) GetSampleRange( Rect bounds )
 	{
-		var min = (bounds.TopLeft - Quality.MaxDistance) * InvUnitSize;
-		var max = (bounds.BottomRight + Quality.MaxDistance) * InvUnitSize;
-
-		var minX = Math.Max( 0, (int)MathF.Ceiling( min.x ) + Margin );
-		var minY = Math.Max( 0, (int)MathF.Ceiling( min.y ) + Margin );
-
-		var maxX = Math.Min( ArraySize, (int)MathF.Ceiling( max.x ) + Margin );
-		var maxY = Math.Min( ArraySize, (int)MathF.Ceiling( max.y ) + Margin );
+		var (minX, maxX) = GetSampleRange( bounds.Left, bounds.Right );
+		var (minY, maxY) = GetSampleRange( bounds.Top, bounds.Bottom );
 
 		return (minX, minY, maxX, maxY);
 	}
@@ -126,7 +121,7 @@ internal partial class Sdf2DArray : SdfArray
 
 	public void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
-		writer.Write( new SdfArray2DData( Samples, Margin * ArraySize + Margin, ArraySize ),
+		writer.Write( new Sdf2DArrayData( Samples, Margin * ArraySize + Margin, ArraySize ),
 			layer, renderMesh, collisionMesh );
 	}
 }
