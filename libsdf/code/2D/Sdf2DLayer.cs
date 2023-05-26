@@ -99,14 +99,14 @@ public class Sdf2DLayer : GameResource
 	/// <summary>
 	/// Controls mesh visual quality, affecting performance and networking costs.
 	/// </summary>
-	public WorldQuality QualityLevel { get; set; } = WorldQuality.Medium;
+	public WorldQualityPreset QualityLevel { get; set; } = WorldQualityPreset.Medium;
 
 	/// <summary>
 	/// How many rows / columns of samples are stored per chunk.
 	/// Higher means more needs to be sent over the network, and more work for the mesh generator.
 	/// Medium quality is 16.
 	/// </summary>
-	[ShowIf( nameof( QualityLevel ), WorldQuality.Custom )]
+	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public int ChunkResolution { get; set; } = 16;
 
 	/// <summary>
@@ -114,7 +114,7 @@ public class Sdf2DLayer : GameResource
 	/// edits to this layer, you can reduce this to add detail.
 	/// Medium quality is 256.
 	/// </summary>
-	[ShowIf( nameof( QualityLevel ), WorldQuality.Custom )]
+	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public float ChunkSize { get; set; } = 256f;
 
 	/// <summary>
@@ -122,18 +122,14 @@ public class Sdf2DLayer : GameResource
 	/// Higher means more samples are written to when doing modifications.
 	/// I'd arbitrarily recommend ChunkSize / ChunkResolution * 4.
 	/// </summary>
-	[ShowIf( nameof( QualityLevel ), WorldQuality.Custom )]
+	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public float MaxDistance { get; set; } = 64f;
 
 	[HideInEditor]
 	[JsonIgnore]
-	internal Sdf2DWorldQuality Quality => QualityLevel switch
+	internal WorldQuality Quality => QualityLevel switch
 	{
-		WorldQuality.Low => Sdf2DWorldQuality.Low,
-		WorldQuality.Medium => Sdf2DWorldQuality.Medium,
-		WorldQuality.High => Sdf2DWorldQuality.High,
-		WorldQuality.Extreme => Sdf2DWorldQuality.Extreme,
-		WorldQuality.Custom => new Sdf2DWorldQuality( ChunkResolution, ChunkSize, MaxDistance ),
-		_ => throw new NotImplementedException()
+		WorldQualityPreset.Custom => new WorldQuality( ChunkResolution, ChunkSize, MaxDistance ),
+		_ => Sdf2DWorld.QualityFromPreset( QualityLevel )
 	};
 }

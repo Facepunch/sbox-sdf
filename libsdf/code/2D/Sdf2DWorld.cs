@@ -4,39 +4,33 @@ using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
 
-internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
-{
-	public static Sdf2DWorldQuality Low { get; } = new( 8, 256f, 32f );
-
-	public static Sdf2DWorldQuality Medium { get; } = new( 16, 256f, 64f );
-
-	public static Sdf2DWorldQuality High { get; } = new( 32, 256f, 96f );
-
-	public static Sdf2DWorldQuality Extreme { get; } = new( 16, 128f, 32f );
-
-	public float UnitSize => ChunkSize / ChunkResolution;
-
-	public Vector4 TextureParams
-	{
-		get
-		{
-			var arraySize = ChunkResolution + Sdf2DArray.Margin * 2 + 1;
-
-			var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
-			var scale = 1f / ChunkSize;
-			var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
-
-			return new Vector4( margin, margin, scale * size, MaxDistance * 2f );
-		}
-	}
-}
-
 /// <summary>
 /// Main entity for creating a 2D surface that can be added to and subtracted from.
 /// Multiple layers can be added to this entity with different materials.
 /// </summary>
 public partial class Sdf2DWorld : ModelEntity
 {
+	internal static WorldQuality QualityFromPreset( WorldQualityPreset preset )
+	{
+		switch ( preset )
+		{
+			case WorldQualityPreset.Low:
+				return new( 8, 256f, 32f );
+
+			case WorldQualityPreset.Medium:
+				return new( 16, 256f, 64f );
+
+			case WorldQualityPreset.High:
+				return new( 32, 256f, 96f );
+
+			case WorldQualityPreset.Extreme:
+				return new( 16, 128f, 32f );
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
+
 	private record struct Layer( Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk> Chunks );
 
 	private static Dictionary<Sdf2DLayer, Layer> Layers { get; } = new();

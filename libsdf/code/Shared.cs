@@ -1,33 +1,51 @@
-﻿namespace Sandbox.Sdf
+﻿namespace Sandbox.Sdf;
+
+/// <summary>
+/// Quality settings for <see cref="Sdf2DLayer"/>.
+/// </summary>
+public enum WorldQualityPreset
 {
 	/// <summary>
-	/// Quality settings for <see cref="Sdf2DLayer"/>.
+	/// Cheap and cheerful, suitable for frequent (per-frame) edits.
 	/// </summary>
-	public enum WorldQuality
+	Low,
+
+	/// <summary>
+	/// Recommended quality for most cases.
+	/// </summary>
+	Medium,
+
+	/// <summary>
+	/// More expensive to update and network, but a much smoother result.
+	/// </summary>
+	High,
+
+	/// <summary>
+	/// Only use this for small, detailed objects!
+	/// </summary>
+	Extreme,
+
+	/// <summary>
+	/// Manually tweak quality parameters.
+	/// </summary>
+	Custom = -1
+}
+	
+internal record struct WorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
+{
+	public float UnitSize => ChunkSize / ChunkResolution;
+
+	public static WorldQuality Read( ref NetRead net )
 	{
-		/// <summary>
-		/// Cheap and cheerful, suitable for frequent (per-frame) edits.
-		/// </summary>
-		Low,
+		return new WorldQuality( net.Read<int>(),
+			net.Read<float>(),
+			net.Read<float>() );
+	}
 
-		/// <summary>
-		/// Recommended quality for most cases.
-		/// </summary>
-		Medium,
-
-		/// <summary>
-		/// More expensive to update and network, but a much smoother result.
-		/// </summary>
-		High,
-
-		/// <summary>
-		/// Only use this for small, detailed objects!
-		/// </summary>
-		Extreme,
-
-		/// <summary>
-		/// Manually tweak quality parameters.
-		/// </summary>
-		Custom = -1
+	public void Write( NetWrite net )
+	{
+		net.Write( ChunkResolution );
+		net.Write( ChunkSize );
+		net.Write( MaxDistance );
 	}
 }

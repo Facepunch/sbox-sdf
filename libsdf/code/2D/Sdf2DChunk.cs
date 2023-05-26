@@ -162,7 +162,16 @@ internal partial class Sdf2DChunk : Entity
 			SceneObject.Attributes.Set( targetAttribute, Texture.White );
 		}
 
-		SceneObject.Attributes.Set( $"{targetAttribute}_Params", layer.Quality.TextureParams );
+		var quality = layer.Quality;
+		var arraySize = quality.ChunkResolution + Sdf2DArray.Margin * 2 + 1;
+
+		var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
+		var scale = 1f / quality.ChunkSize;
+		var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
+
+		var texParams = new Vector4( margin, margin, scale * size, quality.MaxDistance * 2f );
+
+		SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
 	}
 
 	public void UpdateMesh()

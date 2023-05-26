@@ -12,7 +12,7 @@ internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
 	private const byte MaxEncoded = 255;
 	public const int Margin = 1;
 
-	public Sdf2DWorldQuality Quality { get; private set; }
+	public WorldQuality Quality { get; private set; }
 
 	private byte[] _samples;
 
@@ -30,7 +30,7 @@ internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
 	{
 	}
 
-	public Sdf2DArray( Sdf2DWorldQuality quality )
+	public Sdf2DArray( WorldQuality quality )
 	{
 		Init( quality );
 	}
@@ -57,8 +57,13 @@ internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
 		}
 	}
 
-	private void Init( Sdf2DWorldQuality quality )
+	private void Init( WorldQuality quality )
 	{
+		if ( Quality.Equals( quality ) )
+		{
+			return;
+		}
+
 		Quality = quality;
 
 		_arraySize = Quality.ChunkResolution + Margin * 2 + 1;
@@ -187,12 +192,7 @@ internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
 
 	public void Read( ref NetRead net )
 	{
-		var quality = new Sdf2DWorldQuality(
-			net.Read<int>(),
-			net.Read<float>(),
-			net.Read<float>() );
-
-		Init( quality );
+		Init( WorldQuality.Read( ref net ) );
 
 		_samples = net.ReadUnmanagedArray( _samples );
 
@@ -202,9 +202,7 @@ internal partial class Sdf2DArray : BaseNetworkable, INetworkSerializer
 
 	public void Write( NetWrite net )
 	{
-		net.Write( Quality.ChunkResolution );
-		net.Write( Quality.ChunkSize );
-		net.Write( Quality.MaxDistance );
+		Quality.Write( net );
 
 		net.WriteUnmanagedArray( _samples );
 	}
