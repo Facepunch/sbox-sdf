@@ -2,22 +2,16 @@
 
 namespace Sandbox.Sdf;
 
-internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
+public record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
 {
 	public byte this[int x, int y] => Samples[BaseIndex + x + y * RowStride];
 }
 
-internal partial class Sdf2DArray : SdfArray
+public partial class Sdf2DArray : SdfArray<ISdf2D>
 {
 	public Sdf2DArray()
 		: base( 2 )
 	{
-	}
-
-	public Sdf2DArray( WorldQuality quality )
-		: base( 2, quality )
-	{
-
 	}
 
 	protected override Texture CreateTexture()
@@ -43,8 +37,7 @@ internal partial class Sdf2DArray : SdfArray
 		return (minX, minY, maxX, maxY);
 	}
 
-	public bool Add<T>( in T sdf )
-		where T : ISdf2D
+	public override bool Add<T>( in T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;
@@ -81,8 +74,7 @@ internal partial class Sdf2DArray : SdfArray
 		return changed;
 	}
 
-	public bool Subtract<T>( in T sdf )
-		where T : ISdf2D
+	public override bool Subtract<T>( in T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;

@@ -2,7 +2,7 @@
 
 namespace Sandbox.Sdf;
 
-internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
+public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializer
 {
 	protected const byte MaxEncoded = 255;
 	public const int Margin = 1;
@@ -25,13 +25,6 @@ internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
 	protected SdfArray( int dimensions )
 	{
 		Dimensions = dimensions;
-	}
-
-	protected SdfArray( int dimensions, WorldQuality quality )
-	{
-		Dimensions = dimensions;
-
-		Init( quality );
 	}
 	
 	protected (int Min, int Max) GetSampleRange( float localMin, float localMax )
@@ -71,7 +64,13 @@ internal abstract partial class SdfArray : BaseNetworkable, INetworkSerializer
 
 	protected abstract void UpdateTexture( Texture texture );
 
-	private void Init( WorldQuality quality )
+	public abstract bool Add<T>( in T sdf )
+		where T : TSdf;
+
+	public abstract bool Subtract<T>( in T sdf )
+		where T : TSdf;
+
+	internal void Init( WorldQuality quality )
 	{
 		if ( Quality.Equals( quality ) )
 		{

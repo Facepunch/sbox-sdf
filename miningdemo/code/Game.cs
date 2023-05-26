@@ -35,12 +35,12 @@ public partial class MiningDemoGame : GameManager
 		base.PostLevelLoaded();
 
 		var cavernTexture = Texture.Load( FileSystem.Mounted, "textures/cavern_sdf.png" );
-		var cavernSdf = new TextureSdf( cavernTexture, 128, 4096f )
+		var cavernSdf = new TextureSdf( cavernTexture, 128, 4096f, pivot: 0f )
 			.Translate( new Vector2( -2048f, -8192f ) );
 
 		SdfWorld = new Sdf2DWorld { Rotation = Rotation.FromYaw( -90f ) * Rotation.FromRoll( 90f ) };
 		SdfWorld.Add( cavernSdf.Expand( -32f ), Materials.Rock );
-		SdfWorld.Add( new BoxSdf(new Vector2( -2048f, -8192f ), new Vector2( 2048f, 0f ) ), Materials.Background );
+		SdfWorld.Add( new RectSdf(new Vector2( -2048f, -8192f ), new Vector2( 2048f, 0f ) ), Materials.Background );
 	}
 
 	/// <summary>

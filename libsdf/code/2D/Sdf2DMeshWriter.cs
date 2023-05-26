@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Sandbox.Sdf;
 
-internal class Sdf2DMeshWriter
+public class Sdf2DMeshWriter
 {
 	private const int MaxPoolCount = 16;
 	private static List<Sdf2DMeshWriter> Pool { get; } = new();

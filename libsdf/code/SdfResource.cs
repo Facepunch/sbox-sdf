@@ -1,70 +1,44 @@
-﻿using System.Text.Json.Serialization;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Sandbox.Sdf;
 
 /// <summary>
-/// Quality settings for <see cref="Sdf2DLayer"/>.
+/// References a layer or volume that will be used as a texture when rendering.
 /// </summary>
-public enum WorldQualityPreset
+public class TextureReference<T>
+	where T : SdfResource<T>
 {
 	/// <summary>
-	/// Cheap and cheerful, suitable for frequent (per-frame) edits.
+	/// Material attribute name to set for the materials used by this layer or volume.
 	/// </summary>
-	Low,
+	public string TargetAttribute { get; set; }
 
 	/// <summary>
-	/// Recommended quality for most cases.
+	/// Source layer or volume that will provide the texture. The texture will have a single channel,
+	/// with 0 representing -<see cref="WorldQuality.MaxDistance"/> of the source layer,
+	/// and 1 representing +<see cref="WorldQuality.MaxDistance"/>.
 	/// </summary>
-	Medium,
-
-	/// <summary>
-	/// More expensive to update and network, but a much smoother result.
-	/// </summary>
-	High,
-
-	/// <summary>
-	/// Only use this for small, detailed objects!
-	/// </summary>
-	Extreme,
-
-	/// <summary>
-	/// Manually tweak quality parameters.
-	/// </summary>
-	Custom = -1
-}
-	
-internal record struct WorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
-{
-	public float UnitSize => ChunkSize / ChunkResolution;
-
-	public static WorldQuality Read( ref NetRead net )
-	{
-		return new WorldQuality( net.Read<int>(),
-			net.Read<float>(),
-			net.Read<float>() );
-	}
-
-	public void Write( NetWrite net )
-	{
-		net.Write( ChunkResolution );
-		net.Write( ChunkSize );
-		net.Write( MaxDistance );
-	}
+	public T Source { get; set; }
 }
 
-public abstract class SdfResource : GameResource
+public abstract class SdfResource<T> : GameResource
+	where T : SdfResource<T>
 {
-	private static char[] SplitChars { get; } = new[] { ' ' };
+#pragma warning disable SB3000
+	// ReSharper disable once StaticMemberInGenericType
+	private static char[] SplitChars { get; } = { ' ' };
+#pragma warning restore SB3000
 
 	/// <summary>
-	/// If true, this resource is only used as a texture source by other resources.
-	/// This will disable collision shapes and render mesh generation for this resource.
+	/// If true, this layer or volume is only used as a texture source by other layers or volumes.
+	/// This will disable collision shapes and render mesh generation for this layer or volume.
 	/// </summary>
 	public bool IsTextureSourceOnly { get; set; }
 
 	/// <summary>
-	/// Tags that physics shapes created by this resource should have, separated by spaces.
+	/// Tags that physics shapes created by this layer or volume should have, separated by spaces.
 	/// If empty, no physics shapes will be created.
 	/// </summary>
 	[Editor( "tags" )]
@@ -85,7 +59,7 @@ public abstract class SdfResource : GameResource
 	/// <summary>
 	/// How many rows / columns of samples are stored per chunk.
 	/// Higher means more needs to be sent over the network, and more work for the mesh generator.
-	/// Medium quality is 16.
+	/// Medium quality is 16 for 2D layers.
 	/// </summary>
 	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public int ChunkResolution { get; set; } = 16;
@@ -93,7 +67,7 @@ public abstract class SdfResource : GameResource
 	/// <summary>
 	/// How wide / tall a chunk is in world space. If you'll always make small
 	/// edits to this layer, you can reduce this to add detail.
-	/// Medium quality is 256.
+	/// Medium quality is 256 for 2D layers.
 	/// </summary>
 	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public float ChunkSize { get; set; } = 256f;
@@ -106,11 +80,20 @@ public abstract class SdfResource : GameResource
 	[ShowIf( nameof( QualityLevel ), WorldQualityPreset.Custom )]
 	public float MaxDistance { get; set; } = 64f;
 
+	/// <summary>
+	/// References to layers or volumes that will be used as textures when rendering this layer or volume.
+	/// All referenced layers or volumes must have the same chunk size as this layer or volume.
+	/// </summary>
+	[HideIf( nameof( IsTextureSourceOnly ), true )]
+	public List<TextureReference<T>> ReferencedTextures { get; set; }
+
 	[HideInEditor]
 	[JsonIgnore]
 	internal WorldQuality Quality => QualityLevel switch
 	{
 		WorldQualityPreset.Custom => new WorldQuality( ChunkResolution, ChunkSize, MaxDistance ),
-		_ => Sdf2DWorld.QualityFromPreset( QualityLevel )
+		_ => GetQualityFromPreset( QualityLevel )
 	};
+
+	internal abstract WorldQuality GetQualityFromPreset( WorldQualityPreset preset );
 }

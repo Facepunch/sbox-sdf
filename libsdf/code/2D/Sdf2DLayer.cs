@@ -1,30 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
-
-/// <summary>
-/// References a layer that will be used as a texture when rendering.
-/// </summary>
-public class LayerTexture
-{
-	/// <summary>
-	/// Material attribute name to set for the materials used by this layer.
-	/// </summary>
-	public string TargetAttribute { get; set; }
-
-	/// <summary>
-	/// Source layer that will provide the texture. The texture will have a single channel,
-	/// with 0 representing -<see cref="Sdf2DLayer.MaxDistance"/> of the source layer,
-	/// and 1 representing +<see cref="Sdf2DLayer.MaxDistance"/>.
-	/// </summary>
-	public Sdf2DLayer SourceLayer { get; set; }
-}
 
 /// <summary>
 /// Controls the appearance and physical properties of a layer in a <see cref="Sdf2DWorld"/>.
 /// </summary>
 [GameResource( "SDF 2D Layer", "sdflayer", $"Properties of a layer in a {nameof( Sdf2DWorld )}", Icon = "layers" )]
-public class Sdf2DLayer : SdfResource
+public class Sdf2DLayer : SdfResource<Sdf2DLayer>
 {
 	/// <summary>
 	/// How wide this layer is in the z-axis. This can help prevent
@@ -65,10 +48,24 @@ public class Sdf2DLayer : SdfResource
 	[HideIf( nameof( IsTextureSourceOnly ), true )]
 	public Material CutFaceMaterial { get; set; }
 
-	/// <summary>
-	/// References to layers that will be used as textures when rendering this layer.
-	/// All referenced layers must have the same chunk size as this layer.
-	/// </summary>
-	[HideIf( nameof( IsTextureSourceOnly ), true )]
-	public List<LayerTexture> LayerTextures { get; set; }
+	internal override WorldQuality GetQualityFromPreset( WorldQualityPreset preset )
+	{
+		switch ( preset )
+		{
+			case WorldQualityPreset.Low:
+				return new( 8, 256f, 32f );
+
+			case WorldQualityPreset.Medium:
+				return new( 16, 256f, 64f );
+
+			case WorldQualityPreset.High:
+				return new( 32, 256f, 96f );
+
+			case WorldQualityPreset.Extreme:
+				return new( 16, 128f, 32f );
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
 }

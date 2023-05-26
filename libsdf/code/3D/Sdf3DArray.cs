@@ -7,17 +7,11 @@ internal record struct Sdf3DArrayData( byte[] Samples, int BaseIndex, int RowStr
 	public byte this[int x, int y, int z] => Samples[BaseIndex + x + y * RowStride + z * SliceStride];
 }
 
-internal partial class Sdf3DArray : SdfArray
+internal partial class Sdf3DArray : SdfArray<ISdf3D>
 {
 	public Sdf3DArray()
 		: base( 3 )
 	{
-	}
-
-	public Sdf3DArray( WorldQuality quality )
-		: base( 3, quality )
-	{
-
 	}
 
 	protected override Texture CreateTexture()
@@ -44,8 +38,7 @@ internal partial class Sdf3DArray : SdfArray
 		return (minX, minY, minZ, maxX, maxY, maxZ);
 	}
 
-	public bool Add<T>( in T sdf )
-		where T : ISdf3D
+	public override bool Add<T>( in T sdf )
 	{
 		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;
@@ -87,8 +80,7 @@ internal partial class Sdf3DArray : SdfArray
 		return changed;
 	}
 
-	public bool Subtract<T>( in T sdf )
-		where T : ISdf3D
+	public override bool Subtract<T>( in T sdf )
 	{
 		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;
@@ -130,9 +122,11 @@ internal partial class Sdf3DArray : SdfArray
 		return changed;
 	}
 
+	/*
 	public void WriteTo( Sdf3DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
 		writer.Write( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ),
 			layer, renderMesh, collisionMesh );
 	}
+	*/
 }
