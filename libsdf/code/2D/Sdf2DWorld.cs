@@ -1,285 +1,250 @@
-﻿using System;
+﻿using Sandbox.Diagnostics;
+using System;
 using System.Collections.Generic;
-using Sandbox.Diagnostics;
 
-namespace Sandbox.Sdf
+namespace Sandbox.Sdf;
+
+internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
 {
-    internal record struct Sdf2DWorldQuality( int ChunkResolution, float ChunkSize, float MaxDistance )
-    {
-        public static Sdf2DWorldQuality Low { get; } = new Sdf2DWorldQuality( 8, 256f, 32f );
+	public static Sdf2DWorldQuality Low { get; } = new( 8, 256f, 32f );
 
-        public static Sdf2DWorldQuality Medium { get; } = new Sdf2DWorldQuality( 16, 256f, 64f );
+	public static Sdf2DWorldQuality Medium { get; } = new( 16, 256f, 64f );
 
-        public static Sdf2DWorldQuality High { get; } = new Sdf2DWorldQuality( 32, 256f, 96f );
+	public static Sdf2DWorldQuality High { get; } = new( 32, 256f, 96f );
 
-        public static Sdf2DWorldQuality Extreme { get; } = new Sdf2DWorldQuality( 16, 128f, 32f );
+	public static Sdf2DWorldQuality Extreme { get; } = new( 16, 128f, 32f );
 
-        public float UnitSize => ChunkSize / ChunkResolution;
-        
-        public Vector4 TextureParams
-        {
-            get
-            {
-                var arraySize = ChunkResolution + Sdf2DArray.Margin * 2 + 1;
+	public float UnitSize => ChunkSize / ChunkResolution;
 
-                var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
-                var scale = 1f / ChunkSize;
-                var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
+	public Vector4 TextureParams
+	{
+		get
+		{
+			var arraySize = ChunkResolution + Sdf2DArray.Margin * 2 + 1;
 
-                return new Vector4( margin, margin, scale * size, MaxDistance * 2f );
-            }
-        }
-    }
+			var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
+			var scale = 1f / ChunkSize;
+			var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
 
-    /// <summary>
-    /// Main entity for creating a 2D surface that can be added to and subtracted from.
-    /// Multiple layers can be added to this entity with different materials.
-    /// </summary>
-    public partial class Sdf2DWorld : ModelEntity
-    {
-        private record struct Layer( Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk> Chunks );
-        
-        private static Dictionary<Sdf2DLayer, Layer> Layers { get; } = new ();
+			return new Vector4( margin, margin, scale * size, MaxDistance * 2f );
+		}
+	}
+}
 
-        public override void Spawn()
-        {
-            base.Spawn();
+/// <summary>
+/// Main entity for creating a 2D surface that can be added to and subtracted from.
+/// Multiple layers can be added to this entity with different materials.
+/// </summary>
+public partial class Sdf2DWorld : ModelEntity
+{
+	private record struct Layer( Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk> Chunks );
 
-            Transmit = TransmitType.Always;
-        }
+	private static Dictionary<Sdf2DLayer, Layer> Layers { get; } = new();
 
-        internal bool IsDestroying { get; private set; }
+	public override void Spawn()
+	{
+		base.Spawn();
 
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
+		Transmit = TransmitType.Always;
+	}
 
-            IsDestroying = true;
-        }
+	internal bool IsDestroying { get; private set; }
 
-        /// <summary>
-        /// Removes all layers, making this equivalent to a brand new empty world.
-        /// </summary>
-        public void Clear()
-        {
-            foreach ( var layer in Layers.Values )
-            {
-                foreach ( var chunk in layer.Chunks.Values )
-                {
-                    chunk.Delete();
-                }
-            }
+	protected override void OnDestroy()
+	{
+		base.OnDestroy();
 
-            Layers.Clear();
-        }
+		IsDestroying = true;
+	}
 
-        /// <summary>
-        /// Removes the given layer.
-        /// </summary>
-        /// <param name="layer">Layer to clear</param>
-        public void Clear( Sdf2DLayer layer )
-        {
-            if ( Layers.Remove( layer, out var layerData ) )
-            {
-                foreach ( var chunk in layerData.Chunks.Values )
-                {
-                    chunk.Delete();
-                }
-            }
-        }
+	/// <summary>
+	/// Removes all layers, making this equivalent to a brand new empty world.
+	/// </summary>
+	public void Clear()
+	{
+		foreach ( var layer in Layers.Values )
+			foreach ( var chunk in layer.Chunks.Values )
+				chunk.Delete();
 
-        /// <summary>
-        /// Add a shape to the given layer.
-        /// </summary>
-        /// <typeparam name="T">SDF type</typeparam>
-        /// <param name="sdf">Shape to add</param>
-        /// <param name="layer">Layer to add to</param>
-        /// <returns>True if any geometry was modified</returns>
-        public bool Add<T>( in T sdf, Sdf2DLayer layer )
-            where T : ISdf2D
-        {
-            return ModifyChunks( sdf, layer, true, ( chunk, sdf ) => chunk.Add( sdf ) );
-        }
+		Layers.Clear();
+	}
 
-        /// <summary>
-        /// Subtract a shape from the given layer.
-        /// </summary>
-        /// <typeparam name="T">SDF type</typeparam>
-        /// <param name="sdf">Shape to subtract</param>
-        /// <param name="layer">Layer to subtract from</param>
-        /// <returns>True if any geometry was modified</returns>
-        public bool Subtract<T>( in T sdf, Sdf2DLayer layer )
-            where T : ISdf2D
-        {
-            return ModifyChunks( sdf, layer, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
-        }
+	/// <summary>
+	/// Removes the given layer.
+	/// </summary>
+	/// <param name="layer">Layer to clear</param>
+	public void Clear( Sdf2DLayer layer )
+	{
+		if ( Layers.Remove( layer, out var layerData ) )
+			foreach ( var chunk in layerData.Chunks.Values )
+				chunk.Delete();
+	}
 
-        /// <summary>
-        /// Subtract a shape from all layers.
-        /// </summary>
-        /// <typeparam name="T">SDF type</typeparam>
-        /// <param name="sdf">Shape to subtract</param>
-        /// <returns>True if any geometry was modified</returns>
-        public bool Subtract<T>( in T sdf )
-            where T : ISdf2D
-        {
-            var changed = false;
+	/// <summary>
+	/// Add a shape to the given layer.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to add</param>
+	/// <param name="layer">Layer to add to</param>
+	/// <returns>True if any geometry was modified</returns>
+	public bool Add<T>( in T sdf, Sdf2DLayer layer )
+		where T : ISdf2D
+	{
+		return ModifyChunks( sdf, layer, true, ( chunk, sdf ) => chunk.Add( sdf ) );
+	}
 
-            foreach ( var material in Layers.Keys )
-            {
-                changed |= ModifyChunks( sdf, material, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
-            }
+	/// <summary>
+	/// Subtract a shape from the given layer.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to subtract</param>
+	/// <param name="layer">Layer to subtract from</param>
+	/// <returns>True if any geometry was modified</returns>
+	public bool Subtract<T>( in T sdf, Sdf2DLayer layer )
+		where T : ISdf2D
+	{
+		return ModifyChunks( sdf, layer, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
+	}
 
-            return changed;
-        }
+	/// <summary>
+	/// Subtract a shape from all layers.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to subtract</param>
+	/// <returns>True if any geometry was modified</returns>
+	public bool Subtract<T>( in T sdf )
+		where T : ISdf2D
+	{
+		var changed = false;
 
-        internal void AddClientChunk( Sdf2DChunk chunk )
-        {
-            Assert.True( Game.IsClient );
+		foreach ( var material in Layers.Keys )
+			changed |= ModifyChunks( sdf, material, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
 
-            if ( !Layers.TryGetValue( chunk.Layer, out var layer ) )
-            {
-                Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() ) );
-            }
+		return changed;
+	}
 
-            layer.Chunks[(chunk.ChunkX, chunk.ChunkY)] = chunk;
-        }
+	internal void AddClientChunk( Sdf2DChunk chunk )
+	{
+		Assert.True( Game.IsClient );
 
-        internal void RemoveClientChunk( Sdf2DChunk chunk )
-        {
-            if ( !Layers.TryGetValue( chunk.Layer, out var layer ) )
-            {
-                return;
-            }
+		if ( !Layers.TryGetValue( chunk.Layer, out var layer ) )
+			Layers.Add( chunk.Layer, layer = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() ) );
 
-            if ( layer.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var existing ) && existing == chunk )
-            {
-                layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY) );
+		layer.Chunks[(chunk.ChunkX, chunk.ChunkY)] = chunk;
+	}
 
-                ChunkMeshUpdated( chunk, true );
-            }
-        }
+	internal void RemoveClientChunk( Sdf2DChunk chunk )
+	{
+		if ( !Layers.TryGetValue( chunk.Layer, out var layer ) ) return;
 
-        internal Sdf2DChunk GetChunk( Sdf2DLayer layer, int chunkX, int chunkY )
-        {
-            return Layers.TryGetValue( layer, out var layerData )
-                && layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk ) ? chunk : null;
-        }
+		if ( layer.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var existing ) && existing == chunk )
+		{
+			layer.Chunks.Remove( (chunk.ChunkX, chunk.ChunkY) );
 
-        private Sdf2DChunk GetOrCreateChunk( Sdf2DLayer layer, int chunkX, int chunkY )
-        {
-            var quality = layer.Quality;
+			ChunkMeshUpdated( chunk, true );
+		}
+	}
 
-            if ( !Layers.TryGetValue( layer, out var layerData ) )
-            {
-                layerData = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() );
-                Layers.Add( layer, layerData );
-            }
+	internal Sdf2DChunk GetChunk( Sdf2DLayer layer, int chunkX, int chunkY )
+	{
+		return Layers.TryGetValue( layer, out var layerData )
+			   && layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
+			? chunk
+			: null;
+	}
 
-            return layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
-                ? chunk : layerData.Chunks[(chunkX, chunkY)] = new Sdf2DChunk( this, layer, chunkX, chunkY )
-                {
-                    Parent = this,
-                    LocalPosition = new Vector3( chunkX * quality.ChunkSize, chunkY * quality.ChunkSize ),
-                    LocalRotation = Rotation.Identity,
-                    LocalScale = 1f
-                };
-        }
+	private Sdf2DChunk GetOrCreateChunk( Sdf2DLayer layer, int chunkX, int chunkY )
+	{
+		var quality = layer.Quality;
 
-        private void AssertCanModify()
-        {
-            Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
-        }
+		if ( !Layers.TryGetValue( layer, out var layerData ) )
+		{
+			layerData = new Layer( new Dictionary<(int ChunkX, int ChunkY), Sdf2DChunk>() );
+			Layers.Add( layer, layerData );
+		}
 
-        internal void ChunkMeshUpdated( Sdf2DChunk chunk, bool removed )
-        {
-            if ( !Game.IsClient )
-            {
-                return;
-            }
+		return layerData.Chunks.TryGetValue( (chunkX, chunkY), out var chunk )
+			? chunk
+			: layerData.Chunks[(chunkX, chunkY)] = new Sdf2DChunk( this, layer, chunkX, chunkY )
+			{
+				Parent = this,
+				LocalPosition = new Vector3( chunkX * quality.ChunkSize, chunkY * quality.ChunkSize ),
+				LocalRotation = Rotation.Identity,
+				LocalScale = 1f
+			};
+	}
 
-            foreach ( var (key, value) in Layers )
-            {
-                if ( key.LayerTextures == null )
-                {
-                    continue;
-                }
+	private void AssertCanModify()
+	{
+		Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
+	}
 
-                if ( key == chunk.Layer )
-                {
-                    continue;
-                }
+	internal void ChunkMeshUpdated( Sdf2DChunk chunk, bool removed )
+	{
+		if ( !Game.IsClient ) return;
 
-                foreach ( var layerTexture in key.LayerTextures )
-                {
-                    if ( layerTexture.SourceLayer != chunk.Layer )
-                    {
-                        continue;
-                    }
+		foreach ( var (key, value) in Layers )
+		{
+			if ( key.LayerTextures == null ) continue;
 
-                    if ( value.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var matching ) )
-                    {
-                        matching.UpdateLayerTexture( chunk.Layer, removed ? null : chunk );
-                    }
-                }
-            }
-        }
+			if ( key == chunk.Layer ) continue;
 
-        internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
-        {
-            if ( PhysicsBody == null )
-            {
-                SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
-                PhysicsBody!.ClearShapes();
-            }
+			foreach ( var layerTexture in key.LayerTextures )
+			{
+				if ( layerTexture.SourceLayer != chunk.Layer ) continue;
 
-            return PhysicsBody.AddMeshShape( vertices, indices );
-        }
+				if ( value.Chunks.TryGetValue( (chunk.ChunkX, chunk.ChunkY), out var matching ) )
+					matching.UpdateLayerTexture( chunk.Layer, removed ? null : chunk );
+			}
+		}
+	}
 
-        private bool ModifyChunks<T>( in T sdf, Sdf2DLayer layer, bool createChunks,
-            Func<Sdf2DChunk, TranslatedSdf2D<T>, bool> func )
-            where T : ISdf2D
-        {
-            AssertCanModify();
+	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
+	{
+		if ( PhysicsBody == null )
+		{
+			SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
+			PhysicsBody!.ClearShapes();
+		}
 
-            if ( layer == null )
-            {
-                throw new ArgumentNullException( nameof( layer ) );
-            }
+		return PhysicsBody.AddMeshShape( vertices, indices );
+	}
 
-            var bounds = sdf.Bounds;
-            var quality = layer.Quality;
-            var unitSize = quality.UnitSize;
+	private bool ModifyChunks<T>( in T sdf, Sdf2DLayer layer, bool createChunks,
+		Func<Sdf2DChunk, TranslatedSdf2D<T>, bool> func )
+		where T : ISdf2D
+	{
+		AssertCanModify();
 
-            var min = (bounds.TopLeft - quality.MaxDistance - unitSize) / quality.ChunkSize;
-            var max = (bounds.BottomRight + quality.MaxDistance + unitSize) / quality.ChunkSize;
+		if ( layer == null ) throw new ArgumentNullException( nameof( layer ) );
 
-            var minX = (int) MathF.Floor( min.x );
-            var minY = (int) MathF.Floor( min.y );
+		var bounds = sdf.Bounds;
+		var quality = layer.Quality;
+		var unitSize = quality.UnitSize;
 
-            var maxX = (int) MathF.Ceiling( max.x );
-            var maxY = (int) MathF.Ceiling( max.y );
+		var min = (bounds.TopLeft - quality.MaxDistance - unitSize) / quality.ChunkSize;
+		var max = (bounds.BottomRight + quality.MaxDistance + unitSize) / quality.ChunkSize;
 
-            var changed = false;
+		var minX = (int)MathF.Floor( min.x );
+		var minY = (int)MathF.Floor( min.y );
 
-            for ( var y = minY; y < maxY; ++y )
-            {
-                for ( var x = minX; x < maxX; ++x )
-                {
-                    var chunk = !createChunks
-                        ? GetChunk( layer, x, y )
-                        : GetOrCreateChunk( layer, x, y );
+		var maxX = (int)MathF.Ceiling( max.x );
+		var maxY = (int)MathF.Ceiling( max.y );
 
-                    if ( chunk == null )
-                    {
-                        continue;
-                    }
+		var changed = false;
 
-                    changed |= func( chunk, sdf.Translate( new Vector2( x, y ) * -quality.ChunkSize ) );
-                }
-            }
+		for ( var y = minY; y < maxY; ++y )
+			for ( var x = minX; x < maxX; ++x )
+			{
+				var chunk = !createChunks
+					? GetChunk( layer, x, y )
+					: GetOrCreateChunk( layer, x, y );
 
-            return changed;
-        }
-    }
+				if ( chunk == null ) continue;
+
+				changed |= func( chunk, sdf.Translate( new Vector2( x, y ) * -quality.ChunkSize ) );
+			}
+
+		return changed;
+	}
 }

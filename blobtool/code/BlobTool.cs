@@ -1,14 +1,14 @@
-﻿using System;
+﻿using Sandbox.Tools;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Sandbox.Tools;
 
 namespace Sandbox.Sdf
 {
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
-        public static Sdf3DWorld SdfWorld { get; set; }
+		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 512f;
@@ -37,7 +37,7 @@ namespace Sandbox.Sdf
 
 			if ( Game.IsServer )
 			{
-                Sdf3DWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld( 256f );
+				Sdf3DWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld( 256f );
 			}
 			else
 			{
@@ -61,53 +61,53 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-            if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
+			if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}
 
 
-            var add = Input.Down( "attack1" );
-            var subtract = Input.Down( "attack2" );
+			var add = Input.Down( "attack1" );
+			var subtract = Input.Down( "attack2" );
 
-            if ( SdfWorld != null )
-            {
-	            if ( add || subtract )
-	            {
-		            var ray = new Ray( Owner.EyePosition, Owner.EyeRotation.Forward );
-		            var plane = new Plane( SdfWorld.Position, SdfWorld.Rotation.Up );
-		            var hit = plane.Trace( ray, true );
+			if ( SdfWorld != null )
+			{
+				if ( add || subtract )
+				{
+					var ray = new Ray( Owner.EyePosition, Owner.EyeRotation.Forward );
+					var plane = new Plane( SdfWorld.Position, SdfWorld.Rotation.Up );
+					var hit = plane.Trace( ray, true );
 
-		            if ( hit is { } hitPos )
-		            {
-			            var radius = 64f;
-			            var localPos = (Vector2) SdfWorld.Transform.PointToLocal( hitPos );
+					if ( hit is { } hitPos )
+					{
+						var radius = 64f;
+						var localPos = (Vector2)SdfWorld.Transform.PointToLocal( hitPos );
 
-                        var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
+						var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
 
 						if ( add )
 						{
 							SdfWorld.Add( sdf, DefaultLayer );
 							SdfWorld.Subtract( sdf.Expand( 32f ), ScorchLayer );
-                        }
+						}
 						else
 						{
-						    SdfWorld.Subtract( sdf, DefaultLayer );
-						    SdfWorld.Add( sdf, ScorchLayer );
+							SdfWorld.Subtract( sdf, DefaultLayer );
+							SdfWorld.Add( sdf, ScorchLayer );
 						}
 
 						LastEditPos2D = localPos;
-		            }
-	            }
-	            else
-	            {
-		            LastEditPos2D = null;
-	            }
-            }
+					}
+				}
+				else
+				{
+					LastEditPos2D = null;
+				}
+			}
 
-            return;
+			return;
 
-            IsDrawing &= add;
+			IsDrawing &= add;
 
 			if ( LastEditPos == null || subtract )
 			{
@@ -131,7 +131,7 @@ namespace Sandbox.Sdf
 
 			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
 
-			if ( LastEditPos != null && ( editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
+			if ( LastEditPos != null && (editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
 			{
 				return;
 			}

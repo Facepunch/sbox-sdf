@@ -1,0 +1,5 @@
+# C# files
+[*.{cs,razor}]
+indent_style = tab
+indent_size = 4
+tab_size = 4
