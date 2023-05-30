@@ -37,2659 +37,1689 @@ partial class Sdf3DMeshWriter
 				return;
 
 			case CubeConfiguration.A:
-				// Face:
-				//   AC -> EA
-				//   AE -> BA
-				//   AB -> CA
+				AddTriangle( x, y, z, CubeVertex.AC, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B:
-				// Face:
-				//   BF -> DB
-				//   BD -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B:
-				// Face:
-				//   BF -> DB
-				//   BD -> CA
-				//   AC -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C:
-				// Face:
-				//   CD -> GC
-				//   CG -> AC
-				//   CA -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C:
-				// Face:
-				//   CD -> GC
-				//   CG -> EA
-				//   AE -> BA
-				//   AB -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.D:
-				// Face:
-				//   DB -> HD
-				//   DH -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D:
-				// Face:
-				//   DB -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D:
-				// Face:
-				//   BF -> HD
-				//   DH -> CD
-				//   DC -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D:
-				// Face:
-				//   BF -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D:
-				// Face:
-				//   DB -> HD
-				//   DH -> GC
-				//   CG -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D:
-				// Face:
-				//   DB -> HD
-				//   DH -> GC
-				//   CG -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D:
-				// Face:
-				//   BF -> HD
-				//   DH -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D:
-				// Face:
-				//   BF -> HD
-				//   DH -> GC
-				//   CG -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.E:
-				// Face:
-				//   EA -> GE
-				//   EG -> FE
-				//   EF -> AE
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E:
-				// Face:
-				//   AC -> GE
-				//   EG -> FE
-				//   EF -> BA
-				//   AB -> CA
+				AddTriangle( x, y, z, CubeVertex.AC, CubeVertex.AC, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.AC, CubeVertex.EG, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E:
-				// Face:
-				//   BF -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E:
-				// Face:
-				//   BF -> DB
-				//   BD -> CA
-				//   AC -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AC, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E:
-				// Face:
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CG, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.EG, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E:
-				// Face:
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> BA
-				//   AB -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CG, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.EG, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   DB -> HD
-				//   DH -> CD
-				//   DC -> BD
-				// Face:
-				//   EA -> GE
-				//   EG -> FE
-				//   EF -> AE
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   DB -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> FE
-				//   EF -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AC, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   BF -> HD
-				//   DH -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   BF -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AC, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   DB -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CG, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   DB -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CG, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   BF -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
-				// Face:
-				//   BF -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> AB
-				//   BA -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> EF
-				//   FE -> HF
-				// Face:
-				//   CD -> GC
-				//   CG -> AC
-				//   CA -> DC
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> BD
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> AB
-				//   BA -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> AC
-				//   CA -> BD
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> AE
-				//   EA -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> CA
-				//   AC -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AE, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> HF
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> GC
-				//   CG -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> BD
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> HF
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
-				// Face:
-				//   FH -> HD
-				//   DH -> GC
-				//   CG -> GE
-				//   EG -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.DH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.G:
-				// Face:
-				//   GC -> HG
-				//   GH -> EG
-				//   GE -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.G:
-				// Face:
-				//   GC -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.EG, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.AE, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> AB
-				//   BA -> FB
-				// Face:
-				//   GC -> HG
-				//   GH -> EG
-				//   GE -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AC, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.G:
-				// Face:
-				//   CD -> HG
-				//   GH -> EG
-				//   GE -> AC
-				//   CA -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.GH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.G:
-				// Face:
-				//   CD -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> EG
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   GC -> HG
-				//   GH -> FE
-				//   EF -> AE
-				//   EA -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.GH, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   GC -> HG
-				//   GH -> FE
-				//   EF -> BA
-				//   AB -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.GH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.EF, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> CG
-				//   GC -> HG
-				//   GH -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AE, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.AC, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   CD -> HG
-				//   GH -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.GH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   CD -> HG
-				//   GH -> FE
-				//   EF -> BA
-				//   AB -> DC
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.CD, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.CD, CubeVertex.GH, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.GH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BD, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> AE
-				//   EA -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   DB -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.DH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
-				// Face:
-				//   BF -> HD
-				//   DH -> HG
-				//   GH -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.DH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.DH, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> AB
-				//   BA -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> AC
-				//   CA -> DC
-				//   CD -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.EG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> EF
-				//   FE -> EG
-				//   GE -> CG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.AB, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> AE
-				//   EA -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AE, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AC, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.AB, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> HF
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> DB
-				//   BD -> DC
-				//   CD -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.BD, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> CG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
-				// Face:
-				//   FH -> HD
-				//   DH -> HG
-				//   GH -> HF
+				AddTriangle( x, y, z, CubeVertex.FH, CubeVertex.FH, CubeVertex.DH );
 				return;
 
 			case CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> GH
-				//   HG -> DH
-				// Face:
-				//   AC -> EA
-				//   AE -> BA
-				//   AB -> CA
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.AC, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> FB
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> EA
-				//   AE -> FB
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> BA
-				//   AB -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.CG, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> GH
-				//   HG -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> GH
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> CD
-				//   DC -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> GH
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> CA
-				//   AC -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> GE
-				//   EG -> GH
-				//   HG -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AB );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AB, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> BD
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> EF
-				//   FE -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> EF
-				//   FE -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> EF
-				//   FE -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.CG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> GH
-				//   HG -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> CD
-				//   DC -> AB
-				//   BA -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AC, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> GH
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.GH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> GC
-				//   CG -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> GC
-				//   CG -> EA
-				//   AE -> EF
-				//   FE -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> GE
-				//   EG -> GH
-				//   HG -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AC, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> GE
-				//   EG -> GH
-				//   HG -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.GH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.AB, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> CD
-				//   DC -> CA
-				//   AC -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.CD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> BD
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
-				// Face:
-				//   HG -> GC
-				//   CG -> GE
-				//   EG -> GH
+				AddTriangle( x, y, z, CubeVertex.GH, CubeVertex.GH, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> EG
-				//   GE -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EG, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> FB
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> EG
-				//   GE -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EG, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.CG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> EG
-				//   GE -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> EG
-				//   GE -> EA
-				//   AE -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.FH, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> CG
-				//   GC -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AE );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> FH
-				//   HF -> FE
-				//   EF -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.FH );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.FH, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   BF -> FH
-				//   HF -> FE
-				//   EF -> FB
+				AddTriangle( x, y, z, CubeVertex.BF, CubeVertex.BF, CubeVertex.FH );
 				return;
 
 			case CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> DH
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> DH
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.EG, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> DH
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.EG );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EG, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> EF
-				//   FE -> EG
-				//   GE -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.AB, CubeVertex.EF );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> EF
-				//   FE -> EG
-				//   GE -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.EF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.EF, CubeVertex.EG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GE -> AC
-				//   CA -> AB
-				//   BA -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AC );
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.AC, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GE -> EA
-				//   AE -> EF
-				//   FE -> EG
+				AddTriangle( x, y, z, CubeVertex.EG, CubeVertex.EG, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> AE
-				//   EA -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> CA
-				//   AC -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> AB
-				//   BA -> AE
-				//   EA -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AB );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AB, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> CA
-				//   AC -> CG
-				//   GC -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BD, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> BF
-				//   FB -> BA
-				//   AB -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.BF, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
+
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   HD -> DB
-				//   BD -> DC
-				//   CD -> DH
+				AddTriangle( x, y, z, CubeVertex.DH, CubeVertex.DH, CubeVertex.BD );
 				return;
 
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> CG
-				//   GC -> CD
-				//   DC -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.AE, CubeVertex.CG );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GC -> CD
-				//   DC -> AB
-				//   BA -> AE
-				//   EA -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CD, CubeVertex.AB );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   GC -> CD
-				//   DC -> CA
-				//   AC -> CG
+				AddTriangle( x, y, z, CubeVertex.CG, CubeVertex.CG, CubeVertex.CD );
 				return;
 
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> AE
-				//   EA -> AC
-				//   CA -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BF, CubeVertex.AE );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   DB -> BF
-				//   FB -> BA
-				//   AB -> BD
+				AddTriangle( x, y, z, CubeVertex.BD, CubeVertex.BD, CubeVertex.BF );
 				return;
 
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
-				// Face:
-				//   EA -> AC
-				//   CA -> AB
-				//   BA -> AE
+				AddTriangle( x, y, z, CubeVertex.AE, CubeVertex.AE, CubeVertex.AC );
 				return;
 
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:

@@ -56,6 +56,16 @@ faces: list[list[int]] = [
 
 names = [chr(65 + i) for i in range(8)]
 
+def sort_cut(cut: tuple[int, int]):
+    if cut[0] > cut[1]:
+        return (cut[1], cut[0])
+    else:
+        return cut
+
+def cut_to_vertex(cut: tuple[int, int]):
+    cut = sort_cut(cut)
+    return f"CubeVertex.{names[cut[0]]}{names[cut[1]]}"
+
 for i in range(256):
     solid = [(i & (1 << j)) != 0 for j in range(8)]
 
@@ -96,7 +106,14 @@ for i in range(256):
             edges.append((cut_a, cut_b))
             prev = cut_b
 
+    first_face = True
+
     while len(edges) > 0:
+        if not first_face:
+            output.append("")
+
+        first_face = False
+
         prev_edge = edges.pop()
 
         face_edges = [prev_edge]
@@ -115,11 +132,10 @@ for i in range(256):
                 prev_edge = edge
                 break
 
-        output.append(f"\t\t\t\t// Face:")
-
-        for cut_a, cut_b in face_edges:
-            output.append(f"\t\t\t\t//   {names[cut_a[0]]}{names[cut_a[1]]} -> {names[cut_b[0]]}{names[cut_b[1]]}")
-
+        for i in range(0, len(face_edges) - 2):
+            cut_a = face_edges[0][0]
+            cut_b, cut_c = face_edges[i]
+            output.append(f"\t\t\t\tAddTriangle( x, y, z, {cut_to_vertex(cut_a)}, {cut_to_vertex(cut_b)}, {cut_to_vertex(cut_c)} );")
 
     output.append("\t\t\t\treturn;")
     output.append("")
