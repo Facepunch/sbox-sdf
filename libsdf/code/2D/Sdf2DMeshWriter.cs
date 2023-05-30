@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Sandbox.Sdf;
 
-internal class Sdf2DMeshWriter
+partial class Sdf2DMeshWriter
 {
 	private const int MaxPoolCount = 16;
 	private static List<Sdf2DMeshWriter> Pool { get; } = new();
@@ -37,116 +37,6 @@ internal class Sdf2DMeshWriter
 	}
 
 	private bool _isInPool;
-
-	/// <summary>
-	/// <code>
-	/// c - d
-	/// |   |
-	/// a - b
-	/// </code>
-	/// </summary>
-	[Flags]
-	private enum SquareConfiguration : byte
-	{
-		None = 0,
-
-		A = 1,
-		B = 2,
-		C = 4,
-		D = 8,
-
-		AB = A | B,
-		AC = A | C,
-		BD = B | D,
-		CD = C | D,
-
-		AD = A | D,
-		BC = B | C,
-
-		ABC = A | B | C,
-		ABD = A | B | D,
-		ACD = A | C | D,
-		BCD = B | C | D,
-
-		ABCD = A | B | C | D
-	}
-
-	private enum NormalizedVertex : byte
-	{
-		A,
-		AB,
-		AC
-	}
-
-	private enum SquareVertex : byte
-	{
-		A,
-		B,
-		C,
-		D,
-
-		AB,
-		AC,
-		BD,
-		CD
-	}
-
-	private record struct FrontBackTriangle( VertexKey V0, VertexKey V1, VertexKey V2 )
-	{
-		public FrontBackTriangle( int x, int y, SquareVertex V0, SquareVertex V1, SquareVertex V2 )
-			: this( VertexKey.Normalize( x, y, V0 ), VertexKey.Normalize( x, y, V1 ), VertexKey.Normalize( x, y, V2 ) )
-		{
-		}
-
-		public FrontBackTriangle Flipped => new( V0, V2, V1 );
-	}
-
-	private record struct CutFace( VertexKey V0, VertexKey V1 )
-	{
-		public CutFace( int x, int y, SquareVertex V0, SquareVertex V1 )
-			: this( VertexKey.Normalize( x, y, V0 ), VertexKey.Normalize( x, y, V1 ) )
-		{
-		}
-	}
-
-	private record struct VertexKey( int X, int Y, NormalizedVertex Vertex )
-	{
-		public static VertexKey Normalize( int x, int y, SquareVertex vertex )
-		{
-			switch ( vertex )
-			{
-				case SquareVertex.A:
-					return new VertexKey( x, y, NormalizedVertex.A );
-
-				case SquareVertex.AB:
-					return new VertexKey( x, y, NormalizedVertex.AB );
-
-				case SquareVertex.AC:
-					return new VertexKey( x, y, NormalizedVertex.AC );
-
-
-				case SquareVertex.B:
-					return new VertexKey( x + 1, y, NormalizedVertex.A );
-
-				case SquareVertex.C:
-					return new VertexKey( x, y + 1, NormalizedVertex.A );
-
-				case SquareVertex.D:
-					return new VertexKey( x + 1, y + 1, NormalizedVertex.A );
-
-
-				case SquareVertex.BD:
-					return new VertexKey( x + 1, y, NormalizedVertex.AC );
-
-				case SquareVertex.CD:
-					return new VertexKey( x, y + 1, NormalizedVertex.AB );
-
-
-				default:
-					throw new NotImplementedException();
-			}
-		}
-	}
 
 	private abstract class SubMesh<T>
 		where T : unmanaged
@@ -415,25 +305,6 @@ internal class Sdf2DMeshWriter
 	private FrontBackSubMesh Back { get; } = new();
 	private CutSubMesh Cut { get; } = new();
 
-	private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
-	{
-		public (FrontBackTriangle Tri0, FrontBackTriangle Tri1) Triangles
-		{
-			get
-			{
-				var a = new VertexKey( MinX, MinY, NormalizedVertex.A );
-				var b = new VertexKey( MaxX, MinY, NormalizedVertex.A );
-				var c = new VertexKey( MinX, MaxY, NormalizedVertex.A );
-				var d = new VertexKey( MaxX, MaxY, NormalizedVertex.A );
-
-				var tri0 = new FrontBackTriangle( a, c, b );
-				var tri1 = new FrontBackTriangle( c, d, b );
-
-				return (tri0, tri1);
-			}
-		}
-	}
-
 	private List<SolidBlock> SolidBlocks { get; } = new();
 
 	public void Clear()
@@ -448,14 +319,9 @@ internal class Sdf2DMeshWriter
 		Cut.Clear();
 	}
 
-	private static float GetAdSubBc( Sdf2DArrayData data, int x, int y )
+	private static float GetAdSubBc( float a, float b, float c, float d )
 	{
-		var a = data[x, y] - 127.5f;
-		var b = data[x + 1, y] - 127.5f;
-		var c = data[x, y + 1] - 127.5f;
-		var d = data[x + 1, y + 1] - 127.5f;
-
-		return a * d - b * c;
+		return (a - 127.5f) * (d - 127.5f) - (b - 127.5f) * (c - 127.5f);
 	}
 
 	public void Write( Sdf2DArrayData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
@@ -470,10 +336,15 @@ internal class Sdf2DMeshWriter
 		for ( var y = 0; y < size; ++y )
 			for ( int x = 0, index = data.BaseIndex + y * data.RowStride; x < size; ++x, ++index )
 			{
-				var a = data.Samples[index] < 128 ? SquareConfiguration.A : 0;
-				var b = data.Samples[index + 1] < 128 ? SquareConfiguration.B : 0;
-				var c = data.Samples[index + data.RowStride] < 128 ? SquareConfiguration.C : 0;
-				var d = data.Samples[index + data.RowStride + 1] < 128 ? SquareConfiguration.D : 0;
+				var aRaw = data.Samples[index];
+				var bRaw = data.Samples[index + 1];
+				var cRaw = data.Samples[index + data.RowStride];
+				var dRaw = data.Samples[index + data.RowStride + 1];
+
+				var a = aRaw < 128 ? SquareConfiguration.A : 0;
+				var b = bRaw < 128 ? SquareConfiguration.B : 0;
+				var c = cRaw < 128 ? SquareConfiguration.C : 0;
+				var d = dRaw < 128 ? SquareConfiguration.D : 0;
 
 				var config = a | b | c | d;
 
@@ -541,7 +412,7 @@ internal class Sdf2DMeshWriter
 
 
 					case SquareConfiguration.AD:
-						if ( GetAdSubBc( data, x, y ) > 0f )
+						if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) > 0f )
 						{
 							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
 								SquareVertex.D ) );
@@ -567,7 +438,7 @@ internal class Sdf2DMeshWriter
 						break;
 
 					case SquareConfiguration.BC:
-						if ( GetAdSubBc( data, x, y ) < 0f )
+						if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) < 0f )
 						{
 							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
 								SquareVertex.C ) );
@@ -804,16 +675,4 @@ internal class Sdf2DMeshWriter
 	}
 
 	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
-}
-
-[StructLayout( LayoutKind.Sequential )]
-public record struct Vertex( Vector3 Position, Vector3 Normal, Vector3 Tangent, Vector2 TexCoord )
-{
-	public static VertexAttribute[] Layout { get; } =
-	{
-		new( VertexAttributeType.Position, VertexAttributeFormat.Float32 ),
-		new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 ),
-		new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32 ),
-		new( VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2 )
-	};
 }
