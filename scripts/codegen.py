@@ -134,7 +134,7 @@ for i in range(256):
 
         for i in range(0, len(face_edges) - 2):
             cut_a = face_edges[0][0]
-            cut_b, cut_c = face_edges[i + 1]
+            cut_c, cut_b = face_edges[i + 1]
             output.append(f"\t\t\t\tAddTriangle( x, y, z, {cut_to_vertex(cut_a)}, {cut_to_vertex(cut_b)}, {cut_to_vertex(cut_c)} );")
 
     output.append("\t\t\t\treturn;")
