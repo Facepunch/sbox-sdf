@@ -8,6 +8,9 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
+		private static Sdf3DVolume _sDefaultVolume;
+
+		public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
 		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -16,7 +19,6 @@ namespace Sandbox.Sdf
 		private Task _lastEditTask;
 
 		public Vector3? LastEditPos { get; set; }
-		public Vector2? LastEditPos2D { get; set; }
 
 		[Net]
 		public float EditDistance { get; set; }
@@ -37,7 +39,7 @@ namespace Sandbox.Sdf
 
 			if ( Game.IsServer )
 			{
-				Sdf3DWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld( 256f );
+				SdfWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld();
 			}
 			else
 			{
@@ -61,51 +63,13 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
 			}
 
-			if ( !Game.IsServer || MarchingCubes == null || !(_lastEditTask?.IsCompleted ?? true) )
+			if ( !Game.IsServer || SdfWorld == null || !(_lastEditTask?.IsCompleted ?? true) )
 			{
 				return;
 			}
 
-
 			var add = Input.Down( "attack1" );
 			var subtract = Input.Down( "attack2" );
-
-			if ( SdfWorld != null )
-			{
-				if ( add || subtract )
-				{
-					var ray = new Ray( Owner.EyePosition, Owner.EyeRotation.Forward );
-					var plane = new Plane( SdfWorld.Position, SdfWorld.Rotation.Up );
-					var hit = plane.Trace( ray, true );
-
-					if ( hit is { } hitPos )
-					{
-						var radius = 64f;
-						var localPos = (Vector2)SdfWorld.Transform.PointToLocal( hitPos );
-
-						var sdf = new LineSdf( localPos, LastEditPos2D ?? localPos, radius );
-
-						if ( add )
-						{
-							SdfWorld.Add( sdf, DefaultLayer );
-							SdfWorld.Subtract( sdf.Expand( 32f ), ScorchLayer );
-						}
-						else
-						{
-							SdfWorld.Subtract( sdf, DefaultLayer );
-							SdfWorld.Add( sdf, ScorchLayer );
-						}
-
-						LastEditPos2D = localPos;
-					}
-				}
-				else
-				{
-					LastEditPos2D = null;
-				}
-			}
-
-			return;
 
 			IsDrawing &= add;
 
@@ -142,7 +106,7 @@ namespace Sandbox.Sdf
 			{
 				IsDrawing = true;
 
-				_lastEditTask = MarchingCubes.Add( capsule, Matrix.Identity, BrushColor );
+				SdfWorld.Add( capsule, DefaultVolume );
 
 				if ( LastEditPos.HasValue )
 				{
@@ -151,7 +115,7 @@ namespace Sandbox.Sdf
 			}
 			else
 			{
-				_lastEditTask = MarchingCubes.Subtract( capsule, Matrix.Identity );
+				SdfWorld.Subtract( capsule, DefaultVolume );
 			}
 
 			LastEditPos = editPos;
