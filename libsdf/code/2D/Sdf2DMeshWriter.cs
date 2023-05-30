@@ -1,43 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace Sandbox.Sdf;
 
-partial class Sdf2DMeshWriter
+partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 {
-	private const int MaxPoolCount = 16;
-	private static List<Sdf2DMeshWriter> Pool { get; } = new();
-
-	public static Sdf2DMeshWriter Rent()
-	{
-		if ( Pool.Count > 0 )
-		{
-			var writer = Pool[^1];
-			Pool.RemoveAt( Pool.Count - 1 );
-
-			writer._isInPool = false;
-			writer.Clear();
-
-			return writer;
-		}
-
-		return new Sdf2DMeshWriter();
-	}
-
-	public void Return()
-	{
-		if ( _isInPool ) throw new InvalidOperationException( "Already returned." );
-
-		Clear();
-
-		_isInPool = true;
-
-		if ( Pool.Count < MaxPoolCount ) Pool.Add( this );
-	}
-
-	private bool _isInPool;
-
 	private abstract class SubMesh<T>
 		where T : unmanaged
 	{
@@ -48,7 +15,7 @@ partial class Sdf2DMeshWriter
 
 		public abstract void ClearMap();
 
-		protected Vector3 GetVertexPos( Sdf2DArrayData data, VertexKey key )
+		protected static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
 		{
 			switch ( key.Vertex )
 			{
@@ -307,7 +274,7 @@ partial class Sdf2DMeshWriter
 
 	private List<SolidBlock> SolidBlocks { get; } = new();
 
-	public void Clear()
+	public override void Clear()
 	{
 		SolidBlocks.Clear();
 		FrontBackTriangles.Clear();

@@ -103,13 +103,12 @@ partial class Sdf3DMeshWriter
 	}
 
 	[StructLayout( LayoutKind.Sequential )]
-	public record struct Vertex( Vector3 Position, Vector3 Normal, Vector3 Tangent )
+	public record struct Vertex( Vector3 Position, Vector3 Normal )
 	{
 		public static VertexAttribute[] Layout { get; } =
 		{
 			new( VertexAttributeType.Position, VertexAttributeFormat.Float32 ),
-			new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 ),
-			new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32 )
+			new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 )
 		};
 	}
 }

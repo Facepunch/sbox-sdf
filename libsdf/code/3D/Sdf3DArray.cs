@@ -122,9 +122,8 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return changed;
 	}
 
-	internal void WriteTo( Sdf3DMeshWriter writer, Sdf3DVolume volume, bool renderMesh, bool collisionMesh )
+	internal void WriteTo( Sdf3DMeshWriter writer, Sdf3DVolume volume )
 	{
-		writer.Write( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ),
-			volume, renderMesh, collisionMesh );
+		writer.Write( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ), volume );
 	}
 }

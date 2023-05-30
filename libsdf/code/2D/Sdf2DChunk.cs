@@ -64,12 +64,17 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 
 	protected override void OnUpdateMesh()
 	{
-		var writer = Sdf2DMeshWriter.Rent();
-
 		var tags = Resource.SplitCollisionTags;
 
 		var enableRenderMesh = !Game.IsServer;
 		var enableCollisionMesh = tags.Length > 0;
+
+		if ( !enableRenderMesh && !enableCollisionMesh )
+		{
+			return;
+		}
+
+		var writer = Sdf2DMeshWriter.Rent();
 
 		try
 		{

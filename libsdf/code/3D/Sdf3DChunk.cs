@@ -38,9 +38,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		set => (NetKeyX, NetKeyY, NetKeyZ) = value;
 	}
 
-	public Mesh Front { get; set; }
-	public Mesh Back { get; set; }
-	public Mesh Cut { get; set; }
+	public Mesh Mesh { get; set; }
 
 	protected override void OnInit()
 	{
@@ -69,6 +67,41 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 	protected override void OnUpdateMesh()
 	{
-		throw new NotImplementedException();
+		var tags = Resource.SplitCollisionTags;
+
+		var enableRenderMesh = !Game.IsServer;
+		var enableCollisionMesh = tags.Length > 0;
+
+		if ( !enableRenderMesh && !enableCollisionMesh )
+		{
+			return;
+		}
+
+		var writer = Sdf3DMeshWriter.Rent();
+
+		try
+		{
+			Data.WriteTo( writer, Resource );
+
+			if ( enableRenderMesh )
+			{
+				Mesh ??= Resource.Material != null ? new Mesh( Resource.Material ) : null;
+
+				writer.ApplyTo( Mesh );
+
+				UpdateRenderMeshes( Mesh );
+			}
+
+			if ( enableCollisionMesh )
+			{
+				var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
+
+				UpdateCollisionMesh( writer.VertexPositions, writer.Indices, offset );
+			}
+		}
+		finally
+		{
+			writer.Return();
+		}
 	}
 }

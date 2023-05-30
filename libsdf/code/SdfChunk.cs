@@ -4,6 +4,11 @@ using System.Linq;
 
 namespace Sandbox.Sdf;
 
+internal static partial class Temp
+{
+	[ThreadStatic] public static List<Vector3> TransformedVertices;
+}
+
 public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Entity
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
@@ -202,8 +207,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	protected abstract void OnUpdateMesh();
 
-	[ThreadStatic] private static List<Vector3> TransformedVertices;
-
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices, Vector3 offset )
 	{
 		if ( indices.Count == 0 )
@@ -213,25 +216,25 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 		else
 		{
-			TransformedVertices ??= new List<Vector3>();
-			TransformedVertices.Clear();
+			var transformed = Temp.TransformedVertices ??= new List<Vector3>();
+			transformed.Clear();
 
 			foreach ( var vertex in vertices )
 			{
-				TransformedVertices.Add( vertex + offset );
+				transformed.Add( vertex + offset );
 			}
 
 			var tags = Resource.SplitCollisionTags;
 
 			if ( !Shape.IsValid() )
 			{
-				Shape = World.AddMeshShape( TransformedVertices, indices );
+				Shape = World.AddMeshShape( transformed, indices );
 
 				foreach ( var tag in tags ) Shape.AddTag( tag );
 			}
 			else
 			{
-				Shape.UpdateMesh( TransformedVertices, indices );
+				Shape.UpdateMesh( transformed, indices );
 			}
 		}
 	}
