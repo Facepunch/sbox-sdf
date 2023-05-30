@@ -35,39 +35,33 @@ output.append("")
 output.append("\t\tswitch ( config )")
 output.append("\t\t{")
 
+A = 0
+B = 1
+C = 2
+D = 3
+
+E = 4
+F = 5
+G = 6
+H = 7
+
+faces: list[list[int]] = [
+    [A, B, D, C],
+    [E, G, H, F],
+    [A, E, F, B],
+    [A, C, G, E],
+    [C, D, H, G],
+    [B, F, H, D]
+]
+
+names = [chr(65 + i) for i in range(8)]
+
 for i in range(256):
-    a = (i & 1) == 1
-    b = (i & 2) == 2
-    c = (i & 4) == 4
-    d = (i & 8) == 8
-
-    e = (i & 16) == 16
-    f = (i & 32) == 32
-    g = (i & 64) == 64
-    h = (i & 128) == 128
-
-    keys: list[str] = []
-
-    if a:
-        keys.append("A")
-    if b:
-        keys.append("B")
-    if c:
-        keys.append("C")
-    if d:
-        keys.append("D")
-
-    if e:
-        keys.append("E")
-    if f:
-        keys.append("F")
-    if g:
-        keys.append("G")
-    if h:
-        keys.append("H")
+    solid = [(i & (1 << j)) != 0 for j in range(8)]
 
     cases = ""
 
+    keys = [names[i] for i, x in enumerate(solid) if x]
     if len(keys) == 0:
         cases += "CubeConfiguration.None"
     else:
@@ -77,7 +71,58 @@ for i in range(256):
             cases += f"CubeConfiguration.{key}"
     output.append(f"\t\t\tcase {cases}:")
 
+    edges: list[tuple[tuple[int, int], tuple[int, int]]] = []
+
+    for face in faces:
+        prev = face[3]
+        cuts: list[tuple[int, int]] = []
+
+        for next in face:
+            if solid[prev] != solid[next]:
+                cuts.append((prev, next))
+            prev = next
+
+        if len(cuts) == 0:
+            continue
+
+        if solid[cuts[0][1]]:
+            cuts.append(cuts[0])
+            cuts = cuts[1:]
+
+        for j in range(len(cuts) // 2):
+            cut_a = cuts[j * 2 + 0]
+            cut_b = cuts[j * 2 + 1]
+
+            edges.append((cut_a, cut_b))
+            prev = cut_b
+
+    while len(edges) > 0:
+        prev_edge = edges.pop()
+
+        face_edges = [prev_edge]
+
+        found = True
+        while found:
+            found = False
+
+            for edge in edges:
+                if edge[0][0] != prev_edge[1][1] or edge[0][1] != prev_edge[1][0]:
+                    continue
+
+                found = True
+                edges.remove(edge)
+                face_edges.append(edge)
+                prev_edge = edge
+                break
+
+        output.append(f"\t\t\t\t// Face:")
+
+        for cut_a, cut_b in face_edges:
+            output.append(f"\t\t\t\t//   {names[cut_a[0]]}{names[cut_a[1]]} -> {names[cut_b[0]]}{names[cut_b[1]]}")
+
+
     output.append("\t\t\t\treturn;")
+    output.append("")
 
 output.append("\t\t}")
 output.append("\t}")

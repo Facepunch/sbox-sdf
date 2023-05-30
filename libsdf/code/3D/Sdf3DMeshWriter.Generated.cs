@@ -35,516 +35,2666 @@ partial class Sdf3DMeshWriter
 		{
 			case CubeConfiguration.None:
 				return;
+
 			case CubeConfiguration.A:
+				// Face:
+				//   AC -> EA
+				//   AE -> BA
+				//   AB -> CA
 				return;
+
 			case CubeConfiguration.B:
+				// Face:
+				//   BF -> DB
+				//   BD -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B:
+				// Face:
+				//   BF -> DB
+				//   BD -> CA
+				//   AC -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.C:
+				// Face:
+				//   CD -> GC
+				//   CG -> AC
+				//   CA -> DC
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C:
+				// Face:
+				//   CD -> GC
+				//   CG -> EA
+				//   AE -> BA
+				//   AB -> DC
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.D:
+				// Face:
+				//   DB -> HD
+				//   DH -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D:
+				// Face:
+				//   DB -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D:
+				// Face:
+				//   BF -> HD
+				//   DH -> CD
+				//   DC -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D:
+				// Face:
+				//   BF -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D:
+				// Face:
+				//   DB -> HD
+				//   DH -> GC
+				//   CG -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D:
+				// Face:
+				//   DB -> HD
+				//   DH -> GC
+				//   CG -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D:
+				// Face:
+				//   BF -> HD
+				//   DH -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D:
+				// Face:
+				//   BF -> HD
+				//   DH -> GC
+				//   CG -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.E:
+				// Face:
+				//   EA -> GE
+				//   EG -> FE
+				//   EF -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E:
+				// Face:
+				//   AC -> GE
+				//   EG -> FE
+				//   EF -> BA
+				//   AB -> CA
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E:
+				// Face:
+				//   BF -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E:
+				// Face:
+				//   BF -> DB
+				//   BD -> CA
+				//   AC -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E:
+				// Face:
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> DC
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E:
+				// Face:
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> BA
+				//   AB -> DC
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   DB -> HD
+				//   DH -> CD
+				//   DC -> BD
+				// Face:
+				//   EA -> GE
+				//   EG -> FE
+				//   EF -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   DB -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> FE
+				//   EF -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   BF -> HD
+				//   DH -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   BF -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   DB -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   DB -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   BF -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E:
+				// Face:
+				//   BF -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> AB
+				//   BA -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> EF
+				//   FE -> HF
+				// Face:
+				//   CD -> GC
+				//   CG -> AC
+				//   CA -> DC
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> BD
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> AB
+				//   BA -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> AC
+				//   CA -> BD
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> HF
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> AE
+				//   EA -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> CA
+				//   AC -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> HF
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> GC
+				//   CG -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> BD
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> HF
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F:
+				// Face:
+				//   FH -> HD
+				//   DH -> GC
+				//   CG -> GE
+				//   EG -> HF
 				return;
+
 			case CubeConfiguration.G:
+				// Face:
+				//   GC -> HG
+				//   GH -> EG
+				//   GE -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.G:
+				// Face:
+				//   GC -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> AB
+				//   BA -> FB
+				// Face:
+				//   GC -> HG
+				//   GH -> EG
+				//   GE -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.G:
+				// Face:
+				//   CD -> HG
+				//   GH -> EG
+				//   GE -> AC
+				//   CA -> DC
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.G:
+				// Face:
+				//   CD -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> DC
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> EG
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   GC -> HG
+				//   GH -> FE
+				//   EF -> AE
+				//   EA -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   GC -> HG
+				//   GH -> FE
+				//   EF -> BA
+				//   AB -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> CG
+				//   GC -> HG
+				//   GH -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   CD -> HG
+				//   GH -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> DC
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   CD -> HG
+				//   GH -> FE
+				//   EF -> BA
+				//   AB -> DC
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> AE
+				//   EA -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   DB -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G:
+				// Face:
+				//   BF -> HD
+				//   DH -> HG
+				//   GH -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> AB
+				//   BA -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> AC
+				//   CA -> DC
+				//   CD -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> EF
+				//   FE -> EG
+				//   GE -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> AE
+				//   EA -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> HF
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> DB
+				//   BD -> DC
+				//   CD -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G:
+				// Face:
+				//   FH -> HD
+				//   DH -> HG
+				//   GH -> HF
 				return;
+
 			case CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> GH
+				//   HG -> DH
+				// Face:
+				//   AC -> EA
+				//   AE -> BA
+				//   AB -> CA
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> FB
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> EA
+				//   AE -> FB
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> BA
+				//   AB -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> GH
+				//   HG -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> GH
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> CD
+				//   DC -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> GH
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> CA
+				//   AC -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> GE
+				//   EG -> GH
+				//   HG -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> BD
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> EF
+				//   FE -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> EF
+				//   FE -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> EF
+				//   FE -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> GH
+				//   HG -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> CD
+				//   DC -> AB
+				//   BA -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> GH
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> GC
+				//   CG -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> GC
+				//   CG -> EA
+				//   AE -> EF
+				//   FE -> GH
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> GE
+				//   EG -> GH
+				//   HG -> DH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> GE
+				//   EG -> GH
+				//   HG -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> CD
+				//   DC -> CA
+				//   AC -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> BD
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.H:
+				// Face:
+				//   HG -> GC
+				//   CG -> GE
+				//   EG -> GH
 				return;
+
 			case CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> EG
+				//   GE -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> FB
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> EG
+				//   GE -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> EG
+				//   GE -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> EG
+				//   GE -> EA
+				//   AE -> FB
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> CG
+				//   GC -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> FH
+				//   HF -> FE
+				//   EF -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   BF -> FH
+				//   HF -> FE
+				//   EF -> FB
 				return;
+
 			case CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> DH
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> DH
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> DH
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> EF
+				//   FE -> EG
+				//   GE -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> EF
+				//   FE -> EG
+				//   GE -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GE -> AC
+				//   CA -> AB
+				//   BA -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GE -> EA
+				//   AE -> EF
+				//   FE -> EG
 				return;
+
 			case CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> AE
+				//   EA -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> CA
+				//   AC -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> AB
+				//   BA -> AE
+				//   EA -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> CA
+				//   AC -> CG
+				//   GC -> DH
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> BF
+				//   FB -> BA
+				//   AB -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   HD -> DB
+				//   BD -> DC
+				//   CD -> DH
 				return;
+
 			case CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> CG
+				//   GC -> CD
+				//   DC -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GC -> CD
+				//   DC -> AB
+				//   BA -> AE
+				//   EA -> CG
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   GC -> CD
+				//   DC -> CA
+				//   AC -> CG
 				return;
+
 			case CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> AE
+				//   EA -> AC
+				//   CA -> BD
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   DB -> BF
+				//   FB -> BA
+				//   AB -> BD
 				return;
+
 			case CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
+				// Face:
+				//   EA -> AC
+				//   CA -> AB
+				//   BA -> AE
 				return;
+
 			case CubeConfiguration.A | CubeConfiguration.B | CubeConfiguration.C | CubeConfiguration.D | CubeConfiguration.E | CubeConfiguration.F | CubeConfiguration.G | CubeConfiguration.H:
 				return;
+
 		}
 	}
 }
