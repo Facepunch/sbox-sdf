@@ -2,7 +2,7 @@
 
 namespace Sandbox.Sdf;
 
-public record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
+internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
 {
 	public byte this[int x, int y] => Samples[BaseIndex + x + y * RowStride];
 }
@@ -111,7 +111,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 		return changed;
 	}
 
-	public void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
+	internal void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
 		writer.Write( new Sdf2DArrayData( Samples, Margin * ArraySize + Margin, ArraySize ),
 			layer, renderMesh, collisionMesh );
