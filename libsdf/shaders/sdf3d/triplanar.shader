@@ -26,8 +26,6 @@ COMMON
 struct VertexInput
 {
 	#include "common/vertexinput.hlsl"
-
-	float4 vColor : COLOR0 < Semantic( Color ); >;
 };
 
 //=========================================================================================================================
@@ -43,17 +41,12 @@ VS
 {
 	#include "common/vertex.hlsl"
 
-	float3 g_vColorAdd < UiType( Color ); Default3( 0.0, 0.0, 0.0 ); UiGroup( "Color,10/20" ); Attribute( "ColorAdd" ); >;
-
 	//
 	// Main
 	//
 	PixelInput MainVs( VertexInput i )
 	{
 		PixelInput o = ProcessVertex( i );
-
-		o.vVertexColor.rgb = i.vColor.rgb + g_vColorAdd.rgb;
-		o.vVertexColor.a =  i.vColor.a;
 
 		return FinalizeVertex( o );
 	}
@@ -101,8 +94,6 @@ PS
         float4 colY = Tex2DS( g_tColor, TextureFiltering, uvY );
         float4 colZ = Tex2DS( g_tColor, TextureFiltering, uvZ );
         float4 col = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
-
-		col.rgb *= i.vVertexColor.rgb;
 
 		float3 tnormalX = unpackNormal(Tex2DS( g_tNormal, TextureFiltering, uvX ));
         float3 tnormalY = unpackNormal(Tex2DS( g_tNormal, TextureFiltering, uvY ));

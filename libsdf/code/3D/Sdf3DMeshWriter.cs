@@ -66,19 +66,13 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 
 		await GameTask.RunInThreadAsync( () =>
 		{
-			var unitSize = quality.UnitSize;
+			var unitSize = volume.Quality.UnitSize;
 
 			foreach ( var triangle in Triangles )
 			{
-				var p0 = GetVertexPos( in data, triangle.V0 ) * unitSize;
-				var p1 = GetVertexPos( in data, triangle.V1 ) * unitSize;
-				var p2 = GetVertexPos( in data, triangle.V2 ) * unitSize;
-
-				var normal = Vector3.Cross( p1 - p0, p2 - p0 ).Normal;
-
-				Indices.Add( AddVertex( triangle.V0, p0, normal ) );
-				Indices.Add( AddVertex( triangle.V1, p1, normal ) );
-				Indices.Add( AddVertex( triangle.V2, p2, normal ) );
+				Indices.Add( AddVertex( data, triangle.V0, unitSize ) );
+				Indices.Add( AddVertex( data, triangle.V1, unitSize ) );
+				Indices.Add( AddVertex( data, triangle.V2, unitSize ) );
 			}
 		} );
 
@@ -119,27 +113,60 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 		}
 	}
 
-	private static Vector3 GetVertexPos( in Sdf3DArrayData data, VertexKey key )
+	private static Vertex GetVertex( in Sdf3DArrayData data, VertexKey key )
 	{
+		Vector3 pos;
+
+		float xNeg, xPos, yNeg, yPos, zNeg, zPos;
+
 		switch ( key.Vertex )
 		{
 			case NormalizedVertex.A:
-				return new Vector3( key.X, key.Y, key.Z );
+			{
+				pos = new Vector3( key.X, key.Y, key.Z );
+
+				xNeg = data[key.X - 1, key.Y, key.Z];
+				xPos = data[key.X + 1, key.Y, key.Z];
+				yNeg = data[key.X, key.Y - 1, key.Z];
+				yPos = data[key.X, key.Y + 1, key.Z];
+				zNeg = data[key.X, key.Y, key.Z - 1];
+				zPos = data[key.X, key.Y, key.Z + 1];
+				break;
+			}
 
 			case NormalizedVertex.AB:
 			{
 				var a = data[key.X, key.Y, key.Z] - 127.5f;
 				var b = data[key.X + 1, key.Y, key.Z] - 127.5f;
 				var t = a / (a - b);
-				return new Vector3( key.X + t, key.Y, key.Z );
+
+				pos = new Vector3( key.X + t, key.Y, key.Z );
+
+				xNeg = data[pos.x - 1, key.Y, key.Z];
+				xPos = data[pos.x + 1, key.Y, key.Z];
+				yNeg = data[pos.x, key.Y - 1, key.Z];
+				yPos = data[pos.x, key.Y + 1, key.Z];
+				zNeg = data[pos.x, key.Y, key.Z - 1];
+				zPos = data[pos.x, key.Y, key.Z + 1];
+				break;
 			}
+
 
 			case NormalizedVertex.AC:
 			{
 				var a = data[key.X, key.Y, key.Z] - 127.5f;
 				var c = data[key.X, key.Y + 1, key.Z] - 127.5f;
 				var t = a / (a - c);
-				return new Vector3( key.X, key.Y + t, key.Z );
+
+				pos = new Vector3( key.X, key.Y + t, key.Z );
+
+				xNeg = data[key.X - 1, pos.y, key.Z];
+				xPos = data[key.X + 1, pos.y, key.Z];
+				yNeg = data[key.X, pos.y - 1, key.Z];
+				yPos = data[key.X, pos.y + 1, key.Z];
+				zNeg = data[key.X, pos.y, key.Z - 1];
+				zPos = data[key.X, pos.y, key.Z + 1];
+				break;
 			}
 
 			case NormalizedVertex.AE:
@@ -147,12 +174,23 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 				var a = data[key.X, key.Y, key.Z] - 127.5f;
 				var e = data[key.X, key.Y, key.Z + 1] - 127.5f;
 				var t = a / (a - e);
-				return new Vector3( key.X, key.Y, key.Z + t );
+
+				pos = new Vector3( key.X, key.Y, key.Z + t );
+
+				xNeg = data[key.X - 1, key.Y, pos.z];
+				xPos = data[key.X + 1, key.Y, pos.z];
+				yNeg = data[key.X, key.Y - 1, pos.z];
+				yPos = data[key.X, key.Y + 1, pos.z];
+				zNeg = data[key.X, key.Y, pos.z - 1];
+				zPos = data[key.X, key.Y, pos.z + 1];
+				break;
 			}
 
 			default:
 				throw new NotImplementedException();
 		}
+
+		return new Vertex( pos, new Vector3( xPos - xNeg, yPos - yNeg, zPos - zNeg ).Normal );
 	}
 
 	partial void AddTriangles( in Sdf3DArrayData data, int x, int y, int z );
@@ -162,22 +200,23 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 		Triangles.Enqueue( new Triangle( x, y, z, v0, v1, v2 ) );
 	}
 
-	private int AddVertex( VertexKey key, Vector3 pos, Vector3 normal )
+	private int AddVertex( in Sdf3DArrayData data, VertexKey key, float unitSize )
 	{
-		if ( !VertexMap.TryGetValue( key, out var index ) )
+		if ( VertexMap.TryGetValue( key, out var index ) )
 		{
-			index = Vertices.Count;
-
-			Vertices.Add( new Vertex( pos, normal ) );
-			VertexPositions.Add( pos );
-
-			VertexMap.Add( key, index );
+			return index;
 		}
-		else
-		{
-			var vertex = Vertices[index];
-			Vertices[index] = vertex with { Normal = vertex.Normal + normal };
-		}
+
+		index = Vertices.Count;
+
+		var vertex = GetVertex( in data, key );
+
+		vertex = vertex with { Position = vertex.Position * unitSize };
+
+		Vertices.Add( vertex );
+		VertexPositions.Add( vertex.Position );
+
+		VertexMap.Add( key, index );
 
 		return index;
 	}

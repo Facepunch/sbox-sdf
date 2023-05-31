@@ -90,6 +90,11 @@ partial class Sdf3DMeshWriter
 					throw new NotImplementedException();
 			}
 		}
+
+		public VertexKey Offset( int x, int y, int z )
+		{
+			return new VertexKey( X + x, Y + y, Z + z, Vertex );
+		}
 	}
 
 	private record struct Triangle( VertexKey V0, VertexKey V1, VertexKey V2 )

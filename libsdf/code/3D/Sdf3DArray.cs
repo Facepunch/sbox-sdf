@@ -7,6 +7,48 @@ namespace Sandbox.Sdf;
 internal record struct Sdf3DArrayData( byte[] Samples, int BaseIndex, int RowStride, int SliceStride )
 {
 	public byte this[int x, int y, int z] => Samples[BaseIndex + x + y * RowStride + z * SliceStride];
+
+	public float this[ float x, int y, int z ]
+	{
+		get
+		{
+			var x0 = (int) MathF.Floor( x );
+			var x1 = x0 + 1;
+
+			var a = this[x0, y, z];
+			var b = this[x1, y, z];
+
+			return a + (b - a) * (x - x0);
+		}
+	}
+
+	public float this[int x, float y, int z]
+	{
+		get
+		{
+			var y0 = (int) MathF.Floor( y );
+			var y1 = y0 + 1;
+
+			var a = this[x, y0, z];
+			var b = this[x, y1, z];
+
+			return a + (b - a) * (y - y0);
+		}
+	}
+
+	public float this[int x, int y, float z]
+	{
+		get
+		{
+			var z0 = (int) MathF.Floor( z );
+			var z1 = z0 + 1;
+
+			var a = this[x, y, z0];
+			var b = this[x, y, z1];
+
+			return a + (b - a) * (z - z0);
+		}
+	}
 }
 
 public partial class Sdf3DArray : SdfArray<ISdf3D>
