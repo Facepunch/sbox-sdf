@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -27,6 +29,9 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private int _lastModificationCount;
 	private readonly List<Mesh> _usedMeshes = new List<Mesh>();
+
+	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
+	private CancellationTokenSource _updateMeshCancellationSource;
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
@@ -146,15 +151,39 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( Resource.IsTextureSourceOnly ) return;
 
-		OnUpdateMesh();
+		_updateMeshCancellationSource?.Cancel();
+		_updateMeshCancellationSource = new CancellationTokenSource();
+
+		_updateMeshTask = UpdateMeshTaskWrapper( _updateMeshTask, _updateMeshCancellationSource.Token );
+	}
+
+	private async Task UpdateMeshTaskWrapper( Task prev, CancellationToken token )
+	{
+		try
+		{
+			await prev;
+		}
+		catch ( OperationCanceledException )
+		{
+			// 
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		await OnUpdateMeshAsync( token );
+
+		token.ThrowIfCancellationRequested();
 
 		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
-		foreach ( var reference in Resource.ReferencedTextures )
+		await RunInMainThread( () =>
 		{
-			var matching = World.GetChunk( reference.Source, Key );
-			UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
-		}
+			foreach ( var reference in Resource.ReferencedTextures )
+			{
+				var matching = World.GetChunk( reference.Source, Key );
+				UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
+			}
+		} );
 	}
 
 	public void UpdateLayerTexture( TResource resource, TChunk source )
@@ -170,6 +199,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	public void UpdateLayerTexture( string targetAttribute, TResource resource, TChunk source )
 	{
+		ThreadSafe.AssertIsMainThread();
+
 		if ( source != null )
 		{
 			if ( resource != source.Resource )
@@ -205,10 +236,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
 	}
 
-	protected abstract void OnUpdateMesh();
+	protected abstract Task OnUpdateMeshAsync( CancellationToken token );
 
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices, Vector3 offset )
 	{
+		ThreadSafe.AssertIsMainThread();
+
 		if ( indices.Count == 0 )
 		{
 			Shape?.Remove();
@@ -241,6 +274,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	protected void UpdateRenderMeshes( params Mesh[] meshes )
 	{
+		ThreadSafe.AssertIsMainThread();
+
 		var anyChanges = false;
 
 		foreach ( var mesh in meshes )
@@ -292,5 +327,25 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			};
 		else
 			SceneObject.Model = model;
+	}
+
+	protected Task RunInMainThread( Action action )
+	{
+		var tcs = new TaskCompletionSource();
+
+		MainThread.Queue( () =>
+		{
+			try
+			{
+				action();
+				tcs.SetResult();
+			}
+			catch ( Exception e )
+			{
+				tcs.SetException( e );
+			}
+		} );
+
+		return tcs.Task;
 	}
 }

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -62,7 +64,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		return Data.Subtract( ToLocal( sdf ) );
 	}
 
-	protected override void OnUpdateMesh()
+	protected override async Task OnUpdateMeshAsync( CancellationToken token )
 	{
 		var tags = Resource.SplitCollisionTags;
 
@@ -78,24 +80,34 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 
 		try
 		{
-			Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
+			await GameTask.RunInThreadAsync( () => Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh ) );
+
+			token.ThrowIfCancellationRequested();
 
 			if ( enableRenderMesh )
 			{
-				Front ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.FrontFaceMaterial ) : null;
-				Back ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.BackFaceMaterial ) : null;
-				Cut ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.CutFaceMaterial ) : null;
+				await RunInMainThread( () =>
+				{
+					Front ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.FrontFaceMaterial ) : null;
+					Back ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.BackFaceMaterial ) : null;
+					Cut ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.CutFaceMaterial ) : null;
 
-				writer.ApplyTo( Front, Back, Cut );
-
-				UpdateRenderMeshes( Front, Back, Cut );
+					writer.ApplyTo( Front, Back, Cut );
+					
+					UpdateRenderMeshes( Front, Back, Cut );
+				} );
 			}
+
+			token.ThrowIfCancellationRequested();
 
 			if ( enableCollisionMesh )
 			{
 				var offset = new Vector3( Key.X, Key.Y ) * Resource.Quality.ChunkSize;
 
-				UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices, offset );
+				await RunInMainThread( () =>
+				{
+					UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices, offset );
+				} );
 			}
 		}
 		finally

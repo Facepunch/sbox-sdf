@@ -13,29 +13,35 @@ internal abstract class SdfMeshWriter<T>
 
 	public static T Rent()
 	{
-		if ( Pool.Count > 0 )
+		lock ( Pool )
 		{
-			var writer = Pool[^1];
-			Pool.RemoveAt( Pool.Count - 1 );
+			if ( Pool.Count > 0 )
+			{
+				var writer = Pool[^1];
+				Pool.RemoveAt( Pool.Count - 1 );
 
-			writer._isInPool = false;
-			writer.Clear();
+				writer._isInPool = false;
+				writer.Clear();
 
-			return writer;
+				return writer;
+			}
+
+			return new T();
 		}
-
-		return new T();
 	}
 
 	public void Return()
 	{
-		if ( _isInPool ) throw new InvalidOperationException( "Already returned." );
+		lock ( Pool )
+		{
+			if ( _isInPool ) throw new InvalidOperationException( "Already returned." );
 
-		Clear();
+			Clear();
 
-		_isInPool = true;
+			_isInPool = true;
 
-		if ( Pool.Count < MaxPoolCount ) Pool.Add( (T) this );
+			if ( Pool.Count < MaxPoolCount ) Pool.Add( (T)this );
+		}
 	}
 
 	private bool _isInPool;

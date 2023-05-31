@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -65,7 +62,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		return Data.Subtract( ToLocal( sdf ) );
 	}
 
-	protected override void OnUpdateMesh()
+	protected override async Task OnUpdateMeshAsync( CancellationToken token )
 	{
 		var tags = Resource.SplitCollisionTags;
 
@@ -81,22 +78,32 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 		try
 		{
-			Data.WriteTo( writer, Resource );
+			await Data.WriteToAsync( writer, Resource, token );
+
+			token.ThrowIfCancellationRequested();
 
 			if ( enableRenderMesh )
 			{
-				Mesh ??= Resource.Material != null ? new Mesh( Resource.Material ) : null;
+				await RunInMainThread( () =>
+				{
+					Mesh ??= Resource.Material != null ? new Mesh( Resource.Material ) : null;
 
-				writer.ApplyTo( Mesh );
+					writer.ApplyTo( Mesh );
 
-				UpdateRenderMeshes( Mesh );
+					UpdateRenderMeshes( Mesh );
+				} );
 			}
+
+			token.ThrowIfCancellationRequested();
 
 			if ( enableCollisionMesh )
 			{
 				var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
 
-				UpdateCollisionMesh( writer.VertexPositions, writer.Indices, offset );
+				await RunInMainThread( () =>
+				{
+					UpdateCollisionMesh( writer.VertexPositions, writer.Indices, offset );
+				} );
 			}
 		}
 		finally

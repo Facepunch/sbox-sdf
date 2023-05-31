@@ -49,6 +49,8 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 		{
 			if ( !_textureInvalid && _texture != null ) return _texture;
 
+			ThreadSafe.AssertIsMainThread();
+
 			_textureInvalid = false;
 
 			if ( _texture == null )

@@ -168,7 +168,7 @@ namespace Sandbox.Sdf
 		{
 			get
 			{
-				var t = Vector2.Dot( pos - PointA, Along );
+				var t = Vector3.Dot( pos - PointA, Along );
 				var closest = Vector3.Lerp( PointA, PointB, t );
 
 				return (pos - closest).Length - Radius;

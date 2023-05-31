@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -122,8 +124,8 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return changed;
 	}
 
-	internal void WriteTo( Sdf3DMeshWriter writer, Sdf3DVolume volume )
+	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume, CancellationToken token )
 	{
-		writer.Write( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ), volume );
+		return writer.WriteAsync( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ), volume, token );
 	}
 }

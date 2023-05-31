@@ -100,7 +100,7 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f, 64f );
+			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f );
 
 			if ( add )
 			{

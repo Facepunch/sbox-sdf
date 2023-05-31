@@ -629,6 +629,8 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 	public (bool HasFrontBackFaces, bool HasCutFaces) ApplyTo( Mesh front, Mesh back, Mesh cut )
 	{
+		ThreadSafe.AssertIsMainThread();
+
 		if ( Front.Indices.Count > 0 )
 		{
 			if ( front != null ) Front.ApplyTo( front );
