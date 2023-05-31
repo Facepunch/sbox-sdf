@@ -13,7 +13,7 @@
 						_class = "RenderPrimitiveSphere"
 						name = "Sphere"
 						parent_bone = ""
-						material_name = "materials/blob_preview.vmat"
+						material_name = "materials/blobtool/default.vmat"
 						origin = [ 0.0, 0.0, 0.0 ]
 						angles = [ 0.0, 0.0, 0.0 ]
 						max_u = 1.0

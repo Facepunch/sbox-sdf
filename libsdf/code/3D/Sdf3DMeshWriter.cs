@@ -42,8 +42,8 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 		foreach ( var triangle in Triangles )
 		{
 			var p0 = GetVertexPos( in data, triangle.V0 ) * unitSize;
-			var p1 = GetVertexPos( in data, triangle.V0 ) * unitSize;
-			var p2 = GetVertexPos( in data, triangle.V0 ) * unitSize;
+			var p1 = GetVertexPos( in data, triangle.V1 ) * unitSize;
+			var p2 = GetVertexPos( in data, triangle.V2 ) * unitSize;
 
 			var normal = Vector3.Cross( p1 - p0, p2 - p0 ).Normal;
 
@@ -133,11 +133,12 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 
 			Vertices.Add( new Vertex( pos, normal ) );
 			VertexPositions.Add( pos );
+
+			VertexMap.Add( key, index );
 		}
 		else
 		{
 			var vertex = Vertices[index];
-
 			Vertices[index] = vertex with { Normal = vertex.Normal + normal };
 		}
 
