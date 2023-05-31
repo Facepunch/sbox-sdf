@@ -1,6 +1,8 @@
 ﻿using Sandbox.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -65,10 +67,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">Shape to add</param>
 	/// <param name="resource">Layer or volume to add to</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Add<T>( in T sdf, TResource resource )
+	public Task<bool> AddAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
-		return ModifyChunks( sdf, resource, true, ( chunk, sdf ) => chunk.Add( sdf ) );
+		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => GameTask.RunInThreadAsync( () => chunk.Add( sdf ) ) );
 	}
 
 	/// <summary>
@@ -78,10 +80,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">Shape to subtract</param>
 	/// <param name="resource">Layer or volume to subtract from</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Subtract<T>( in T sdf, TResource resource )
+	public Task<bool> SubtractAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
-		return ModifyChunks( sdf, resource, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
+		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => GameTask.RunInThreadAsync( () => chunk.Subtract( sdf ) ) );
 	}
 
 	/// <summary>
@@ -90,15 +92,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Subtract<T>( in T sdf )
+	public async Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf
 	{
 		var changed = false;
+		var tasks = new List<Task<bool>>();
 
 		foreach ( var material in Layers.Keys )
-			changed |= ModifyChunks( sdf, material, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
+			tasks.Add( SubtractAsync( sdf, material ) );
 
-		return changed;
+		var result = await GameTask.WhenAll( tasks );
+
+		return result.Any( x => x );
 	}
 
 	internal void AddClientChunk( TChunk chunk )
@@ -195,15 +200,17 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality)
 		where T : TSdf;
 
-	private bool ModifyChunks<T>( in T sdf, TResource resource, bool createChunks,
-		Func<TChunk, T, bool> func )
+	private async Task<bool> ModifyChunksAsync<T>( T sdf, TResource resource, bool createChunks,
+		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
+		ThreadSafe.AssertIsMainThread();
 		AssertCanModify();
 
 		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
 
 		var changed = false;
+		var tasks = new List<Task<bool>>();
 
 		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
 		{
@@ -213,9 +220,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 			if ( chunk == null ) continue;
 
-			changed |= func( chunk, sdf );
+			tasks.Add( func( chunk, sdf ) );
 		}
 
-		return changed;
+		var result = await GameTask.WhenAll( tasks );
+
+		return result.Any( x => x );
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using Sandbox.Tools;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -56,8 +57,11 @@ namespace Sandbox.Sdf
 
 		public override void Simulate()
 		{
+			var radius = MathF.Sin( Time.Now ) * 64f + 128f;
+
 			if ( Preview != null )
 			{
+				Preview.Scale = radius / 48f;
 				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
 				Preview.SceneObject.Attributes.Set( "ColorAdd", BrushColor );
 				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
@@ -100,13 +104,13 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, 48f );
+			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, radius );
 
 			if ( add )
 			{
 				IsDrawing = true;
 
-				SdfWorld.Add( capsule, DefaultVolume );
+				_ = SdfWorld.AddAsync( capsule, DefaultVolume );
 
 				if ( LastEditPos.HasValue )
 				{
@@ -115,7 +119,7 @@ namespace Sandbox.Sdf
 			}
 			else
 			{
-				SdfWorld.Subtract( capsule, DefaultVolume );
+				_ = SdfWorld.SubtractAsync( capsule, DefaultVolume );
 			}
 
 			LastEditPos = editPos;

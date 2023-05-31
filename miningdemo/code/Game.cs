@@ -39,8 +39,9 @@ public partial class MiningDemoGame : GameManager
 			.Translate( new Vector2( -2048f, -8192f ) );
 
 		SdfWorld = new Sdf2DWorld { Rotation = Rotation.FromYaw( -90f ) * Rotation.FromRoll( 90f ) };
-		SdfWorld.Add( cavernSdf.Expand( -32f ), Layers.Rock );
-		SdfWorld.Add( new RectSdf(new Vector2( -2048f, -8192f ), new Vector2( 2048f, 0f ) ), Layers.Background );
+
+		_ = SdfWorld.AddAsync( cavernSdf.Expand( -32f ), Layers.Rock );
+		_ = SdfWorld.AddAsync( new RectSdf(new Vector2( -2048f, -8192f ), new Vector2( 2048f, 0f ) ), Layers.Background );
 	}
 
 	/// <summary>
@@ -63,7 +64,7 @@ public partial class MiningDemoGame : GameManager
 		var localPos = (Vector2)SdfWorld.Transform.PointToLocal( pos );
 		var sdf = new CircleSdf( localPos, radius );
 
-		SdfWorld.Subtract( sdf, Layers.Rock );
+		_ = SdfWorld.SubtractAsync( sdf, Layers.Rock );
 
 		Particles.Create( "particles/mine_hit.vpcf", pos );
 		Sound.FromWorld( "melee.hitstone", pos );

@@ -94,7 +94,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	public void Clear( bool solid )
 	{
-		Data.Clear( solid );
+		lock ( Data )
+		{
+			Data.Clear( solid );
+		}
 
 		if ( Game.IsServer ) Data.WriteNetworkData();
 	}
@@ -102,7 +105,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	public bool Add<T>( in T sdf )
 		where T : TSdf
 	{
-		if ( !OnAdd( in sdf ) ) return false;
+		lock ( Data )
+		{
+			if ( !OnAdd( in sdf ) ) return false;
+		}
 
 		if ( Game.IsServer ) Data.WriteNetworkData();
 
@@ -115,7 +121,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	public bool Subtract<T>( in T sdf )
 		where T : TSdf
 	{
-		if ( !OnSubtract( in sdf ) ) return false;
+		lock ( Data )
+		{
+			if ( !OnSubtract( in sdf ) ) return false;
+		}
 
 		if ( Game.IsServer ) Data.WriteNetworkData();
 
