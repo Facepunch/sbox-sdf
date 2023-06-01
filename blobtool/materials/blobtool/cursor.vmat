@@ -2,7 +2,7 @@
 
 Layer0
 {
-	shader "shaders/sdf3d/triplanar_scorch.shader_c"
+	shader "shaders/sdf3d/triplanar.shader_c"
 
 	//---- Fog ----
 	g_bFogEnabled "1"
@@ -15,13 +15,5 @@ Layer0
 	TextureNormal "materials/default/default_normal.tga"
 	TextureRoughness "materials/dev/simple/simple_tile_rough.png"
 	TextureTintMask "materials/default/default.tga"
-	TextureTranslucency "materials/default/default_trans.tga"
-
-	//---- Scorch ----
-	ScorchAmbientOcclusion "materials/default/default_ao.tga"
-	ScorchBlendMask "materials/nature/leaves_height.png"
-	ScorchColor "[0.000000 0.000000 0.000000 0.000000]"
-	ScorchMetalness "materials/default/default_metal.tga"
-	ScorchNormal "materials/default/default_normal.tga"
-	ScorchRoughness "materials/dev/simple/simple_tile_rough.png"
+	TextureTranslucency "[1.000000 1.000000 1.000000 0.000000]"
 }

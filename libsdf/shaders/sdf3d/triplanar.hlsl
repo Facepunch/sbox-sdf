@@ -58,7 +58,6 @@ Material ToMaterialTriplanar( in PixelInput i, in Texture2D tColor, in Texture2D
 	Material m = ToMaterial( i, col, float4( 0.5, 0.5, 1.0, 1.0 ), rma, g_flTintColor );
 
 	m.Normal = norm;
-	m.Opacity = col.a;
 
 	return m;
 }

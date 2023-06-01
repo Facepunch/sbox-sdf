@@ -13,16 +13,14 @@ namespace Sandbox.Sdf
 		private static Sdf3DVolume _sCollisionVolume;
 		private static Sdf3DVolume _sScorchVolume;
 
-        public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
+		public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
 		public static Sdf3DVolume CollisionVolume => _sCollisionVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/collision.sdfvol" );
 		public static Sdf3DVolume ScorchVolume => _sScorchVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/scorch.sdfvol" );
 
-        public static Sdf3DWorld SdfWorld { get; set; }
+		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 2048f;
-
-		private Task _lastEditTask;
 
 		public Vector3? LastEditPos { get; set; }
 
@@ -30,12 +28,10 @@ namespace Sandbox.Sdf
 		public float EditDistance { get; set; }
 
 		[Net]
-		public float Hue { get; set; }
+		public float EditRadius { get; set; } = 48f;
 
 		[Net]
 		public bool IsDrawing { get; set; }
-
-		public Color BrushColor => new ColorHsv( Hue, 0.875f, 1f );
 
 		public ModelEntity Preview { get; set; }
 
@@ -63,25 +59,23 @@ namespace Sandbox.Sdf
 		public override void Simulate()
 		{
 			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-			var radius = Math.Clamp( EditDistance / 2f, 32f, MathF.Sin( Time.Now ) * 64f + 128f );
-
-			if ( Preview != null )
-			{
-				Preview.Scale = radius / 48f;
-				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-				Preview.SceneObject.Attributes.Set( "ColorAdd", BrushColor );
-				Preview.EnableDrawing = EditDistance > 64f && !IsDrawing;
-			}
-
-			if ( !Game.IsServer || SdfWorld == null || !(_lastEditTask?.IsCompleted ?? true) )
-			{
-				return;
-			}
 
 			var add = Input.Down( "attack1" );
 			var subtract = Input.Down( "attack2" );
 
-			IsDrawing &= add;
+			if ( Preview != null )
+			{
+				Preview.Scale = EditRadius / 48f;
+				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
+				Preview.EnableDrawing = EditDistance > EditRadius + 32f;
+			}
+
+			if ( !Game.IsServer || SdfWorld == null )
+			{
+				return;
+			}
+
+			IsDrawing &= add || subtract;
 
 			if ( LastEditPos == null )
 			{
@@ -95,6 +89,8 @@ namespace Sandbox.Sdf
 				{
 					EditDistance = MaxEditDistance;
 				}
+
+				EditRadius = Math.Clamp( EditDistance / 2f, 32f, MathF.Sin( Time.Now ) * 64f + 128f );
 			}
 
 			if ( !add && !subtract )
@@ -103,25 +99,20 @@ namespace Sandbox.Sdf
 				return;
 			}
 
+			IsDrawing = true;
+
 			if ( LastEditPos != null && (editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
 			{
 				return;
 			}
 
-			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, radius );
+			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, EditRadius );
 
 			if ( add )
 			{
-				IsDrawing = true;
-
 				_ = SdfWorld.AddAsync( capsule, DefaultVolume );
 				_ = SdfWorld.AddAsync( capsule, CollisionVolume );
-				_ = SdfWorld.SubtractAsync( capsule.Expand( 8f ), ScorchVolume );
-
-                if ( LastEditPos.HasValue )
-				{
-					Hue += (LastEditPos.Value - editPos).Length * 360f / 1024f;
-				}
+				_ = SdfWorld.SubtractAsync( capsule.Expand( 16f ), ScorchVolume );
 			}
 			else
 			{

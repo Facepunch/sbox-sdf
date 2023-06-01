@@ -66,7 +66,7 @@ PS
 	CreateSdfLayerTexture( ScorchLayer );
 
 	CreateInputTexture2D( ScorchColor, Srgb, 8, "", "_color",  "Scorch,10/10", Default3( 1.0, 1.0, 1.0 ) );
-	CreateInputTexture2D( ScorchBlendMask, Linear, 8, "", "_height", "Scorch,10/20", Default( 1.0 ) );
+	CreateInputTexture2D( ScorchBlendMask, Linear, 8, "", "_height", "Scorch,10/20", Default( 0.5 ) );
 	CreateInputTexture2D( ScorchRoughness, Linear, 8, "", "_rough", "Scorch,10/30", Default( 0.5 ) );
 	CreateInputTexture2D( ScorchMetalness, Linear, 8, "", "_metal", "Scorch,10/40", Default( 1.0 ) );
 	CreateInputTexture2D( ScorchAmbientOcclusion, Linear, 8, "", "_ao", "Scorch,10/50", Default( 1.0 ) );
@@ -87,7 +87,7 @@ PS
 		float scorchMask = s.Opacity;
 
 		float signedDist = SdfLayerTex( ScorchLayer, i.vPositionOs.xyz ).r;
-		float scorch = 1.0 - clamp( signedDist + scorchMask - 0.5, 0.0, 1.0 );
+		float scorch = 1.0 - clamp( signedDist * 4.0 - scorchMask * 64.0, 0.0, 1.0 );
 
 		m.Opacity = 1;
 		m.Albedo = lerp( m.Albedo, s.Albedo, scorch );
