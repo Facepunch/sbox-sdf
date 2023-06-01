@@ -1,5 +1,5 @@
-#ifndef SDF2D_SHARED_H
-#define SDF2D_SHARED_H
+#ifndef SDF3D_SHARED_H
+#define SDF3D_SHARED_H
 
 #define STRING( A ) #A
 
@@ -17,6 +17,6 @@
     >
 
 #define SdfLayerTex( attribName, positionOs ) \
-    ((Tex2D( g_t##attribName, positionOs.xy * g_fl##attribName##_Params.z + g_fl##attribName##_Params.xx ) - 0.5) * g_fl##attribName##_Params.w)
+    ((Tex3D( g_t##attribName, positionOs.xyz * g_fl##attribName##_Params.z + g_fl##attribName##_Params.xxx ) - 0.5) * g_fl##attribName##_Params.w)
 
 #endif
