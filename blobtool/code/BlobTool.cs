@@ -11,11 +11,13 @@ namespace Sandbox.Sdf
 	{
 		private static Sdf3DVolume _sDefaultVolume;
 		private static Sdf3DVolume _sCollisionVolume;
+		private static Sdf3DVolume _sScorchVolume;
 
-		public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
+        public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
 		public static Sdf3DVolume CollisionVolume => _sCollisionVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/collision.sdfvol" );
+		public static Sdf3DVolume ScorchVolume => _sScorchVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/scorch.sdfvol" );
 
-		public static Sdf3DWorld SdfWorld { get; set; }
+        public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 2048f;
@@ -114,8 +116,9 @@ namespace Sandbox.Sdf
 
 				_ = SdfWorld.AddAsync( capsule, DefaultVolume );
 				_ = SdfWorld.AddAsync( capsule, CollisionVolume );
+				_ = SdfWorld.SubtractAsync( capsule.Expand( 8f ), ScorchVolume );
 
-				if ( LastEditPos.HasValue )
+                if ( LastEditPos.HasValue )
 				{
 					Hue += (LastEditPos.Value - editPos).Length * 360f / 1024f;
 				}
@@ -124,6 +127,7 @@ namespace Sandbox.Sdf
 			{
 				_ = SdfWorld.SubtractAsync( capsule, DefaultVolume );
 				_ = SdfWorld.SubtractAsync( capsule, CollisionVolume );
+				_ = SdfWorld.AddAsync( capsule.Expand( 16f ), ScorchVolume );
 			}
 
 			LastEditPos = editPos;

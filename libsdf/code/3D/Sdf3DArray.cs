@@ -76,7 +76,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 	protected override void UpdateTexture( Texture texture )
 	{
-		texture.Update( Samples );
+		texture.Update3D( Samples );
 	}
 
 	private (int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ) GetSampleRange( BBox bounds )

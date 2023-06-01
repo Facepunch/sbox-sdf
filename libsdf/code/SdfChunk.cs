@@ -7,6 +7,18 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
+internal static class Static
+{
+	private static Texture _sWhite3D;
+
+	public static Texture White3D => _sWhite3D ??= new Texture3DBuilder()
+		.WithName( "White 3D" )
+		.WithSize( 1, 1, 1 )
+		.WithFormat( ImageFormat.I8 )
+		.WithData( new byte[] { 255 } )
+		.Finish();
+}
+
 public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Entity
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
@@ -233,7 +245,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 		else
 		{
-			SceneObject.Attributes.Set( targetAttribute, Texture.White );
+			SceneObject.Attributes.Set( targetAttribute, Static.White3D );
 		}
 
 		var quality = resource.Quality;

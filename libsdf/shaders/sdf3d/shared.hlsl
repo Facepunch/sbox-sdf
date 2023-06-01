@@ -4,12 +4,13 @@
 #define STRING( A ) #A
 
 #define CreateSdfLayerTexture( attribName ) \
-    CreateTexture2D( g_t##attribName ) < \
+    CreateTexture3D( g_t##attribName ) < \
         Attribute( #attribName ); \
         SrgbRead( false ); \
         Filter( BILINEAR ); \
         AddressU( CLAMP ); \
         AddressV( CLAMP ); \
+        AddressW( CLAMP ); \
     >; \
     float4 g_fl##attribName##_Params < \
         Default4( 0.0, 0.0, 1.0, 1.0 ); \
