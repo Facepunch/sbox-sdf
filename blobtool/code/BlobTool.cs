@@ -55,8 +55,11 @@ namespace Sandbox.Sdf
 		{
 			base.Deactivate();
 
-			Preview?.Delete();
-			Preview = null;
+			if ( Game.IsServer )
+			{
+				Preview?.Delete();
+				Preview = null;
+			}
 		}
 
 		public override void Simulate()
