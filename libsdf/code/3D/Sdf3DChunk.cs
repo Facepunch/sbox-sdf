@@ -66,7 +66,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	{
 		var tags = Resource.SplitCollisionTags;
 
-		var enableRenderMesh = !Game.IsServer;
+		var enableRenderMesh = !Game.IsServer && Resource.Material != null;
 		var enableCollisionMesh = tags.Length > 0;
 
 		if ( !enableRenderMesh && !enableCollisionMesh )

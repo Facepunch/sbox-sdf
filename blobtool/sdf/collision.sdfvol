@@ -1,0 +1,10 @@
+{
+  "Material": null,
+  "IsTextureSourceOnly": false,
+  "CollisionTags": "solid",
+  "QualityLevel": "Custom",
+  "ChunkResolution": 8,
+  "ChunkSize": 256,
+  "MaxDistance": 64,
+  "ReferencedTextures": null
+}

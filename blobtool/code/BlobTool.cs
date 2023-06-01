@@ -10,8 +10,11 @@ namespace Sandbox.Sdf
 	public partial class BlobTool : BaseTool
 	{
 		private static Sdf3DVolume _sDefaultVolume;
+		private static Sdf3DVolume _sCollisionVolume;
 
 		public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
+		public static Sdf3DVolume CollisionVolume => _sCollisionVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/collision.sdfvol" );
+
 		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
@@ -110,6 +113,7 @@ namespace Sandbox.Sdf
 				IsDrawing = true;
 
 				_ = SdfWorld.AddAsync( capsule, DefaultVolume );
+				_ = SdfWorld.AddAsync( capsule, CollisionVolume );
 
 				if ( LastEditPos.HasValue )
 				{
@@ -119,6 +123,7 @@ namespace Sandbox.Sdf
 			else
 			{
 				_ = SdfWorld.SubtractAsync( capsule, DefaultVolume );
+				_ = SdfWorld.SubtractAsync( capsule, CollisionVolume );
 			}
 
 			LastEditPos = editPos;

@@ -94,6 +94,11 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 	{
 		ThreadSafe.AssertIsMainThread();
 
+		if ( mesh == null )
+		{
+			return;
+		}
+
 		if ( mesh.HasVertexBuffer )
 		{
 			if ( Indices.Count > 0 )
