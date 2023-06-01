@@ -81,7 +81,7 @@ namespace Sandbox.Sdf
 
 			IsDrawing &= add;
 
-			if ( LastEditPos == null || subtract )
+			if ( LastEditPos == null )
 			{
 				var tr = DoTrace();
 
