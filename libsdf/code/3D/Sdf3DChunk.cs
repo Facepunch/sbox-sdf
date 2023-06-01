@@ -89,7 +89,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 			{
 				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
 				{
-					Mesh ??= Resource.Material != null ? new Mesh( Resource.Material ) : null;
+					Mesh = Resource.Material != null && writer.Indices.Count > 0 ? Mesh ?? new Mesh( Resource.Material ) : null;
 
 					writer.ApplyTo( Mesh );
 

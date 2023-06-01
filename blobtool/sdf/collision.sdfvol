@@ -3,8 +3,8 @@
   "IsTextureSourceOnly": false,
   "CollisionTags": "solid",
   "QualityLevel": "Custom",
-  "ChunkResolution": 8,
-  "ChunkSize": 256,
+  "ChunkResolution": 16,
+  "ChunkSize": 512,
   "MaxDistance": 64,
   "ReferencedTextures": null
 }

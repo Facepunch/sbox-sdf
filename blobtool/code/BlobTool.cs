@@ -18,7 +18,7 @@ namespace Sandbox.Sdf
 		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
-		public const float MaxEditDistance = 1024f;
+		public const float MaxEditDistance = 2048f;
 
 		private Task _lastEditTask;
 
@@ -61,7 +61,7 @@ namespace Sandbox.Sdf
 		public override void Simulate()
 		{
 			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-			var radius = MathF.Sin( Time.Now ) * 64f + 128f;
+			var radius = Math.Clamp( EditDistance / 2f, 32f, MathF.Sin( Time.Now ) * 64f + 128f );
 
 			if ( Preview != null )
 			{

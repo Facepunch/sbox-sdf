@@ -103,8 +103,15 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 		{
 			if ( Indices.Count > 0 )
 			{
-				mesh.SetIndexBufferSize( Indices.Count );
-				mesh.SetVertexBufferSize( Vertices.Count );
+				if ( mesh.IndexCount < Indices.Count )
+				{
+					mesh.SetIndexBufferSize( Indices.Count );
+				}
+
+				if ( mesh.VertexCount < Vertices.Count )
+				{
+					mesh.SetVertexBufferSize( Vertices.Count );
+				}
 
 				mesh.SetIndexBufferData( Indices );
 				mesh.SetVertexBufferData( Vertices );

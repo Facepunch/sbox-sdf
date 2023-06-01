@@ -91,9 +91,9 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 			{
 				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
 				{
-					Front ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.FrontFaceMaterial ) : null;
-					Back ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.BackFaceMaterial ) : null;
-					Cut ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.CutFaceMaterial ) : null;
+					Front = Resource.FrontFaceMaterial != null && writer.HasFrontFaces ? Front ?? new Mesh( Resource.FrontFaceMaterial ) : null;
+					Back = Resource.FrontFaceMaterial != null && writer.HasBackFaces ? Back ?? new Mesh( Resource.BackFaceMaterial ) : null;
+					Cut = Resource.FrontFaceMaterial != null && writer.HasCutFaces ? Cut ?? new Mesh( Resource.CutFaceMaterial ) : null;
 
 					writer.ApplyTo( Front, Back, Cut );
 					

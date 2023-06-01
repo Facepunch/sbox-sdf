@@ -627,7 +627,11 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		}
 	}
 
-	public (bool HasFrontBackFaces, bool HasCutFaces) ApplyTo( Mesh front, Mesh back, Mesh cut )
+	public bool HasFrontFaces => Front.Indices.Count > 0;
+	public bool HasBackFaces => Back.Indices.Count > 0;
+	public bool HasCutFaces => Cut.Indices.Count > 0;
+
+	public void ApplyTo( Mesh front, Mesh back, Mesh cut )
 	{
 		ThreadSafe.AssertIsMainThread();
 
@@ -639,8 +643,6 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		}
 
 		if ( Cut.Indices.Count > 0 && Cut != null ) Cut.ApplyTo( cut );
-
-		return (Front.Indices.Count > 0 && (front ?? back) != null, Cut.Indices.Count > 0 && cut != null);
 	}
 
 	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
