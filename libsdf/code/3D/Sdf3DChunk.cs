@@ -87,7 +87,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 			if ( enableRenderMesh )
 			{
-				renderTask = RunInMainThread( () =>
+				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
 				{
 					Mesh ??= Resource.Material != null ? new Mesh( Resource.Material ) : null;
 
@@ -103,7 +103,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 			{
 				var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
 
-				await GameTask.RunInThreadAsync( () =>
+				collisionTask = GameTask.RunInThreadAsync( async () =>
 				{
 					var vertices = writer.VertexPositions;
 
@@ -111,13 +111,13 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 					{
 						vertices[i] += offset;
 					}
-				} );
 
-				collisionTask = RunInMainThread( () =>
-				{
-					token.ThrowIfCancellationRequested();
+					await RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
+					{
+						token.ThrowIfCancellationRequested();
 
-					UpdateCollisionMesh( writer.VertexPositions, writer.Indices );
+						UpdateCollisionMesh( writer.VertexPositions, writer.Indices );
+					} );
 				} );
 			}
 

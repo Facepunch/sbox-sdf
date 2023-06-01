@@ -33,6 +33,14 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
 
+	internal TimeSpan CurrentTickChunkTaskDuration { get; set; }
+
+	[GameEvent.Tick]
+	private void Tick()
+	{
+		CurrentTickChunkTaskDuration = TimeSpan.Zero;
+	}
+
 	/// <summary>
 	/// Removes all layers / volumes, making this equivalent to a brand new empty world.
 	/// </summary>

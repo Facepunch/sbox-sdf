@@ -7,11 +7,6 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
-internal static partial class Temp
-{
-	[ThreadStatic] public static List<Vector3> TransformedVertices;
-}
-
 public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Entity
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
@@ -19,6 +14,13 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
 {
+	protected enum MainThreadTask
+	{
+		UpdateRenderMeshes,
+		UpdateCollisionMesh,
+		UpdateLayerTexture
+	}
+
 	public abstract TWorld World { get; set; }
 	public abstract TResource Resource { get; set; }
 	protected abstract TArray Data { get; set; }
@@ -33,6 +35,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
 	private CancellationTokenSource _updateMeshCancellationSource;
+
+	private Dictionary<MainThreadTask, (Action Action, TaskCompletionSource Tcs)> MainThreadTasks { get; } = new();
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
@@ -139,12 +143,15 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	public void Tick()
 	{
 		UpdateMesh();
+		RunMainThreadTask( MainThreadTask.UpdateCollisionMesh );
 	}
 
 	[GameEvent.PreRender]
 	public void ClientPreRender()
 	{
 		UpdateMesh();
+		RunMainThreadTask( MainThreadTask.UpdateRenderMeshes );
+		RunMainThreadTask( MainThreadTask.UpdateLayerTexture );
 
 		if ( SceneObject != null ) SceneObject.Transform = Transform;
 	}
@@ -181,7 +188,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
-		await RunInMainThread( () =>
+		await RunInMainThread( MainThreadTask.UpdateLayerTexture, () =>
 		{
 			foreach ( var reference in Resource.ReferencedTextures )
 			{
@@ -245,7 +252,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices )
 	{
-		var sw = Stopwatch.StartNew();
 		ThreadSafe.AssertIsMainThread();
 
 		if ( indices.Count == 0 )
@@ -268,8 +274,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 				Shape.UpdateMesh( vertices, indices );
 			}
 		}
-
-		Log.Info( $"UpdateCollisionMesh: {sw.Elapsed.TotalMilliseconds:F2} ms" );
 	}
 
 	protected void UpdateRenderMeshes( params Mesh[] meshes )
@@ -329,22 +333,58 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			SceneObject.Model = model;
 	}
 
-	protected Task RunInMainThread( Action action )
+	private void RunMainThreadTask( MainThreadTask task )
+	{
+		if ( World.CurrentTickChunkTaskDuration >= TimeSpan.FromMilliseconds( 1d ) )
+		{
+			return;
+		}
+
+		if ( MainThreadTasks.Count == 0 )
+		{
+			return;
+		}
+
+		var sw = Stopwatch.StartNew();
+
+		(Action Action, TaskCompletionSource Tcs) taskInfo;
+
+		lock ( MainThreadTasks )
+		{
+			if ( !MainThreadTasks.Remove( task, out taskInfo ) )
+			{
+				return;
+			}
+		}
+
+		try
+		{
+			taskInfo.Action();
+			taskInfo.Tcs.SetResult();
+		}
+		catch ( Exception e )
+		{
+			taskInfo.Tcs.SetException( e );
+		}
+		finally
+		{
+			World.CurrentTickChunkTaskDuration += sw.Elapsed;
+		}
+	}
+
+	protected Task RunInMainThread( MainThreadTask task, Action action )
 	{
 		var tcs = new TaskCompletionSource();
 
-		MainThread.Queue( () =>
+		lock ( MainThreadTasks )
 		{
-			try
+			if ( MainThreadTasks.TryGetValue( task, out var prev ) )
 			{
-				action();
-				tcs.SetResult();
+				prev.Tcs.SetCanceled();
 			}
-			catch ( Exception e )
-			{
-				tcs.SetException( e );
-			}
-		} );
+
+			MainThreadTasks[task] = (action, tcs);
+		}
 
 		return tcs.Task;
 	}

@@ -18,7 +18,7 @@ namespace Sandbox.Sdf
 		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
-		public const float MaxEditDistance = 512f;
+		public const float MaxEditDistance = 1024f;
 
 		private Task _lastEditTask;
 

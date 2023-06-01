@@ -84,9 +84,12 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 
 			token.ThrowIfCancellationRequested();
 
+			var renderTask = Task.CompletedTask;
+			var collisionTask = Task.CompletedTask;
+
 			if ( enableRenderMesh )
 			{
-				await RunInMainThread( () =>
+				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
 				{
 					Front ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.FrontFaceMaterial ) : null;
 					Back ??= Resource.FrontFaceMaterial != null ? new Mesh( Resource.BackFaceMaterial ) : null;
@@ -104,7 +107,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 			{
 				var offset = new Vector3( Key.X, Key.Y ) * Resource.Quality.ChunkSize;
 
-				await GameTask.RunInThreadAsync( () =>
+				collisionTask = GameTask.RunInThreadAsync( async () =>
 				{
 					var vertices = writer.CollisionMesh.Vertices;
 
@@ -112,13 +115,15 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 					{
 						vertices[i] += offset;
 					}
-				} );
 
-				await RunInMainThread( () =>
-				{
-					UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
+					await RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
+					{
+						UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
+					} );
 				} );
 			}
+
+			await Task.WhenAll( renderTask, collisionTask );
 		}
 		finally
 		{
