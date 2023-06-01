@@ -4,8 +4,10 @@ namespace Sandbox.Sdf;
 
 public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializer
 {
+#pragma warning disable SB3000
 	protected const byte MaxEncoded = 255;
 	public const int Margin = 1;
+#pragma warning restore SB3000
 
 	public int Dimensions { get; }
 

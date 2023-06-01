@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,6 +14,8 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 	public List<Vertex> Vertices { get; } = new List<Vertex>();
 	public List<Vector3> VertexPositions { get; } = new List<Vector3>();
 	public List<int> Indices { get; } = new List<int>();
+
+	public byte[] Samples { get; set; }
 
 	public override void Clear()
 	{
@@ -150,7 +151,6 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 				zPos = data[pos.x, key.Y, key.Z + 1];
 				break;
 			}
-
 
 			case NormalizedVertex.AC:
 			{

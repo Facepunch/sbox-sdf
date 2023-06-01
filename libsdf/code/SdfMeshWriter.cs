@@ -7,7 +7,7 @@ internal abstract class SdfMeshWriter<T>
 	where T : SdfMeshWriter<T>, new()
 {
 #pragma warning disable SB3000
-	private const int MaxPoolCount = 16;
+	private const int MaxPoolCount = 64;
 	private static List<T> Pool { get; } = new();
 #pragma warning restore SB3000
 
@@ -15,18 +15,15 @@ internal abstract class SdfMeshWriter<T>
 	{
 		lock ( Pool )
 		{
-			if ( Pool.Count > 0 )
-			{
-				var writer = Pool[^1];
-				Pool.RemoveAt( Pool.Count - 1 );
+			if ( Pool.Count <= 0 ) return new T();
 
-				writer._isInPool = false;
-				writer.Clear();
+			var writer = Pool[^1];
+			Pool.RemoveAt( Pool.Count - 1 );
 
-				return writer;
-			}
+			writer._isInPool = false;
+			writer.Clear();
 
-			return new T();
+			return writer;
 		}
 	}
 

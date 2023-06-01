@@ -104,9 +104,19 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 			{
 				var offset = new Vector3( Key.X, Key.Y ) * Resource.Quality.ChunkSize;
 
+				await GameTask.RunInThreadAsync( () =>
+				{
+					var vertices = writer.CollisionMesh.Vertices;
+
+					for ( var i = 0; i < vertices.Count; ++i )
+					{
+						vertices[i] += offset;
+					}
+				} );
+
 				await RunInMainThread( () =>
 				{
-					UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices, offset );
+					UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
 				} );
 			}
 		}

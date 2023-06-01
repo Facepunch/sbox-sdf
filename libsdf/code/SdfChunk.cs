@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -150,11 +151,15 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void UpdateMesh()
 	{
-		if ( Data == null || World == null ) return;
+		ThreadSafe.AssertIsMainThread();
 
-		if ( Data.ModificationCount == _lastModificationCount ) return;
+		if ( Data == null || World == null || !_updateMeshTask.IsCompleted ) return;
 
-		_lastModificationCount = Data.ModificationCount;
+		lock ( Data )
+		{
+			if ( Data.ModificationCount == _lastModificationCount ) return;
+			_lastModificationCount = Data.ModificationCount;
+		}
 
 		World.ChunkMeshUpdated( (TChunk) this, false );
 
@@ -163,20 +168,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		_updateMeshCancellationSource?.Cancel();
 		_updateMeshCancellationSource = new CancellationTokenSource();
 
-		_updateMeshTask = UpdateMeshTaskWrapper( _updateMeshTask, _updateMeshCancellationSource.Token );
+		_updateMeshTask = UpdateMeshTaskWrapper( _updateMeshCancellationSource.Token );
 	}
 
-	private async Task UpdateMeshTaskWrapper( Task prev, CancellationToken token )
+	private async Task UpdateMeshTaskWrapper( CancellationToken token )
 	{
-		try
-		{
-			await prev;
-		}
-		catch ( OperationCanceledException )
-		{
-			// 
-		}
-
 		token.ThrowIfCancellationRequested();
 
 		await OnUpdateMeshAsync( token );
@@ -247,8 +243,9 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	protected abstract Task OnUpdateMeshAsync( CancellationToken token );
 
-	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices, Vector3 offset )
+	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices )
 	{
+		var sw = Stopwatch.StartNew();
 		ThreadSafe.AssertIsMainThread();
 
 		if ( indices.Count == 0 )
@@ -258,27 +255,21 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 		else
 		{
-			var transformed = Temp.TransformedVertices ??= new List<Vector3>();
-			transformed.Clear();
-
-			foreach ( var vertex in vertices )
-			{
-				transformed.Add( vertex + offset );
-			}
-
 			var tags = Resource.SplitCollisionTags;
 
 			if ( !Shape.IsValid() )
 			{
-				Shape = World.AddMeshShape( transformed, indices );
+				Shape = World.AddMeshShape( vertices, indices );
 
 				foreach ( var tag in tags ) Shape.AddTag( tag );
 			}
 			else
 			{
-				Shape.UpdateMesh( transformed, indices );
+				Shape.UpdateMesh( vertices, indices );
 			}
 		}
+
+		Log.Info( $"UpdateCollisionMesh: {sw.Elapsed.TotalMilliseconds:F2} ms" );
 	}
 
 	protected void UpdateRenderMeshes( params Mesh[] meshes )

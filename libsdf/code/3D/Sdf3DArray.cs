@@ -4,9 +4,15 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
-internal record struct Sdf3DArrayData( byte[] Samples, int BaseIndex, int RowStride, int SliceStride )
+internal record struct Sdf3DArrayData( byte[] Samples, int Margin, int ArraySize, int BaseIndex )
 {
-	public byte this[int x, int y, int z] => Samples[BaseIndex + x + y * RowStride + z * SliceStride];
+	public Sdf3DArrayData( byte[] samples, int margin, int arraySize )
+		: this( samples, margin, arraySize, margin * (1 + arraySize + arraySize * arraySize) )
+	{
+		
+	}
+
+	public byte this[int x, int y, int z] => Samples[BaseIndex + x + (y + z * ArraySize) * ArraySize];
 
 	public float this[ float x, int y, int z ]
 	{
@@ -168,6 +174,13 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume, CancellationToken token )
 	{
-		return writer.WriteAsync( new Sdf3DArrayData( Samples, Margin * (1 + ArraySize + ArraySize * ArraySize), ArraySize, ArraySize * ArraySize ), volume, token );
+		if ( writer.Samples == null || writer.Samples.Length < Samples.Length )
+		{
+			writer.Samples = new byte[Samples.Length];
+		}
+
+		Array.Copy( Samples, writer.Samples, Samples.Length );
+
+		return writer.WriteAsync( new Sdf3DArrayData( writer.Samples, Margin, ArraySize ), volume, token );
 	}
 }

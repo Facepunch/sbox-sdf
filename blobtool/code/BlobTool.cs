@@ -57,6 +57,7 @@ namespace Sandbox.Sdf
 
 		public override void Simulate()
 		{
+			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
 			var radius = MathF.Sin( Time.Now ) * 64f + 128f;
 
 			if ( Preview != null )
@@ -96,8 +97,6 @@ namespace Sandbox.Sdf
 				LastEditPos = null;
 				return;
 			}
-
-			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
 
 			if ( LastEditPos != null && (editPos - LastEditPos.Value).Length < MinDistanceBetweenEdits )
 			{
