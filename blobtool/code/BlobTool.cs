@@ -33,6 +33,7 @@ namespace Sandbox.Sdf
 		[Net]
 		public bool IsDrawing { get; set; }
 
+		[Net]
 		public ModelEntity Preview { get; set; }
 
 		public override void Activate()
@@ -42,10 +43,11 @@ namespace Sandbox.Sdf
 			if ( Game.IsServer )
 			{
 				SdfWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld();
-			}
-			else
-			{
-				Preview = new ModelEntity( "models/blob_preview.vmdl" );
+				Preview = new ModelEntity( "models/blob_preview.vmdl" )
+				{
+					Owner = Owner,
+					Predictable = true
+				};
 			}
 		}
 
@@ -54,6 +56,7 @@ namespace Sandbox.Sdf
 			base.Deactivate();
 
 			Preview?.Delete();
+			Preview = null;
 		}
 
 		public override void Simulate()
@@ -90,7 +93,7 @@ namespace Sandbox.Sdf
 					EditDistance = MaxEditDistance;
 				}
 
-				EditRadius = Math.Clamp( EditDistance / 2f, 32f, MathF.Sin( Time.Now ) * 64f + 128f );
+				EditRadius = (MathF.Sin( Time.Now * MathF.PI ) * 0.25f + 0.75f) * Math.Clamp( EditDistance / 2f, 64f, 256f );
 			}
 
 			if ( !add && !subtract )
