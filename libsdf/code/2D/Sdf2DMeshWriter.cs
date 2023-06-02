@@ -53,6 +53,11 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		public void ApplyTo( Mesh mesh )
 		{
+			if ( mesh == null )
+			{
+				return;
+			}
+
 			if ( mesh.HasVertexBuffer )
 			{
 				if ( Indices.Count > 0 )
