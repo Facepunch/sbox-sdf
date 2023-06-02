@@ -7,7 +7,9 @@
   "Schema": 1,
   "HasAssets": true,
   "AssetsPath": "",
-  "ResourcePaths": null,
+  "ResourcePaths": [
+    "/shaders/*.hlsl"
+  ],
   "HasCode": true,
   "CodePath": "/code/",
   "PackageReferences": [],
@@ -16,7 +18,7 @@
     "ProjectTemplate": null,
     "CsProjName": "",
     "Summary": "Marching cubes \u0026 squares mesh generation",
-    "Description": "Sdf2DWorld is ready to use!\n\nMarching Cubes is WIP",
+    "Description": "* Sdf2DWorld for 2D layers\n* Sdf3DWorld for 3D volumes",
     "Public": true,
     "Compiler": {
       "RootNamespace": "Sandbox",

@@ -29,7 +29,8 @@
       "References": []
     },
     "Summary": "Make blobby geometry in Sandbox",
-    "Description": "WIP",
-    "Public": false
+    "Description": "Demo of facepunch.libsdf",
+    "Public": true,
+    "ReplaceTags": "demo sandbox sdf tool"
   }
 }
