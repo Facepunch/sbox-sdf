@@ -7,13 +7,20 @@ internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStr
 	public byte this[int x, int y] => Samples[BaseIndex + x + y * RowStride];
 }
 
+/// <summary>
+/// Networked array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
+/// </summary>
 public partial class Sdf2DArray : SdfArray<ISdf2D>
 {
+	/// <summary>
+	/// Networked array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
+	/// </summary>
 	public Sdf2DArray()
 		: base( 2 )
 	{
 	}
 
+	/// <inheritdoc />
 	protected override Texture CreateTexture()
 	{
 		return new Texture2DBuilder()
@@ -24,6 +31,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 			.Finish();
 	}
 
+	/// <inheritdoc />
 	protected override void UpdateTexture( Texture texture )
 	{
 		texture.Update( Samples );
@@ -37,6 +45,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 		return (minX, minY, maxX, maxY);
 	}
 
+	/// <inheritdoc />
 	public override bool Add<T>( in T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
@@ -74,6 +83,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 		return changed;
 	}
 
+	/// <inheritdoc />
 	public override bool Subtract<T>( in T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
@@ -95,7 +105,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 				var encoded = Encode( sampled );
 
 				var oldValue = Samples[index];
-				var newValue = Math.Max( (byte)(MaxEncoded - encoded), oldValue );
+				var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
 				Samples[index] = newValue;
 

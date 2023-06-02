@@ -5,11 +5,12 @@ using System.Collections.Generic;
 namespace Sandbox.Sdf;
 
 /// <summary>
-/// Main entity for creating a 2D surface that can be added to and subtracted from.
-/// Multiple layers can be added to this entity with different materials.
+/// Main entity for creating a set of 2D surfaces that can be added to and subtracted from.
+/// Each surface is aligned to the same plane, but can have different offsets, depths, and materials.
 /// </summary>
 public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (int X, int Y), Sdf2DArray, ISdf2D>
 {
+	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
 		var bounds = sdf.Bounds;

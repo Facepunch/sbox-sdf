@@ -6,6 +6,16 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
+/// <summary>
+/// Base type for entities representing a set of volumes / layers containing geometry generated from
+/// signed distance fields.
+/// </summary>
+/// <typeparam name="TWorld">Non-abstract world type</typeparam>
+/// <typeparam name="TChunk">Non-abstract chunk type</typeparam>
+/// <typeparam name="TResource">Volume / layer resource</typeparam>
+/// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
+/// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
+/// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
 public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ModelEntity
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
@@ -13,6 +23,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
 {
+	/// <inheritdoc />
 	public override void Spawn()
 	{
 		base.Spawn();
@@ -22,6 +33,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal bool IsDestroying { get; private set; }
 
+	/// <inheritdoc />
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
@@ -58,7 +70,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// Removes the given layer or volume.
 	/// </summary>
-	/// <param name="layer">Layer or volume to clear</param>
+	/// <param name="resource">Layer or volume to clear</param>
 	public void Clear( TResource resource )
 	{
 		AssertCanModify();
@@ -146,7 +158,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public async Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf
 	{
-		var changed = false;
 		var tasks = new List<Task<bool>>();
 
 		foreach ( var material in Layers.Keys )
@@ -248,6 +259,13 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return PhysicsBody.AddMeshShape( vertices, indices );
 	}
 
+	/// <summary>
+	/// Implements getting the indices of chunks within the bounds of the given SDF.
+	/// </summary>
+	/// <typeparam name="T">SDF type.</typeparam>
+	/// <param name="sdf">SDF to check the bounds of.</param>
+	/// <param name="quality">Quality setting that affects chunk size.</param>
+	/// <returns>Indices of possible affected chunks.</returns>
 	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality)
 		where T : TSdf;
 

@@ -19,6 +19,16 @@ internal static class Static
 		.Finish();
 }
 
+/// <summary>
+/// Base class for chunks in a <see cref="SdfWorld{TWorld,TChunk,TResource,TChunkKey,TArray,TSdf}"/>.
+/// Each chunk contains an SDF for a sub-region of one specific volume / layer resource.
+/// </summary>
+/// <typeparam name="TWorld">Non-abstract world type</typeparam>
+/// <typeparam name="TChunk">Non-abstract chunk type</typeparam>
+/// <typeparam name="TResource">Volume / layer resource</typeparam>
+/// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
+/// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
+/// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
 public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Entity
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
@@ -26,24 +36,45 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
 {
-	protected enum MainThreadTask
+	internal enum MainThreadTask
 	{
 		UpdateRenderMeshes,
 		UpdateCollisionMesh,
 		UpdateLayerTexture
 	}
 
+	/// <summary>
+	/// World that owns this chunk.
+	/// </summary>
 	public abstract TWorld World { get; set; }
+
+	/// <summary>
+	/// Volume or layer resource controlling the rendering and collision of this chunk.
+	/// </summary>
 	public abstract TResource Resource { get; set; }
+
+	/// <summary>
+	/// Networked array storing SDF samples for this chunk.
+	/// </summary>
 	protected abstract TArray Data { get; set; }
+
+	/// <summary>
+	/// Position index of this chunk in the world.
+	/// </summary>
 	public abstract TChunkKey Key { get; set; }
 
+	/// <summary>
+	/// If this chunk has collision, the generated physics mesh for this chunk.
+	/// </summary>
 	public PhysicsShape Shape { get; set; }
 
+	/// <summary>
+	/// If this chunk is rendered, the scene object containing the generated mesh.
+	/// </summary>
 	public SceneObject SceneObject { get; private set; }
 
 	private int _lastModificationCount;
-	private readonly List<Mesh> _usedMeshes = new List<Mesh>();
+	private readonly List<Mesh> _usedMeshes = new();
 
 	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
 	private CancellationTokenSource _updateMeshCancellationSource;
@@ -64,11 +95,15 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		OnInit();
 	}
 
+	/// <summary>
+	/// Called after the chunk is added to the <see cref="World"/>.
+	/// </summary>
 	protected virtual void OnInit()
 	{
 
 	}
 
+	/// <inheritdoc />
 	public override void Spawn()
 	{
 		base.Spawn();
@@ -76,6 +111,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		Transmit = TransmitType.Always;
 	}
 
+	/// <inheritdoc />
 	public override void ClientSpawn()
 	{
 		base.ClientSpawn();
@@ -95,6 +131,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		World.AddClientChunk( (TChunk) this );
 	}
 
+	/// <inheritdoc />
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
@@ -109,6 +146,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		SceneObject = null;
 	}
 
+	/// <summary>
+	/// Sets every sample in this chunk's SDF to solid or empty.
+	/// </summary>
+	/// <param name="solid">Solidity to set each sample to.</param>
 	public void Clear( bool solid )
 	{
 		lock ( Data )
@@ -119,6 +160,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( Game.IsServer ) Data.WriteNetworkData();
 	}
 
+	/// <summary>
+	/// Add a world-space shape to this chunk.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to add</param>
+	/// <returns>True if any geometry was modified</returns>
 	public bool Add<T>( in T sdf )
 		where T : TSdf
 	{
@@ -132,9 +179,21 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		return true;
 	}
 
+	/// <summary>
+	/// Implements adding a world-space shape to this chunk.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to add</param>
+	/// <returns>True if any geometry was modified</returns>
 	protected abstract bool OnAdd<T>( in T sdf )
 		where T : TSdf;
 
+	/// <summary>
+	/// Subtract a world-space shape from this chunk.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to subtract</param>
+	/// <returns>True if any geometry was modified</returns>
 	public bool Subtract<T>( in T sdf )
 		where T : TSdf
 	{
@@ -148,18 +207,24 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		return true;
 	}
 
+	/// <summary>
+	/// Implements subtracting a world-space shape from this chunk.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to subtract</param>
+	/// <returns>True if any geometry was modified</returns>
 	protected abstract bool OnSubtract<T>( in T sdf )
 		where T : TSdf;
 
 	[GameEvent.Tick]
-	public void Tick()
+	private void Tick()
 	{
 		UpdateMesh();
 		RunMainThreadTask( MainThreadTask.UpdateCollisionMesh );
 	}
 
 	[GameEvent.PreRender]
-	public void ClientPreRender()
+	private void ClientPreRender()
 	{
 		UpdateMesh();
 		RunMainThreadTask( MainThreadTask.UpdateRenderMeshes );
@@ -210,7 +275,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		} );
 	}
 
-	public void UpdateLayerTexture( TResource resource, TChunk source )
+	internal void UpdateLayerTexture( TResource resource, TChunk source )
 	{
 		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
@@ -221,7 +286,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	public void UpdateLayerTexture( string targetAttribute, TResource resource, TChunk source )
+	internal void UpdateLayerTexture( string targetAttribute, TResource resource, TChunk source )
 	{
 		ThreadSafe.AssertIsMainThread();
 
@@ -234,7 +299,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			}
 
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			if ( source.Resource.Quality.ChunkSize != Resource.Quality.ChunkSize )
+			if ( resource.Quality.ChunkSize != Resource.Quality.ChunkSize )
 			{
 				Log.Warning( $"Layer {Resource.ResourceName} references {resource.ResourceName} " +
 					$"as a texture source, but their chunk sizes don't match" );
@@ -249,19 +314,42 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 
 		var quality = resource.Quality;
-		var arraySize = quality.ChunkResolution + Sdf2DArray.Margin * 2 + 1;
+		var arraySize = quality.ChunkResolution + SdfArray<TSdf>.Margin * 2 + 1;
 
-		var margin = (Sdf2DArray.Margin + 0.5f) / arraySize;
+		var margin = (SdfArray<TSdf>.Margin + 0.5f) / arraySize;
 		var scale = 1f / quality.ChunkSize;
-		var size = 1f - (Sdf2DArray.Margin * 2 + 1f) / arraySize;
+		var size = 1f - (SdfArray<TSdf>.Margin * 2 + 1f) / arraySize;
 
 		var texParams = new Vector4( margin, margin, scale * size, quality.MaxDistance * 2f );
 
 		SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
 	}
 
+	/// <summary>
+	/// Implements updating the render / collision meshes of this chunk.
+	/// </summary>
+	/// <param name="token">Token to cancel outdated mesh updates</param>
+	/// <returns>Task that completes when the meshes have finished updating.</returns>
 	protected abstract Task OnUpdateMeshAsync( CancellationToken token );
 
+	/// <summary>
+	/// Asynchronously updates the collision shape to the defined mesh.
+	/// </summary>
+	/// <param name="vertices">Collision mesh vertices</param>
+	/// <param name="indices">Collision mesh indices</param>
+	protected Task UpdateCollisionMeshAsync( List<Vector3> vertices, List<int> indices )
+	{
+		return RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
+		{
+			UpdateCollisionMesh( vertices, indices );
+		} );
+	}
+
+	/// <summary>
+	/// Updates the collision shape to the defined mesh. Must be called on the main thread.
+	/// </summary>
+	/// <param name="vertices">Collision mesh vertices</param>
+	/// <param name="indices">Collision mesh indices</param>
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices )
 	{
 		ThreadSafe.AssertIsMainThread();
@@ -288,6 +376,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	/// <summary>
+	/// Updates this chunk's model to use the given set of meshes. Must be called on the main thread.
+	/// </summary>
+	/// <param name="meshes">Set of meshes this model should use</param>
 	protected void UpdateRenderMeshes( params Mesh[] meshes )
 	{
 		ThreadSafe.AssertIsMainThread();
@@ -384,7 +476,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	protected Task RunInMainThread( MainThreadTask task, Action action )
+	internal Task RunInMainThread( MainThreadTask task, Action action )
 	{
 		var tcs = new TaskCompletionSource();
 

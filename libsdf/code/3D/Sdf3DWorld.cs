@@ -9,6 +9,7 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
+	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
 		var bounds = sdf.Bounds;

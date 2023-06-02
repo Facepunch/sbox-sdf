@@ -23,6 +23,10 @@ public class TextureReference<T>
 	public T Source { get; set; }
 }
 
+/// <summary>
+/// Base class for SDF volume / layer resources.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public abstract class SdfResource<T> : GameResource
 	where T : SdfResource<T>
 {
@@ -45,6 +49,10 @@ public abstract class SdfResource<T> : GameResource
 	[HideIf( nameof( IsTextureSourceOnly ), true )]
 	public string CollisionTags { get; set; } = "solid";
 
+	/// <summary>
+	/// Array of tags that physics shapes created by this layer or volume should have.
+	/// If empty, no physics shapes will be created.
+	/// </summary>
 	[HideInEditor]
 	[JsonIgnore]
 	public string[] SplitCollisionTags => IsTextureSourceOnly

@@ -100,8 +100,10 @@ public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f 
 	{
 	}
 
+	/// <inheritdoc />
 	public Rect Bounds => new( Min, Max - Min );
 
+	/// <inheritdoc />
 	public float this[Vector2 pos]
 	{
 		get
@@ -122,8 +124,10 @@ public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f 
 /// <param name="Radius">Distance from the center to the edge of the circle</param>
 public record struct CircleSdf( Vector2 Center, float Radius ) : ISdf2D
 {
+	/// <inheritdoc />
 	public Rect Bounds => new( Center - Radius, Radius * 2f );
 
+	/// <inheritdoc />
 	public float this[Vector2 pos] => (pos - Center).Length - Radius;
 }
 
@@ -152,6 +156,7 @@ public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vect
 	{
 	}
 
+	/// <inheritdoc />
 	public Rect Bounds
 	{
 		get
@@ -163,6 +168,7 @@ public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vect
 		}
 	}
 
+	/// <inheritdoc />
 	public float this[Vector2 pos]
 	{
 		get
@@ -258,8 +264,10 @@ public readonly struct TextureSdf : ISdf2D
 		}
 	}
 
+	/// <inheritdoc />
 	public Rect Bounds => new( _worldOffset, _worldSize );
 
+	/// <inheritdoc />
 	public float this[Vector2 pos]
 	{
 		get
@@ -299,11 +307,15 @@ public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bou
 		return new Rect( min.x, min.y, max.x - min.x, max.y - min.y );
 	}
 
+	/// <summary>
+	/// Helper struct returned by <see cref="Sdf2DExtensions.Transform{T}(T,Transform2D)"/>
+	/// </summary>
 	public TransformedSdf2D( T sdf, Transform2D transform )
 		: this( sdf, transform, CalculateBounds( sdf, transform ) )
 	{
 	}
 
+	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
 }
 
@@ -313,8 +325,10 @@ public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bou
 public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
 	where T : ISdf2D
 {
+	/// <inheritdoc />
 	public Rect Bounds => new( Sdf.Bounds.Position + Offset, Sdf.Bounds.Size );
 
+	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos - Offset];
 }
 
@@ -324,7 +338,9 @@ public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
 public record struct ExpandedSdf2D<T>( T Sdf, float Margin ) : ISdf2D
 	where T : ISdf2D
 {
+	/// <inheritdoc />
 	public Rect Bounds => Sdf.Bounds.Grow( Margin );
 
+	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos] - Margin;
 }

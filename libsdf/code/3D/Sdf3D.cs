@@ -100,8 +100,10 @@ namespace Sandbox.Sdf
 
 		}
 
+		/// <inheritdoc />
 		public BBox Bounds => new( Min, Max );
 
+		/// <inheritdoc />
 		public float this[Vector3 pos]
 		{
 			get
@@ -122,8 +124,10 @@ namespace Sandbox.Sdf
 	/// <param name="Radius">Distance from the center to the surface of the sphere</param>
 	public record struct SphereSdf( Vector3 Center, float Radius ) : ISdf3D
 	{
+		/// <inheritdoc />
 		public BBox Bounds => new( Center - Radius, Radius * 2f );
 
+		/// <inheritdoc />
 		public float this[Vector3 pos] => (pos - Center).Length - Radius;
 	}
 
@@ -153,6 +157,7 @@ namespace Sandbox.Sdf
 
 		}
 
+		/// <inheritdoc />
 		public BBox Bounds
 		{
 			get
@@ -164,6 +169,7 @@ namespace Sandbox.Sdf
 			}
 		}
 
+		/// <inheritdoc />
 		public float this[Vector3 pos]
 		{
 			get
@@ -182,12 +188,16 @@ namespace Sandbox.Sdf
 	public record struct TransformedSdf3D<T>( T Sdf, Transform Transform, BBox Bounds, float InverseScale ) : ISdf3D
 		where T : ISdf3D
 	{
+		/// <summary>
+		/// Helper struct returned by <see cref="Sdf3DExtensions.Transform{T}(T,Transform)"/>
+		/// </summary>
 		public TransformedSdf3D( T sdf, Transform transform )
 			: this( sdf, transform, sdf.Bounds.Transform( transform ), 1f / transform.Scale )
 		{
 
 		}
 
+		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[Transform.PointToLocal( pos )] * InverseScale;
 	}
 
@@ -197,8 +207,10 @@ namespace Sandbox.Sdf
 	public record struct TranslatedSdf3D<T>( T Sdf, Vector3 Offset ) : ISdf3D
 		where T : ISdf3D
 	{
+		/// <inheritdoc />
 		public BBox Bounds => Sdf.Bounds.Translate( Offset );
 
+		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos - Offset];
 	}
 
@@ -208,8 +220,10 @@ namespace Sandbox.Sdf
 	public record struct ExpandedSdf3D<T>( T Sdf, float Margin ) : ISdf3D
 		where T : ISdf3D
 	{
+		/// <inheritdoc />
 		public BBox Bounds => new( Sdf.Bounds.Mins - Margin, Sdf.Bounds.Maxs + Margin );
 
+		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] - Margin;
 	}
 }

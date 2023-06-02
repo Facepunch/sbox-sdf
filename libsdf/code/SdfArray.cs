@@ -2,49 +2,105 @@
 
 namespace Sandbox.Sdf;
 
+/// <summary>
+/// Base class for networked arrays containing raw SDF samples as bytes.
+/// </summary>
+/// <typeparam name="TSdf">Interface for SDFs that can modify the array</typeparam>
 public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializer
 {
+	/// <summary>
+	/// How far outside the chunk boundary should samples be stored.
+	/// This is used to ensure generated normals are smooth when on a chunk boundary.
+	/// </summary>
 #pragma warning disable SB3000
-	protected const byte MaxEncoded = 255;
 	public const int Margin = 1;
 #pragma warning restore SB3000
 
+	/// <summary>
+	/// Spacial dimensions of the array (2D / 3D).
+	/// </summary>
 	public int Dimensions { get; }
 
+	/// <summary>
+	/// Quality settings, affecting the resolution of the array.
+	/// </summary>
 	public WorldQuality Quality { get; private set; }
+
+	/// <summary>
+	/// Actual raw samples, encoded as bytes. A value of 0 is -<see cref="WorldQuality.MaxDistance"/>,
+	/// 255 is +<see cref="WorldQuality.MaxDistance"/>, and 127.5 is on the surface.
+	/// </summary>
 	public byte[] Samples { get; private set; }
+
+	/// <summary>
+	/// Counter incremented whenever this array is modified, used to detect changes.
+	/// </summary>
 	public int ModificationCount { get; set; }
+
+	/// <summary>
+	/// Number of samples stored in one dimension of this array.
+	/// </summary>
 	public int ArraySize { get; private set; }
+
+	/// <summary>
+	/// Total number of samples stored in the entire array. Equal to <see cref="ArraySize"/> to the
+	/// power of <see cref="Dimensions"/>.
+	/// </summary>
 	public int SampleCount { get; private set; }
 
+	/// <summary>
+	/// Distance between samples in one axis.
+	/// </summary>
 	protected float UnitSize { get; private set; }
+
+	/// <summary>
+	/// Inverse of <see cref="UnitSize"/>.
+	/// </summary>
 	protected float InvUnitSize { get; private set; }
+
+	/// <summary>
+	/// Inverse of <see cref="WorldQuality.MaxDistance"/>.
+	/// </summary>
 	protected float InvMaxDistance { get; private set; }
 
 	private bool _textureInvalid = true;
 	private Texture _texture;
 
+	/// <summary>
+	/// Creates an array with a given number of spacial dimensions.
+	/// </summary>
+	/// <param name="dimensions">Spacial dimensions of the array (2D / 3D).</param>
 	protected SdfArray( int dimensions )
 	{
 		Dimensions = dimensions;
 	}
-	
+
+	/// <summary>
+	/// Gets the min and max index for a local-space range of samples, clamped to the array bounds.
+	/// </summary>
+	/// <param name="localMin">Minimum position in local-space along the axis</param>
+	/// <param name="localMax">Maximum position in local-space along the axis</param>
+	/// <returns>Minimum (inclusive) and maximum (exclusive) indices</returns>
 	protected (int Min, int Max) GetSampleRange( float localMin, float localMax )
 	{
 		return (Math.Max( 0, (int) MathF.Ceiling( (localMin - Quality.MaxDistance) * InvUnitSize ) + Margin ),
 			Math.Min( ArraySize, (int) MathF.Ceiling( (localMax + Quality.MaxDistance) * InvUnitSize ) + Margin ));
 	}
 
+	/// <summary>
+	/// Encodes a distance value to a byte.
+	/// </summary>
+	/// <param name="distance">Distance to encode.</param>
+	/// <returns>-<see cref="WorldQuality.MaxDistance"/> encodes to 0,
+	/// +<see cref="WorldQuality.MaxDistance"/> encodes to 255, and therefore 0 becomes ~128.</returns>
 	protected byte Encode( float distance )
 	{
-		return (byte) ((int) ((distance * InvMaxDistance * 0.5f + 0.5f) * MaxEncoded)).Clamp( 0, 255 );
+		return (byte) ((int) ((distance * InvMaxDistance * 0.5f + 0.5f) * byte.MaxValue)).Clamp( 0, 255 );
 	}
 
-	protected float Decode( byte encoded )
-	{
-		return (encoded * (1f / MaxEncoded) - 0.5f) * Quality.MaxDistance * 2f;
-	}
-
+	/// <summary>
+	/// Lazily creates / updates a texture containing the encoded samples for use in shaders.
+	/// </summary>
 	public Texture Texture
 	{
 		get
@@ -64,13 +120,32 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 		}
 	}
 
+	/// <summary>
+	/// Implements creating a texture containing the encoded samples.
+	/// </summary>
+	/// <returns>A 2D / 3D texture containing the samples</returns>
 	protected abstract Texture CreateTexture();
 
+	/// <summary>
+	/// Implements updating a texture containing the encoded samples.
+	/// </summary>
 	protected abstract void UpdateTexture( Texture texture );
 
+	/// <summary>
+	/// Implements adding a local-space shape to the samples in this array.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to add</param>
+	/// <returns>True if any geometry was modified</returns>
 	public abstract bool Add<T>( in T sdf )
 		where T : TSdf;
 
+	/// <summary>
+	/// Implements subtracting a local-space shape from the samples in this array.
+	/// </summary>
+	/// <typeparam name="T">SDF type</typeparam>
+	/// <param name="sdf">Shape to subtract</param>
+	/// <returns>True if any geometry was modified</returns>
 	public abstract bool Subtract<T>( in T sdf )
 		where T : TSdf;
 
@@ -100,18 +175,27 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 		Clear( false );
 	}
 
+	/// <summary>
+	/// Sets every sample to solid or empty.
+	/// </summary>
+	/// <param name="solid">Solidity to set each sample to.</param>
 	public void Clear( bool solid )
 	{
 		Array.Fill( Samples, solid ? (byte) 0 : (byte) 255 );
 		++ModificationCount;
 	}
 
+	/// <summary>
+	/// Invalidates the texture, and collision / render meshes for the chunk this array represents.
+	/// This doesn't trigger a net write.
+	/// </summary>
 	protected void MarkChanged()
 	{
 		++ModificationCount;
 		_textureInvalid = true;
 	}
 
+	/// <inheritdoc />
 	public void Read( ref NetRead net )
 	{
 		Init( WorldQuality.Read( ref net ) );
@@ -121,6 +205,7 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 		MarkChanged();
 	}
 
+	/// <inheritdoc />
 	public void Write( NetWrite net )
 	{
 		Quality.Write( net );

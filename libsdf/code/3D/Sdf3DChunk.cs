@@ -3,6 +3,10 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
+/// <summary>
+/// Represents chunks in a <see cref="Sdf3DWorld"/>.
+/// Each chunk contains an SDF for a sub-region of one specific volume.
+/// </summary>
 public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
 	[Net] private Sdf3DWorld NetWorld { get; set; }
@@ -12,31 +16,39 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	[Net] private int NetKeyY { get; set; }
 	[Net] private int NetKeyZ { get; set; }
 
+	/// <inheritdoc />
 	public override Sdf3DWorld World
 	{
 		get => NetWorld;
 		set => NetWorld = value;
 	}
 
+	/// <inheritdoc />
 	public override Sdf3DVolume Resource
 	{
 		get => NetResource;
 		set => NetResource = value;
 	}
+	/// <inheritdoc />
 	protected override Sdf3DArray Data
 	{
 		get => NetData;
 		set => NetData = value;
 	}
 
+	/// <inheritdoc />
 	public override (int X, int Y, int Z) Key
 	{
 		get => (NetKeyX, NetKeyY, NetKeyZ);
 		set => (NetKeyX, NetKeyY, NetKeyZ) = value;
 	}
 
+	/// <summary>
+	/// Render mesh used by this chunk.
+	/// </summary>
 	public Mesh Mesh { get; set; }
 
+	/// <inheritdoc />
 	protected override void OnInit()
 	{
 		base.OnInit();
@@ -52,16 +64,19 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		return sdf.Translate( new Vector3( Key.X, Key.Y, Key.Z ) * -Resource.Quality.ChunkSize );
 	}
 
+	/// <inheritdoc />
 	protected override bool OnAdd<T>( in T sdf )
 	{
 		return Data.Add( ToLocal( sdf ) );
 	}
 
+	/// <inheritdoc />
 	protected override bool OnSubtract<T>( in T sdf )
 	{
 		return Data.Subtract( ToLocal( sdf ) );
 	}
 
+	/// <inheritdoc />
 	protected override async Task OnUpdateMeshAsync( CancellationToken token )
 	{
 		var tags = Resource.SplitCollisionTags;
@@ -112,12 +127,9 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 						vertices[i] += offset;
 					}
 
-					await RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
-					{
-						token.ThrowIfCancellationRequested();
+					token.ThrowIfCancellationRequested();
 
-						UpdateCollisionMesh( writer.VertexPositions, writer.Indices );
-					} );
+					await UpdateCollisionMeshAsync( writer.VertexPositions, writer.Indices );
 				} );
 			}
 

@@ -1,9 +1,12 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
+/// <summary>
+/// Represents chunks in a <see cref="Sdf2DWorld"/>.
+/// Each chunk contains an SDF for a sub-region of one specific layer.
+/// </summary>
 public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (int X, int Y), Sdf2DArray, ISdf2D>
 {
 	[Net] private Sdf2DWorld NetWorld { get; set; }
@@ -12,33 +15,50 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	[Net] private int NetKeyX { get; set; }
 	[Net] private int NetKeyY { get; set; }
 
+	/// <inheritdoc />
 	public override Sdf2DWorld World
 	{
 		get => NetWorld;
 		set => NetWorld = value;
 	}
 
+	/// <inheritdoc />
 	public override Sdf2DLayer Resource
 	{
 		get => NetResource;
 		set => NetResource = value;
 	}
+
+	/// <inheritdoc />
 	protected override Sdf2DArray Data
 	{
 		get => NetData;
 		set => NetData = value;
 	}
 
+	/// <inheritdoc />
 	public override (int X, int Y) Key
 	{
 		get => (NetKeyX, NetKeyY);
 		set => (NetKeyX, NetKeyY) = value;
 	}
 
+	/// <summary>
+	/// Render mesh for the front face of this chunk.
+	/// </summary>
 	public Mesh Front { get; set; }
+
+	/// <summary>
+	/// Render mesh for the back face of this chunk.
+	/// </summary>
 	public Mesh Back { get; set; }
+
+	/// <summary>
+	/// Render mesh for the cut faces of this chunk.
+	/// </summary>
 	public Mesh Cut { get; set; }
 
+	/// <inheritdoc />
 	protected override void OnInit()
 	{
 		base.OnInit();
@@ -54,16 +74,19 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		return sdf.Translate( new Vector2( Key.X, Key.Y ) * -Resource.Quality.ChunkSize );
 	}
 
+	/// <inheritdoc />
 	protected override bool OnAdd<T>( in T sdf )
 	{
 		return Data.Add( ToLocal( sdf ) );
 	}
 
+	/// <inheritdoc />
 	protected override bool OnSubtract<T>( in T sdf )
 	{
 		return Data.Subtract( ToLocal( sdf ) );
 	}
 
+	/// <inheritdoc />
 	protected override async Task OnUpdateMeshAsync( CancellationToken token )
 	{
 		var tags = Resource.SplitCollisionTags;
@@ -116,10 +139,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 						vertices[i] += offset;
 					}
 
-					await RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
-					{
-						UpdateCollisionMesh( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
-					} );
+					await UpdateCollisionMeshAsync( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
 				} );
 			}
 

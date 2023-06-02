@@ -57,13 +57,20 @@ internal record struct Sdf3DArrayData( byte[] Samples, int Margin, int ArraySize
 	}
 }
 
+/// <summary>
+/// Networked array containing raw SDF samples for a <see cref="Sdf3DChunk"/>.
+/// </summary>
 public partial class Sdf3DArray : SdfArray<ISdf3D>
 {
+	/// <summary>
+	/// Networked array containing raw SDF samples for a <see cref="Sdf3DChunk"/>.
+	/// </summary>
 	public Sdf3DArray()
 		: base( 3 )
 	{
 	}
 
+	/// <inheritdoc />
 	protected override Texture CreateTexture()
 	{
 		return new Texture3DBuilder()
@@ -74,6 +81,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 			.Finish();
 	}
 
+	/// <inheritdoc />
 	protected override void UpdateTexture( Texture texture )
 	{
 		texture.Update3D( Samples );
@@ -88,6 +96,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return (minX, minY, minZ, maxX, maxY, maxZ);
 	}
 
+	/// <inheritdoc />
 	public override bool Add<T>( in T sdf )
 	{
 		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
@@ -130,6 +139,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return changed;
 	}
 
+	/// <inheritdoc />
 	public override bool Subtract<T>( in T sdf )
 	{
 		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
@@ -155,7 +165,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 					var encoded = Encode( sampled );
 
 					var oldValue = Samples[index];
-					var newValue = Math.Max( (byte)(MaxEncoded - encoded), oldValue );
+					var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
 					Samples[index] = newValue;
 
