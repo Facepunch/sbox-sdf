@@ -310,7 +310,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 		else
 		{
-			SceneObject.Attributes.Set( targetAttribute, Static.White3D );
+			SceneObject.Attributes.Set( targetAttribute, Data.Dimensions == 3 ? Static.White3D : Texture.White );
 		}
 
 		var quality = resource.Quality;
