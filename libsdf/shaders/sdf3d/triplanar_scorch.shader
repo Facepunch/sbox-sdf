@@ -96,6 +96,6 @@ PS
 		m.Metalness = lerp( m.Metalness, s.Metalness, scorch );
 		m.AmbientOcclusion = lerp( m.AmbientOcclusion, s.AmbientOcclusion, scorch );
 
-		return FinalizePixelMaterial( i, m );
+		return ShadingModelStandard::Shade( i, m );
 	}
 }

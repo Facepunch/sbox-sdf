@@ -55,7 +55,7 @@ Material ToMaterialTriplanar( in PixelInput i, in Texture2D tColor, in Texture2D
 	float4 rmaZ = Tex2DS( tRma, TextureFiltering, uvZ );
 	float4 rma = rmaX * triblend.x + rmaY * triblend.y + rmaZ * triblend.z;
 
-	Material m = ToMaterial( i, col, float4( 0.5, 0.5, 1.0, 1.0 ), rma, g_flTintColor );
+	Material m = Material::From( i, col, float4( 0.5, 0.5, 1.0, 1.0 ), rma, g_flTintColor );
 
 	m.Normal = norm;
 

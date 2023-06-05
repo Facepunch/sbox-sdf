@@ -80,7 +80,7 @@ PS
 	//
 	float4 MainPs( PixelInput i ) : SV_Target0
 	{
-		Material m = GatherMaterial( i );
+		Material m = Material::From( i );
 		
 		float signedDist = SdfLayerTex( ScorchLayer, i.vPositionOs.xy ).r;
 		float3 scorchColor = Tex2D( g_tScorchColor, i.vTextureCoords.xy ).rgb;
@@ -97,7 +97,6 @@ PS
 		m.Metalness = lerp( m.Metalness, scorchRma.y, scorch );
 		m.AmbientOcclusion = lerp( m.AmbientOcclusion, scorchRma.z, scorch );
 
-		ShadingModelValveStandard sm;
-		return FinalizePixelMaterial( i, m, sm );
+		return ShadingModelStandard::Shade( i, m );
 	}
 }

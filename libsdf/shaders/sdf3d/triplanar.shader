@@ -65,6 +65,6 @@ PS
 	{
 		Material m = ToMaterialTriplanar( i, g_tColor, g_tNormal, g_tRma );
 
-		return FinalizePixelMaterial( i, m );
+		return ShadingModelStandard::Shade( i, m );
 	}
 }
