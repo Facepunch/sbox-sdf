@@ -16,6 +16,8 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	[Net] private int NetKeyY { get; set; }
 	[Net] private int NetKeyZ { get; set; }
 
+	protected override float MaxNetworkWriteRate => 4f;
+
 	/// <inheritdoc />
 	public override Sdf3DWorld World
 	{

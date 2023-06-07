@@ -36,8 +36,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
 {
-	public const float MinNetworkPeriodSeconds = 0.5f;
-
 	internal enum MainThreadTask
 	{
 		UpdateRenderMeshes,
@@ -74,6 +72,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// If this chunk is rendered, the scene object containing the generated mesh.
 	/// </summary>
 	public SceneObject SceneObject { get; private set; }
+
+	protected virtual float MaxNetworkWriteRate => 10f;
 
 	private int _lastModificationCount;
 	private readonly List<Mesh> _usedMeshes = new();
@@ -161,7 +161,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	[GameEvent.Tick.Server]
 	private void ServerTick()
 	{
-		if ( _invalid && _lastNetworked > MinNetworkPeriodSeconds )
+		if ( _invalid && _lastNetworked * MaxNetworkWriteRate >= 1f )
 		{
 			_invalid = false;
 			_lastNetworked = 0f;
