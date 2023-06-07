@@ -36,6 +36,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
 {
+	public const float MinNetworkPeriodSeconds = 0.5f;
+
 	internal enum MainThreadTask
 	{
 		UpdateRenderMeshes,
@@ -78,6 +80,9 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
 	private CancellationTokenSource _updateMeshCancellationSource;
+
+	private TimeSince _lastNetworked;
+	private bool _invalid;
 
 	private Dictionary<MainThreadTask, (Action Action, TaskCompletionSource Tcs)> MainThreadTasks { get; } = new();
 
@@ -146,6 +151,25 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		SceneObject = null;
 	}
 
+	private void InvalidateArray()
+	{
+		if ( !Game.IsServer ) return;
+
+		_invalid = true;
+	}
+
+	[GameEvent.Tick.Server]
+	private void ServerTick()
+	{
+		if ( _invalid && _lastNetworked > MinNetworkPeriodSeconds )
+		{
+			_invalid = false;
+			_lastNetworked = 0f;
+
+			Data.WriteNetworkData();
+		}
+	}
+
 	/// <summary>
 	/// Sets every sample in this chunk's SDF to solid or empty.
 	/// </summary>
@@ -157,7 +181,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			Data.Clear( solid );
 		}
 
-		if ( Game.IsServer ) Data.WriteNetworkData();
+		InvalidateArray();
 	}
 
 	/// <summary>
@@ -174,7 +198,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			if ( !OnAdd( in sdf ) ) return false;
 		}
 
-		if ( Game.IsServer ) Data.WriteNetworkData();
+		InvalidateArray();
 
 		return true;
 	}
@@ -202,7 +226,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			if ( !OnSubtract( in sdf ) ) return false;
 		}
 
-		if ( Game.IsServer ) Data.WriteNetworkData();
+		InvalidateArray();
 
 		return true;
 	}
@@ -428,13 +452,17 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			.Create();
 
 		if ( SceneObject == null )
+		{
 			SceneObject = new SceneObject( Scene, model )
 			{
 				Transform = Transform,
 				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
 			};
+		}
 		else
+		{
 			SceneObject.Model = model;
+		}
 	}
 
 	private void RunMainThreadTask( MainThreadTask task )
