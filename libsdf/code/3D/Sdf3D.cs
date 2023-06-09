@@ -124,6 +124,13 @@ namespace Sandbox.Sdf
 					? new BBox( Vector3.Max( bounds1.Mins, bounds2.Mins ), Vector3.Min( bounds1.Maxs, bounds2.Maxs ) )
 					: sdf1.Bounds ?? sdf2.Bounds );
 		}
+
+		public static BiasedSdf<T, TBias> Bias<T, TBias>( this T sdf, TBias biasSdf, float biasScale = 1f )
+			where T : ISdf3D
+			where TBias : ISdf3D
+		{
+			return new BiasedSdf<T, TBias>( sdf, biasSdf, biasScale );
+		}
 	}
 
 	/// <summary>
@@ -348,6 +355,39 @@ namespace Sandbox.Sdf
 				for ( var i = 0; i < sampleCount; ++i )
 				{
 					output[i] = Math.Max( output[i], temp[i] );
+				}
+			}
+			finally
+			{
+				ArrayPool<float>.Shared.Return( temp );
+			}
+		}
+	}
+
+	public record struct BiasedSdf<T, TBias>( T Sdf, TBias BiasSdf, float BiasScale ) : ISdf3D
+		where T : ISdf3D
+		where TBias : ISdf3D
+	{
+		/// <inheritdoc />
+		public BBox? Bounds => Sdf.Bounds;
+
+		/// <inheritdoc />
+		public float this[Vector3 pos] => Sdf[pos] + BiasSdf[pos] * BiasScale;
+
+		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			Sdf.SampleRange( bounds, output, outputSize );
+
+			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
+			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
+
+			try
+			{
+				BiasSdf.SampleRange( bounds, temp, outputSize );
+
+				for ( var i = 0; i < sampleCount; ++i )
+				{
+					output[i] += temp[i] * BiasScale;
 				}
 			}
 			finally

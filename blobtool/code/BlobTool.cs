@@ -114,9 +114,9 @@ namespace Sandbox.Sdf
 			}
 
 			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, EditRadius );
-			var noise = new CellularNoiseSdf3D( 0x123abc, new Vector3( 128f, 128f, 128f ), 96f );
+			var noise = new CellularNoiseSdf3D( 0x123abc, new Vector3( 128f, 128f, 128f ), 64f );
 
-			var sdf = capsule.Intersection( noise );
+			var sdf = capsule.Bias( noise, -0.25f );
 
 			if ( add )
 			{
