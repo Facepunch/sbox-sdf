@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.Sdf.Noise;
 
 namespace Sandbox.Sdf
 {
@@ -113,18 +114,21 @@ namespace Sandbox.Sdf
 			}
 
 			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, EditRadius );
+			var noise = new CellularNoiseSdf3D( 0x123abc, new Vector3( 128f, 128f, 128f ), 96f );
+
+			var sdf = capsule.Intersection( noise );
 
 			if ( add )
 			{
-				_ = SdfWorld.AddAsync( capsule, DefaultVolume );
-				_ = SdfWorld.AddAsync( capsule, CollisionVolume );
-				_ = SdfWorld.SubtractAsync( capsule.Expand( 16f ), ScorchVolume );
+				_ = SdfWorld.AddAsync( sdf, DefaultVolume );
+				_ = SdfWorld.AddAsync( sdf, CollisionVolume );
+				_ = SdfWorld.SubtractAsync( sdf.Expand( 16f ), ScorchVolume );
 			}
 			else
 			{
-				_ = SdfWorld.SubtractAsync( capsule, DefaultVolume );
-				_ = SdfWorld.SubtractAsync( capsule, CollisionVolume );
-				_ = SdfWorld.AddAsync( capsule.Expand( 16f ), ScorchVolume );
+				_ = SdfWorld.SubtractAsync( sdf, DefaultVolume );
+				_ = SdfWorld.SubtractAsync( sdf, CollisionVolume );
+				_ = SdfWorld.AddAsync( sdf.Expand( 16f ), ScorchVolume );
 			}
 
 			LastEditPos = editPos;

@@ -42,6 +42,23 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
-		return GetChunks( sdf.Bounds, quality );
+		if ( sdf.Bounds is { } bounds )
+		{
+			return GetChunks( bounds, quality );
+		}
+
+		throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
+	}
+
+	public TextureSdf3D CreateTextureSdf( Sdf3DVolume volume, BBox bounds )
+	{
+		var ((minX, minY, minZ), (maxX, maxY, maxZ)) = GetChunkRange( bounds, volume.Quality );
+
+		var chunkResolution = volume.Quality.ChunkResolution;
+		var (sizeX, sizeY, sizeZ) = (maxX + 1 - minX, maxY + 1 - minY, maxZ + 1 - minZ);
+
+		var arraySize = chunkResolution * chunkResolution * chunkResolution * sizeX * sizeY * sizeZ;
+
+		throw new NotImplementedException();
 	}
 }

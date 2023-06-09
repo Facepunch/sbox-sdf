@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Buffers;
+using Sandbox.Diagnostics;
+using Sandbox.UI;
 
 namespace Sandbox.Sdf
 {
@@ -10,7 +13,7 @@ namespace Sandbox.Sdf
 		/// <summary>
 		/// Axis aligned bounds that fully encloses the surface of this shape.
 		/// </summary>
-		BBox Bounds { get; }
+		BBox? Bounds { get; }
 
 		/// <summary>
 		/// Find the signed distance of a point from the surface of this shape.
@@ -20,16 +23,22 @@ namespace Sandbox.Sdf
 		/// <returns>A signed distance from the surface of this shape</returns>
 		float this[Vector3 pos] { get; }
 
+		/// <summary>
+		/// Sample an axis-aligned box shaped region, writing to an <paramref name="output"/> array.
+		/// </summary>
+		/// <param name="bounds">Region to sample.</param>
+		/// <param name="output">Array to write signed distance values to.</param>
+		/// <param name="outputSize">Dimensions of the <paramref name="output"/> array.</param>
 		public void SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			var minX = bounds.Mins.x;
-			var incX = bounds.Size.x / (outputSize.X - 1);
+			var incX = bounds.Size.x / outputSize.X;
 
 			var minY = bounds.Mins.y;
-			var incY = bounds.Size.y / (outputSize.Y - 1);
+			var incY = bounds.Size.y / outputSize.Y;
 
 			var minZ = bounds.Mins.z;
-			var incZ = bounds.Size.z / (outputSize.Z - 1);
+			var incZ = bounds.Size.z / outputSize.Z;
 
 			var sampleZ = minZ;
 			for ( var z = 0; z < outputSize.Z; ++z, sampleZ += incZ )
@@ -105,6 +114,16 @@ namespace Sandbox.Sdf
 		{
 			return new ExpandedSdf3D<T>( sdf, margin );
 		}
+
+		public static IntersectedSdf<T1, T2> Intersection<T1, T2>( this T1 sdf1, T2 sdf2 )
+			where T1 : ISdf3D
+			where T2 : ISdf3D
+		{
+			return new IntersectedSdf<T1, T2>( sdf1, sdf2,
+				sdf1.Bounds is { } bounds1 && sdf2.Bounds is { } bounds2
+					? new BBox( Vector3.Max( bounds1.Mins, bounds2.Mins ), Vector3.Min( bounds1.Maxs, bounds2.Maxs ) )
+					: sdf1.Bounds ?? sdf2.Bounds );
+		}
 	}
 
 	/// <summary>
@@ -127,7 +146,7 @@ namespace Sandbox.Sdf
 		}
 
 		/// <inheritdoc />
-		public BBox Bounds => new( Min, Max );
+		public BBox? Bounds => new( Min, Max );
 
 		/// <inheritdoc />
 		public float this[Vector3 pos]
@@ -151,7 +170,7 @@ namespace Sandbox.Sdf
 	public record struct SphereSdf( Vector3 Center, float Radius ) : ISdf3D
 	{
 		/// <inheritdoc />
-		public BBox Bounds => new( Center - Radius, Radius * 2f );
+		public BBox? Bounds => new( Center - Radius, Radius * 2f );
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => (pos - Center).Length - Radius;
@@ -184,7 +203,7 @@ namespace Sandbox.Sdf
 		}
 
 		/// <inheritdoc />
-		public BBox Bounds
+		public BBox? Bounds
 		{
 			get
 			{
@@ -208,17 +227,55 @@ namespace Sandbox.Sdf
 		}
 	}
 
+	public readonly struct TextureSdf3D : ISdf3D
+	{
+		private readonly Vector3 _worldSize;
+		private readonly Vector3 _worldOffset;
+		private readonly Vector3 _invSampleSize;
+		private readonly (int X, int Y, int Z) _imageSize;
+		private readonly float[] _samples;
+
+		public TextureSdf3D( float[] samples, (int X, int Y, int Z) textureSize, Vector3 worldSize )
+		{
+			_samples = samples;
+			_imageSize = textureSize;
+			_worldSize = worldSize;
+			_worldOffset = worldSize * -0.5f;
+			_invSampleSize = new Vector3( textureSize.X / _worldSize.x, textureSize.Y / _worldSize.y, textureSize.Z / _worldSize.z );
+		}
+
+		/// <inheritdoc />
+		public BBox? Bounds => new( _worldOffset, _worldSize );
+
+		/// <inheritdoc />
+		public float this[ Vector3 pos]
+		{
+			get
+			{
+				var localPos = (pos - _worldOffset) * _invSampleSize;
+
+				var x = (int) MathF.Round( localPos.x );
+				var y = (int) MathF.Round( localPos.y );
+				var z = (int) MathF.Round( localPos.z );
+
+				if ( x < 0 || y < 0 || z < 0 || x >= _imageSize.X || y >= _imageSize.Y || z >= _imageSize.Z ) return float.PositiveInfinity;
+
+				return _samples[x + (y + z * _imageSize.Y) * _imageSize.X];
+			}
+		}
+	}
+
 	/// <summary>
 	/// Helper struct returned by <see cref="Sdf3DExtensions.Transform{T}(T,Transform)"/>
 	/// </summary>
-	public record struct TransformedSdf3D<T>( T Sdf, Transform Transform, BBox Bounds, float InverseScale ) : ISdf3D
+	public record struct TransformedSdf3D<T>( T Sdf, Transform Transform, BBox? Bounds, float InverseScale ) : ISdf3D
 		where T : ISdf3D
 	{
 		/// <summary>
 		/// Helper struct returned by <see cref="Sdf3DExtensions.Transform{T}(T,Transform)"/>
 		/// </summary>
 		public TransformedSdf3D( T sdf, Transform transform )
-			: this( sdf, transform, sdf.Bounds.Transform( transform ), 1f / transform.Scale )
+			: this( sdf, transform, sdf.Bounds?.Transform( transform ), 1f / transform.Scale )
 		{
 
 		}
@@ -234,10 +291,15 @@ namespace Sandbox.Sdf
 		where T : ISdf3D
 	{
 		/// <inheritdoc />
-		public BBox Bounds => Sdf.Bounds.Translate( Offset );
+		public BBox? Bounds => Sdf.Bounds?.Translate( Offset );
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos - Offset];
+
+		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			Sdf.SampleRange( bounds + -Offset, output, outputSize );
+		}
 	}
 
 	/// <summary>
@@ -247,9 +309,51 @@ namespace Sandbox.Sdf
 		where T : ISdf3D
 	{
 		/// <inheritdoc />
-		public BBox Bounds => new( Sdf.Bounds.Mins - Margin, Sdf.Bounds.Maxs + Margin );
+		public BBox? Bounds => Sdf.Bounds is { } bounds ? new( bounds.Mins - Margin, bounds.Maxs + Margin ) : null;
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] - Margin;
+
+		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			Sdf.SampleRange( bounds, output, outputSize );
+
+			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
+
+			for ( var i = 0; i < sampleCount; ++i )
+			{
+				output[i] -= Margin;
+			}
+		}
+	}
+
+	public record struct IntersectedSdf<T1, T2>( T1 Sdf1, T2 Sdf2, BBox? Bounds ) : ISdf3D
+		where T1 : ISdf3D
+		where T2 : ISdf3D
+	{
+		/// <inheritdoc />
+		public float this[ Vector3 pos ] => Math.Max( Sdf1[pos], Sdf2[pos] );
+
+		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			Sdf1.SampleRange( bounds, output, outputSize );
+
+			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
+			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
+
+			try
+			{
+				Sdf2.SampleRange( bounds, temp, outputSize );
+
+				for ( var i = 0; i < sampleCount; ++i )
+				{
+					output[i] = Math.Max( output[i], temp[i] );
+				}
+			}
+			finally
+			{
+				ArrayPool<float>.Shared.Return( temp );
+			}
+		}
 	}
 }

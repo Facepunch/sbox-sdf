@@ -88,11 +88,18 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		texture.Update3D( Samples );
 	}
 
-	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, BBox Bounds) GetSampleRange( BBox bounds )
+	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, BBox Bounds) GetSampleRange( BBox? bounds )
 	{
-		var (minX, maxX, minLocalX, maxLocalX) = GetSampleRange( bounds.Mins.x, bounds.Maxs.x );
-		var (minY, maxY, minLocalY, maxLocalY) = GetSampleRange( bounds.Mins.y, bounds.Maxs.y );
-		var (minZ, maxZ, minLocalZ, maxLocalZ) = GetSampleRange( bounds.Mins.z, bounds.Maxs.z );
+		if ( bounds is not {} b )
+		{
+			return ((0, 0, 0), (ArraySize, ArraySize, ArraySize), new BBox(
+				-Margin * UnitSize,
+				(ArraySize - Margin) * UnitSize ));
+		}
+
+		var (minX, maxX, minLocalX, maxLocalX) = GetSampleRange( b.Mins.x, b.Maxs.x );
+		var (minY, maxY, minLocalY, maxLocalY) = GetSampleRange( b.Mins.y, b.Maxs.y );
+		var (minZ, maxZ, minLocalZ, maxLocalZ) = GetSampleRange( b.Mins.z, b.Maxs.z );
 
 		return ((minX, minY, minZ), (maxX, maxY, maxZ), new BBox(
 			new Vector3( minLocalX, minLocalY, minLocalZ ),
@@ -103,7 +110,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	public override bool Add<T>( in T sdf )
 	{
 		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
-		var size = (X: max.X - min.X + 1, Y: max.Y - min.Y + 1, Z: max.Z - min.Z + 1 );
+		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
 		var changed = false;
@@ -156,7 +163,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	public override bool Subtract<T>( in T sdf )
 	{
 		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
-		var size = (X: max.X - min.X + 1, Y: max.Y - min.Y + 1, Z: max.Z - min.Z + 1);
+		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
 		var changed = false;
