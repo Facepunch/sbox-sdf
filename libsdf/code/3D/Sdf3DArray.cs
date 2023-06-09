@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -87,48 +88,60 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		texture.Update3D( Samples );
 	}
 
-	private (int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ) GetSampleRange( BBox bounds )
+	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, BBox Bounds) GetSampleRange( BBox bounds )
 	{
-		var (minX, maxX) = GetSampleRange( bounds.Mins.x, bounds.Maxs.x );
-		var (minY, maxY) = GetSampleRange( bounds.Mins.y, bounds.Maxs.y );
-		var (minZ, maxZ) = GetSampleRange( bounds.Mins.z, bounds.Maxs.z );
+		var (minX, maxX, minLocalX, maxLocalX) = GetSampleRange( bounds.Mins.x, bounds.Maxs.x );
+		var (minY, maxY, minLocalY, maxLocalY) = GetSampleRange( bounds.Mins.y, bounds.Maxs.y );
+		var (minZ, maxZ, minLocalZ, maxLocalZ) = GetSampleRange( bounds.Mins.z, bounds.Maxs.z );
 
-		return (minX, minY, minZ, maxX, maxY, maxZ);
+		return ((minX, minY, minZ), (maxX, maxY, maxZ), new BBox(
+			new Vector3( minLocalX, minLocalY, minLocalZ ),
+			new Vector3( maxLocalX, maxLocalY, maxLocalZ ) ));
 	}
 
 	/// <inheritdoc />
 	public override bool Add<T>( in T sdf )
 	{
-		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
+		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
+		var size = (X: max.X - min.X + 1, Y: max.Y - min.Y + 1, Z: max.Z - min.Z + 1 );
 		var maxDist = Quality.MaxDistance;
 
 		var changed = false;
 
-		for ( var z = minZ; z < maxZ; ++z )
+		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
+
+		try
 		{
-			var worldZ = (z - Margin) * UnitSize;
+			sdf.SampleRange( bounds, samples, size );
 
-			for ( var y = minY; y < maxY; ++y )
+			for ( var z = min.Z; z < max.Z; ++z )
 			{
-				var worldY = (y - Margin) * UnitSize;
-
-				for ( int x = minX, index = minX + y * ArraySize + z * ArraySize * ArraySize; x < maxX; ++x, ++index )
+				for ( var y = min.Y; y < max.Y; ++y )
 				{
-					var worldX = (x - Margin) * UnitSize;
-					var sampled = sdf[new Vector3( worldX, worldY, worldZ )];
+					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
 
-					if ( sampled >= maxDist ) continue;
+					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+					{
+						var sampled = samples[srcIndex];
 
-					var encoded = Encode( sampled );
+						if ( sampled >= maxDist ) continue;
 
-					var oldValue = Samples[index];
-					var newValue = Math.Min( encoded, oldValue );
+						var encoded = Encode( sampled );
 
-					Samples[index] = newValue;
+						var oldValue = Samples[dstIndex];
+						var newValue = Math.Min( encoded, oldValue );
 
-					changed |= oldValue != newValue;
+						Samples[dstIndex] = newValue;
+
+						changed |= oldValue != newValue;
+					}
 				}
 			}
+		}
+		finally
+		{
+			ArrayPool<float>.Shared.Return( samples );
 		}
 
 		if ( changed )
@@ -142,36 +155,46 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	/// <inheritdoc />
 	public override bool Subtract<T>( in T sdf )
 	{
-		var (minX, minY, minZ, maxX, maxY, maxZ) = GetSampleRange( sdf.Bounds );
+		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
+		var size = (X: max.X - min.X + 1, Y: max.Y - min.Y + 1, Z: max.Z - min.Z + 1);
 		var maxDist = Quality.MaxDistance;
 
 		var changed = false;
 
-		for ( var z = minZ; z < maxZ; ++z )
+		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
+
+		try
 		{
-			var worldZ = (z - Margin) * UnitSize;
+			sdf.SampleRange( bounds, samples, size );
 
-			for ( var y = minY; y < maxY; ++y )
+			for ( var z = min.Z; z < max.Z; ++z )
 			{
-				var worldY = (y - Margin) * UnitSize;
-
-				for ( int x = minX, index = minX + y * ArraySize + z * ArraySize * ArraySize; x < maxX; ++x, ++index )
+				for ( var y = min.Y; y < max.Y; ++y )
 				{
-					var worldX = (x - Margin) * UnitSize;
-					var sampled = sdf[new Vector3( worldX, worldY, worldZ )];
+					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
 
-					if ( sampled >= maxDist ) continue;
+					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+					{
+						var sampled = samples[srcIndex];
 
-					var encoded = Encode( sampled );
+						if ( sampled >= maxDist ) continue;
 
-					var oldValue = Samples[index];
-					var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
+						var encoded = Encode( sampled );
 
-					Samples[index] = newValue;
+						var oldValue = Samples[dstIndex];
+						var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
-					changed |= oldValue != newValue;
+						Samples[dstIndex] = newValue;
+
+						changed |= oldValue != newValue;
+					}
 				}
 			}
+		}
+		finally
+		{
+			ArrayPool<float>.Shared.Return( samples );
 		}
 
 		if ( changed )

@@ -9,10 +9,8 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
-	/// <inheritdoc />
-	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
+	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max) GetChunkRange( BBox bounds, WorldQuality quality )
 	{
-		var bounds = sdf.Bounds;
 		var unitSize = quality.UnitSize;
 
 		var min = (bounds.Mins - quality.MaxDistance - unitSize) / quality.ChunkSize;
@@ -26,11 +24,24 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		var maxY = (int) MathF.Ceiling( max.y );
 		var maxZ = (int) MathF.Ceiling( max.z );
 
+		return ((minX, minY, minZ), (maxX, maxY, maxZ));
+	}
+
+	private IEnumerable<(int X, int Y, int Z)> GetChunks( BBox bounds, WorldQuality quality )
+	{
+		var ((minX, minY, minZ), (maxX, maxY, maxZ)) = GetChunkRange( bounds, quality );
+
 		for ( var z = minZ; z < maxZ; ++z )
 		for ( var y = minY; y < maxY; ++y )
 		for ( var x = minX; x < maxX; ++x )
 		{
 			yield return (x, y, z);
 		}
+	}
+
+	/// <inheritdoc />
+	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
+	{
+		return GetChunks( sdf.Bounds, quality );
 	}
 }

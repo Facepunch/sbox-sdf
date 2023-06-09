@@ -81,10 +81,15 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 	/// <param name="localMin">Minimum position in local-space along the axis</param>
 	/// <param name="localMax">Maximum position in local-space along the axis</param>
 	/// <returns>Minimum (inclusive) and maximum (exclusive) indices</returns>
-	protected (int Min, int Max) GetSampleRange( float localMin, float localMax )
+	protected (int Min, int Max, float LocalMin, float LocalMax) GetSampleRange( float localMin, float localMax )
 	{
-		return (Math.Max( 0, (int) MathF.Ceiling( (localMin - Quality.MaxDistance) * InvUnitSize ) + Margin ),
-			Math.Min( ArraySize, (int) MathF.Ceiling( (localMax + Quality.MaxDistance) * InvUnitSize ) + Margin ));
+		var min = Math.Max( 0, (int)MathF.Ceiling( (localMin - Quality.MaxDistance) * InvUnitSize ) + Margin );
+		var max = Math.Min( ArraySize, (int)MathF.Ceiling( (localMax + Quality.MaxDistance) * InvUnitSize ) + Margin );
+
+		localMin = (min - Margin) * UnitSize;
+		localMax = (max - Margin) * UnitSize;
+
+		return (min, max, localMin, localMax);
 	}
 
 	/// <summary>

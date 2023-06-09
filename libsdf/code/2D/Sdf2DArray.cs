@@ -39,8 +39,8 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 	private (int MinX, int MinY, int MaxX, int MaxY) GetSampleRange( Rect bounds )
 	{
-		var (minX, maxX) = GetSampleRange( bounds.Left, bounds.Right );
-		var (minY, maxY) = GetSampleRange( bounds.Top, bounds.Bottom );
+		var (minX, maxX, _, _) = GetSampleRange( bounds.Left, bounds.Right );
+		var (minY, maxY, _, _) = GetSampleRange( bounds.Top, bounds.Bottom );
 
 		return (minX, minY, maxX, maxY);
 	}

@@ -19,6 +19,32 @@ namespace Sandbox.Sdf
 		/// <param name="pos">Position to sample at</param>
 		/// <returns>A signed distance from the surface of this shape</returns>
 		float this[Vector3 pos] { get; }
+
+		public void SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			var minX = bounds.Mins.x;
+			var incX = bounds.Size.x / (outputSize.X - 1);
+
+			var minY = bounds.Mins.y;
+			var incY = bounds.Size.y / (outputSize.Y - 1);
+
+			var minZ = bounds.Mins.z;
+			var incZ = bounds.Size.z / (outputSize.Z - 1);
+
+			var sampleZ = minZ;
+			for ( var z = 0; z < outputSize.Z; ++z, sampleZ += incZ )
+			{
+				var sampleY = minY;
+				for ( var y = 0; y < outputSize.Y; ++y, sampleY += incY )
+				{
+					var sampleX = minX;
+					for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index, sampleX += incX )
+					{
+						output[index] = this[new Vector3( sampleX, sampleY, sampleZ )];
+					}
+				}
+			}
+		}
 	}
 
 	/// <summary>
