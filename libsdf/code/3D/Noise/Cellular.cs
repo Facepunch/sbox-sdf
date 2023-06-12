@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Linq;
 
 namespace Sandbox.Sdf.Noise
@@ -47,100 +48,87 @@ namespace Sandbox.Sdf.Noise
 
 			return new Vector3( (hashX & 0xffff) / 65536f, (hashY & 0xffff) / 65536f, (hashZ & 0xffff) / 65536f ) * CellSize;
 		}
-		
-		[ThreadStatic] private static Vector3[] NearestPoints;
 
 		private static (int X, int Y, int Z)[] PointOffsets { get; } = Enumerable.Range( -1, 3 ).SelectMany( z =>
 			Enumerable.Range( -1, 3 ).SelectMany( y => Enumerable.Range( -1, 3 ).Select( x => (x, y, z) ) ) ).ToArray();
-
-		/*
-		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			var invCellSize = new Vector3( 1f / CellSize.x, 1f / CellSize.y, 1f / CellSize.z );
-			var sampleSize = new Vector3( outputSize.X - 1, outputSize.Y - 1, outputSize.Z - 1 );
-			var invSampleSize = new Vector3(
-				bounds.Size.x / (outputSize.X - 1),
-				bounds.Size.y / (outputSize.Y - 1),
-				bounds.Size.z / (outputSize.Z - 1) );
+			var localBounds = new BBox( 0f, new Vector3( outputSize.X, outputSize.Y, outputSize.Z ) );
+			var bounds = localBounds.Transform( transform );
+			var cellBounds = new BBox( bounds.Mins * InvCellSize, bounds.Maxs * InvCellSize );
 
-			var minCell = (
-				X: (int)MathF.Floor( bounds.Mins.x * invCellSize.x ),
-				Y: (int)MathF.Floor( bounds.Mins.y * invCellSize.y ),
-				Z: (int)MathF.Floor( bounds.Mins.z * invCellSize.z ));
+			var cellMin = (
+				X: (int)MathF.Floor( cellBounds.Mins.x ) - 1,
+				Y: (int)MathF.Floor( cellBounds.Mins.y ) - 1,
+				Z: (int)MathF.Floor( cellBounds.Mins.z ) - 1);
 
-			var maxCell = (
-				X: (int) MathF.Ceiling( bounds.Maxs.x * invCellSize.x ),
-				Y: (int) MathF.Ceiling( bounds.Maxs.y * invCellSize.y ),
-				Z: (int) MathF.Ceiling( bounds.Maxs.z * invCellSize.z ));
+			var cellMax = (
+				X: (int) MathF.Floor( cellBounds.Maxs.x ) + 2,
+				Y: (int) MathF.Floor( cellBounds.Maxs.y ) + 2,
+				Z: (int) MathF.Floor( cellBounds.Maxs.z ) + 2);
 
-			var offsets = PointOffsets;
-			var nearest = NearestPoints ??= new Vector3[offsets.Length];
+			var cellCounts = (
+				X: cellMax.X - cellMin.X,
+				Y: cellMax.Y - cellMin.Y,
+				Z: cellMax.Z - cellMin.Z);
 
-			for ( var cellZ = minCell.Z; cellZ < maxCell.Z; ++cellZ )
+			var features = ArrayPool<Vector3>.Shared.Rent( cellCounts.X * cellCounts.Y * cellCounts.Z );
+
+			try
 			{
-				for ( var cellY = minCell.Y; cellY < maxCell.Y; ++cellY )
+				for ( var cellZ = 0; cellZ < cellCounts.Z; ++cellZ )
 				{
-					for ( var cellX = minCell.X; cellX < maxCell.X; ++cellX )
+					for ( var cellY = 0; cellY < cellCounts.Y; ++cellY )
 					{
-						var cellMins = new Vector3( cellX, cellY, cellZ ) * CellSize;
-						var cellLocalBounds = new BBox( bounds.Mins - cellMins, bounds.Maxs - cellMins );
-
-						var minX = Math.Max( (int)MathF.Ceiling( cellLocalBounds.Mins.x * invSampleSize.x ), 0 );
-						var maxX = Math.Min( (int)MathF.Ceiling( cellLocalBounds.Maxs.x * invSampleSize.x ), outputSize.X );
-
-						var minY = Math.Max( (int) MathF.Ceiling( cellLocalBounds.Mins.y * invSampleSize.y ), 0 );
-						var maxY = Math.Min( (int) MathF.Ceiling( cellLocalBounds.Maxs.y * invSampleSize.y ), outputSize.Y );
-
-						var minZ = Math.Max( (int) MathF.Ceiling( cellLocalBounds.Mins.z * invSampleSize.z ), 0 );
-						var maxZ = Math.Min( (int) MathF.Ceiling( cellLocalBounds.Maxs.z * invSampleSize.z ), outputSize.Z );
-
-						if ( maxX <= minX || maxY <= minY || maxZ <= minZ )
+						for ( int cellX = 0, index = cellY * cellCounts.X + cellZ * cellCounts.X * cellCounts.Y; cellX < cellCounts.X; ++cellX, ++index )
 						{
-							continue;
+							features[index] = GetFeature( cellX + cellMin.X, cellY + cellMin.Y, cellZ + cellMin.Z );
 						}
+					}
+				}
 
-						for ( var i = 0; i < offsets.Length; ++i )
+				for ( var z = 0; z < outputSize.Z; ++z )
+				{
+					for ( var y = 0; y < outputSize.Y; ++y )
+					{
+						for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
 						{
-							var offset = offsets[i];
-							nearest[i] = GetPoint( (cellX + offset.X, cellY + offset.Y, cellZ + offset.Z) ) + new Vector3( offset.X, offset.Y, offset.Z ) * CellSize;
-						}
+							var pos = transform.PointToWorld( new Vector3( x, y, z ) );
+							var localPos = pos * InvCellSize;
+							var cell = (
+								X: (int) Math.Floor( localPos.x ),
+								Y: (int) Math.Floor( localPos.y ),
+								Z: (int) Math.Floor( localPos.z ));
 
-						var baseSamplePos = (cellMins - bounds.Mins) * invSampleSize;
-						var baseSample = (
-							X: (int)MathF.Floor( baseSamplePos.x ),
-							Y: (int)MathF.Floor( baseSamplePos.y ),
-							Z: (int)MathF.Floor( baseSamplePos.z ));
+							var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * CellSize;
+							var cellLocalPos = pos - cellPos;
 
-						var baseSampleIndex = baseSample.X + (baseSample.Y + baseSample.Z * outputSize.Y) * outputSize.X;
+							var minDistSq = float.PositiveInfinity;
 
-						for ( var sampleZ = minZ; sampleZ < maxZ; ++sampleZ )
-						{
-							for ( var sampleY = minY; sampleY < maxY; ++sampleY )
+							foreach ( var offset in PointOffsets )
 							{
-								for ( var sampleX = minX; sampleX < maxX; ++sampleX )
-								{
-									var minSq = float.PositiveInfinity;
-									var pos = new Vector3( sampleX, sampleY, sampleZ ) * sampleSize;
+								var featureCell = (
+									X: cell.X + offset.X - cellMin.X,
+									Y: cell.Y + offset.Y - cellMin.Y,
+									Z: cell.Z + offset.Z - cellMin.Z);
+								var featureIndex = featureCell.X + featureCell.Y * cellCounts.X + featureCell.Z * cellCounts.X * cellCounts.Y;
 
-									foreach ( var point in nearest)
-									{
-										var distSq = (point - pos).LengthSquared;
+								var feature = features[featureIndex] + new Vector3( offset.X, offset.Y, offset.Z ) * CellSize;
+								var distSq = (feature - cellLocalPos).LengthSquared;
 
-										if ( distSq < minSq )
-										{
-											minSq = distSq;
-										}
-									}
-
-									var dist = MathF.Sqrt( minSq );
-									output[baseSampleIndex + sampleX + (sampleY + sampleZ * outputSize.Y) * outputSize.X] = dist;
-								}
+								minDistSq = Math.Min( minDistSq, distSq );
 							}
+
+							output[index] = MathF.Sqrt( minDistSq ) - DistanceOffset;
 						}
 					}
 				}
 			}
+			finally
+			{
+				ArrayPool<Vector3>.Shared.Return( features );
+			}
 		}
-		*/
 	}
 }
