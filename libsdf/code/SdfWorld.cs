@@ -87,36 +87,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">Shape to add</param>
 	/// <param name="resource">Layer or volume to add to</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Add<T>( in T sdf, TResource resource )
-		where T : TSdf
-	{
-		return ModifyChunks( sdf, resource, true, ( chunk, sdf ) => chunk.Add( sdf ) );
-	}
-
-	/// <summary>
-	/// Add a shape to the given layer or volume.
-	/// </summary>
-	/// <typeparam name="T">SDF type</typeparam>
-	/// <param name="sdf">Shape to add</param>
-	/// <param name="resource">Layer or volume to add to</param>
-	/// <returns>True if any geometry was modified</returns>
 	public Task<bool> AddAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
-		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => GameTask.RunInThreadAsync( () => chunk.Add( sdf ) ) );
-	}
-
-	/// <summary>
-	/// Subtract a shape from the given layer or volume.
-	/// </summary>
-	/// <typeparam name="T">SDF type</typeparam>
-	/// <param name="sdf">Shape to subtract</param>
-	/// <param name="resource">Layer or volume to subtract from</param>
-	/// <returns>True if any geometry was modified</returns>
-	public bool Subtract<T>( in T sdf, TResource resource )
-		where T : TSdf
-	{
-		return ModifyChunks( sdf, resource, false, ( chunk, sdf ) => chunk.Subtract( sdf ) );
+		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
 	}
 
 	/// <summary>
@@ -129,24 +103,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task<bool> SubtractAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
-		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => GameTask.RunInThreadAsync( () => chunk.Subtract( sdf ) ) );
-	}
-
-	/// <summary>
-	/// Subtract a shape from all layers.
-	/// </summary>
-	/// <typeparam name="T">SDF type</typeparam>
-	/// <param name="sdf">Shape to subtract</param>
-	/// <returns>True if any geometry was modified</returns>
-	public bool Subtract<T>( in T sdf )
-		where T : TSdf
-	{
-		var changed = false;
-
-		foreach ( var material in Layers.Keys )
-			changed |= Subtract( in sdf, material );
-
-		return changed;
+		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
 	}
 
 	/// <summary>
@@ -268,31 +225,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <returns>Indices of possible affected chunks.</returns>
 	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality)
 		where T : TSdf;
-
-	private bool ModifyChunks<T>( in T sdf, TResource resource, bool createChunks,
-		Func<TChunk, T, bool> func )
-		where T : TSdf
-	{
-		ThreadSafe.AssertIsMainThread();
-		AssertCanModify();
-
-		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
-
-		var changed = false;
-
-		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
-		{
-			var chunk = !createChunks
-				? GetChunk( resource, key )
-				: GetOrCreateChunk( resource, key );
-
-			if ( chunk == null ) continue;
-
-			changed |= func( chunk, sdf );
-		}
-
-		return changed;
-	}
+	
 	private async Task<bool> ModifyChunksAsync<T>( T sdf, TResource resource, bool createChunks,
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf

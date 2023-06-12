@@ -85,6 +85,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	private bool _invalid;
 
 	private Dictionary<MainThreadTask, (Action Action, TaskCompletionSource Tcs)> MainThreadTasks { get; } = new();
+	private Task<bool> _lastModification;
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
@@ -170,18 +171,37 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	private async Task<bool> ModifyAsync( Func<bool> func )
+	{
+		ThreadSafe.AssertIsMainThread();
+
+		if ( _lastModification != null )
+		{
+			await _lastModification;
+		}
+
+		_lastModification = Task.RunInThreadAsync( func );
+
+		if ( await _lastModification )
+		{
+			InvalidateArray();
+			return true;
+		}
+
+		return false;
+	}
+
 	/// <summary>
 	/// Sets every sample in this chunk's SDF to solid or empty.
 	/// </summary>
 	/// <param name="solid">Solidity to set each sample to.</param>
-	public void Clear( bool solid )
+	public Task ClearAsync( bool solid )
 	{
-		lock ( Data )
+		return ModifyAsync( () =>
 		{
 			Data.Clear( solid );
-		}
-
-		InvalidateArray();
+			return true;
+		} );
 	}
 
 	/// <summary>
@@ -190,17 +210,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to add</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Add<T>( in T sdf )
+	public Task<bool> AddAsync<T>( T sdf )
 		where T : TSdf
 	{
-		lock ( Data )
-		{
-			if ( !OnAdd( in sdf ) ) return false;
-		}
-
-		InvalidateArray();
-
-		return true;
+		return ModifyAsync( () => OnAdd( sdf ) );
 	}
 
 	/// <summary>
@@ -218,17 +231,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public bool Subtract<T>( in T sdf )
+	public Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf
 	{
-		lock ( Data )
-		{
-			if ( !OnSubtract( in sdf ) ) return false;
-		}
-
-		InvalidateArray();
-
-		return true;
+		return ModifyAsync( () => OnSubtract( sdf ) );
 	}
 
 	/// <summary>
@@ -263,11 +269,10 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( Data == null || World == null || !_updateMeshTask.IsCompleted ) return;
 
-		lock ( Data )
-		{
-			if ( Data.ModificationCount == _lastModificationCount ) return;
-			_lastModificationCount = Data.ModificationCount;
-		}
+		var modificationCount = Data.ModificationCount;
+
+		if ( modificationCount == _lastModificationCount ) return;
+		_lastModificationCount = modificationCount;
 
 		World.ChunkMeshUpdated( (TChunk) this, false );
 
