@@ -113,7 +113,7 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			var capsule = new CapsuleSdf( LastEditPos ?? editPos, editPos, EditRadius );
+			var capsule = new CapsuleSdf3D( LastEditPos ?? editPos, editPos, EditRadius );
 			var noise = new CellularNoiseSdf3D( 0x123abc, new Vector3( 128f, 128f, 128f ), 64f );
 
 			var sdf = capsule.Bias( noise, -0.25f );

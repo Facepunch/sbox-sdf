@@ -103,21 +103,21 @@ namespace Sandbox.Sdf
 			return new ExpandedSdf3D<T>( sdf, margin );
 		}
 
-		public static IntersectedSdf<T1, T2> Intersection<T1, T2>( this T1 sdf1, T2 sdf2 )
+		public static IntersectedSdf3D<T1, T2> Intersection<T1, T2>( this T1 sdf1, T2 sdf2 )
 			where T1 : ISdf3D
 			where T2 : ISdf3D
 		{
-			return new IntersectedSdf<T1, T2>( sdf1, sdf2,
+			return new IntersectedSdf3D<T1, T2>( sdf1, sdf2,
 				sdf1.Bounds is { } bounds1 && sdf2.Bounds is { } bounds2
 					? new BBox( Vector3.Max( bounds1.Mins, bounds2.Mins ), Vector3.Min( bounds1.Maxs, bounds2.Maxs ) )
 					: sdf1.Bounds ?? sdf2.Bounds );
 		}
 
-		public static BiasedSdf<T, TBias> Bias<T, TBias>( this T sdf, TBias biasSdf, float biasScale = 1f )
+		public static BiasedSdf3D<T, TBias> Bias<T, TBias>( this T sdf, TBias biasSdf, float biasScale = 1f )
 			where T : ISdf3D
 			where TBias : ISdf3D
 		{
-			return new BiasedSdf<T, TBias>( sdf, biasSdf, biasScale );
+			return new BiasedSdf3D<T, TBias>( sdf, biasSdf, biasScale );
 		}
 	}
 
@@ -127,14 +127,14 @@ namespace Sandbox.Sdf
 	/// <param name="Min">Position of the corner with smallest X, Y and Z values</param>
 	/// <param name="Max">Position of the corner with largest X, Y and Z values</param>
 	/// <param name="CornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
-	public record struct BoxSdf( Vector3 Min, Vector3 Max, float CornerRadius = 0f ) : ISdf3D
+	public record struct BoxSdf3D( Vector3 Min, Vector3 Max, float CornerRadius = 0f ) : ISdf3D
 	{
 		/// <summary>
 		/// Describes an axis-aligned box with rounded corners.
 		/// </summary>
 		/// <param name="box">Size and position of the box</param>
 		/// <param name="cornerRadius">Controls the roundness of corners, or 0 for (approximately) sharp corners</param>
-		public BoxSdf( BBox box, float cornerRadius = 0f )
+		public BoxSdf3D( BBox box, float cornerRadius = 0f )
 			: this( box.Mins, box.Maxs, cornerRadius )
 		{
 
@@ -162,7 +162,7 @@ namespace Sandbox.Sdf
 	/// </summary>
 	/// <param name="Center">Position of the center of the sphere</param>
 	/// <param name="Radius">Distance from the center to the surface of the sphere</param>
-	public record struct SphereSdf( Vector3 Center, float Radius ) : ISdf3D
+	public record struct SphereSdf3D( Vector3 Center, float Radius ) : ISdf3D
 	{
 		/// <inheritdoc />
 		public BBox? Bounds => new( Center - Radius, Radius * 2f );
@@ -181,7 +181,7 @@ namespace Sandbox.Sdf
 	/// Internal helper vector for optimization.
 	/// Please use the other constructor instead of specifying this yourself.
 	/// </param>
-	public record struct CapsuleSdf( Vector3 PointA, Vector3 PointB, float Radius, Vector3 Along ) : ISdf3D
+	public record struct CapsuleSdf3D( Vector3 PointA, Vector3 PointB, float Radius, Vector3 Along ) : ISdf3D
 	{
 		/// <summary>
 		/// Describes two spheres connected by a cylinder, all with a common radius.
@@ -189,7 +189,7 @@ namespace Sandbox.Sdf
 		/// <param name="pointA">Center of the first sphere</param>
 		/// <param name="pointB">Center of the second sphere</param>
 		/// <param name="radius">Radius of the spheres and connecting cylinder</param>
-		public CapsuleSdf( Vector3 pointA, Vector3 pointB, float radius )
+		public CapsuleSdf3D( Vector3 pointA, Vector3 pointB, float radius )
 			: this( pointA, pointB, radius, pointA.AlmostEqual( pointB )
 				? Vector3.Zero
 				: (pointB - pointA) / (pointB - pointA).LengthSquared )
@@ -327,7 +327,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public record struct IntersectedSdf<T1, T2>( T1 Sdf1, T2 Sdf2, BBox? Bounds ) : ISdf3D
+	public record struct IntersectedSdf3D<T1, T2>( T1 Sdf1, T2 Sdf2, BBox? Bounds ) : ISdf3D
 		where T1 : ISdf3D
 		where T2 : ISdf3D
 	{
@@ -357,7 +357,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public record struct BiasedSdf<T, TBias>( T Sdf, TBias BiasSdf, float BiasScale ) : ISdf3D
+	public record struct BiasedSdf3D<T, TBias>( T Sdf, TBias BiasSdf, float BiasScale ) : ISdf3D
 		where T : ISdf3D
 		where TBias : ISdf3D
 	{
