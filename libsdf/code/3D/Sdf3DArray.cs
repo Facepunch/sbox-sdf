@@ -88,28 +88,29 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		texture.Update3D( Samples );
 	}
 
-	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, BBox Bounds) GetSampleRange( BBox? bounds )
+	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, Transform Transform) GetSampleRange( BBox? bounds )
 	{
 		if ( bounds is not {} b )
 		{
-			return ((0, 0, 0), (ArraySize, ArraySize, ArraySize), new BBox(
-				-Margin * UnitSize,
-				(ArraySize - Margin) * UnitSize ));
+			return ((0, 0, 0), (ArraySize, ArraySize, ArraySize), new Transform(
+				-Margin * UnitSize, Rotation.Identity, UnitSize ));
 		}
 
 		var (minX, maxX, minLocalX, maxLocalX) = GetSampleRange( b.Mins.x, b.Maxs.x );
 		var (minY, maxY, minLocalY, maxLocalY) = GetSampleRange( b.Mins.y, b.Maxs.y );
 		var (minZ, maxZ, minLocalZ, maxLocalZ) = GetSampleRange( b.Mins.z, b.Maxs.z );
 
-		return ((minX, minY, minZ), (maxX, maxY, maxZ), new BBox(
-			new Vector3( minLocalX, minLocalY, minLocalZ ),
-			new Vector3( maxLocalX, maxLocalY, maxLocalZ ) ));
+		var min = new Vector3( minLocalX, minLocalY, minLocalZ );
+		var max = new Vector3( maxLocalX, maxLocalY, maxLocalZ );
+
+		return ((minX, minY, minZ), (maxX, maxY, maxZ), new Transform(
+			min, Rotation.Identity, UnitSize ));
 	}
 
 	/// <inheritdoc />
 	public override bool Add<T>( in T sdf )
 	{
-		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
+		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
@@ -119,7 +120,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		try
 		{
-			sdf.SampleRange( bounds, samples, size );
+			sdf.SampleRange( transform, samples, size );
 
 			for ( var z = min.Z; z < max.Z; ++z )
 			{
@@ -162,7 +163,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	/// <inheritdoc />
 	public override bool Subtract<T>( in T sdf )
 	{
-		var (min, max, bounds) = GetSampleRange( sdf.Bounds );
+		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
@@ -172,7 +173,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		try
 		{
-			sdf.SampleRange( bounds, samples, size );
+			sdf.SampleRange( transform, samples, size );
 
 			for ( var z = min.Z; z < max.Z; ++z )
 			{

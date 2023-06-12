@@ -26,30 +26,18 @@ namespace Sandbox.Sdf
 		/// <summary>
 		/// Sample an axis-aligned box shaped region, writing to an <paramref name="output"/> array.
 		/// </summary>
-		/// <param name="bounds">Region to sample.</param>
+		/// <param name="transform">Transformation to apply to the SDF.</param>
 		/// <param name="output">Array to write signed distance values to.</param>
 		/// <param name="outputSize">Dimensions of the <paramref name="output"/> array.</param>
-		public void SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		public void SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			var minX = bounds.Mins.x;
-			var incX = bounds.Size.x / outputSize.X;
-
-			var minY = bounds.Mins.y;
-			var incY = bounds.Size.y / outputSize.Y;
-
-			var minZ = bounds.Mins.z;
-			var incZ = bounds.Size.z / outputSize.Z;
-
-			var sampleZ = minZ;
-			for ( var z = 0; z < outputSize.Z; ++z, sampleZ += incZ )
+			for ( var z = 0; z < outputSize.Z; ++z )
 			{
-				var sampleY = minY;
-				for ( var y = 0; y < outputSize.Y; ++y, sampleY += incY )
+				for ( var y = 0; y < outputSize.Y; ++y )
 				{
-					var sampleX = minX;
-					for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index, sampleX += incX )
+					for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
 					{
-						output[index] = this[new Vector3( sampleX, sampleY, sampleZ )];
+						output[index] = this[transform.PointToWorld( new Vector3( x, y, z ) )];
 					}
 				}
 			}
@@ -289,6 +277,11 @@ namespace Sandbox.Sdf
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[Transform.PointToLocal( pos )] * InverseScale;
+
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			Sdf.SampleRange( Transform.ToLocal( transform ), output, outputSize );
+		}
 	}
 
 	/// <summary>
@@ -303,9 +296,9 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos - Offset];
 
-		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( bounds + -Offset, output, outputSize );
+			Sdf.SampleRange( new Transform( Offset ).ToLocal( transform ), output, outputSize );
 		}
 	}
 
@@ -321,9 +314,9 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] - Margin;
 
-		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( bounds, output, outputSize );
+			Sdf.SampleRange( in transform, output, outputSize );
 
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 
@@ -341,16 +334,16 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[ Vector3 pos ] => Math.Max( Sdf1[pos], Sdf2[pos] );
 
-		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf1.SampleRange( bounds, output, outputSize );
+			Sdf1.SampleRange( in transform, output, outputSize );
 
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
 
 			try
 			{
-				Sdf2.SampleRange( bounds, temp, outputSize );
+				Sdf2.SampleRange( in transform, temp, outputSize );
 
 				for ( var i = 0; i < sampleCount; ++i )
 				{
@@ -374,16 +367,16 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] + BiasSdf[pos] * BiasScale;
 
-		void ISdf3D.SampleRange( BBox bounds, float[] output, (int X, int Y, int Z) outputSize )
+		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( bounds, output, outputSize );
+			Sdf.SampleRange( in transform, output, outputSize );
 
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
 
 			try
 			{
-				BiasSdf.SampleRange( bounds, temp, outputSize );
+				BiasSdf.SampleRange( in transform, temp, outputSize );
 
 				for ( var i = 0; i < sampleCount; ++i )
 				{
