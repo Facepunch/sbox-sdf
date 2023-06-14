@@ -130,5 +130,17 @@ namespace Sandbox.Sdf.Noise
 				ArrayPool<Vector3>.Shared.Return( features );
 			}
 		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			writer.Write( Seed );
+			writer.Write( CellSize );
+			writer.Write( DistanceOffset );
+		}
+
+		public static CellularNoiseSdf3D ReadRaw( ref NetRead reader )
+		{
+			return new CellularNoiseSdf3D( reader.Read<int>(), reader.Read<Vector3>(), reader.Read<float>() );
+		}
 	}
 }

@@ -1,10 +1,20 @@
 ﻿using System;
+using System.Linq;
 using System.Buffers;
-using Sandbox.Diagnostics;
-using Sandbox.UI;
+using System.Collections.Generic;
+using Sandbox.Sdf.Noise;
 
 namespace Sandbox.Sdf
 {
+	[AttributeUsage(AttributeTargets.Method)]
+	public sealed class RegisterSdf3DTypesAttribute : Attribute
+	{
+
+	}
+
+	public delegate ISdf3D Sdf3DReader( ref NetRead read );
+	public delegate T Sdf3DReader<out T>( ref NetRead read ) where T : ISdf3D;
+
 	/// <summary>
 	/// Base interface for shapes that can be added to or subtracted from a <see cref="Sdf3DWorld"/>.
 	/// </summary>
@@ -42,6 +52,57 @@ namespace Sandbox.Sdf
 				}
 			}
 		}
+
+		private static readonly List<(TypeDescription Type, Sdf3DReader Reader)> _sRegisteredTypes = new();
+		private static bool _sTypesRegistered;
+
+		private static void EnsureTypesRegistered()
+		{
+			if ( _sTypesRegistered ) return;
+
+			_sTypesRegistered = true;
+
+			foreach ( var (method, _) in TypeLibrary.GetMethodsWithAttribute<RegisterSdf3DTypesAttribute>() )
+			{
+				method.Invoke( null );
+			}
+
+			_sRegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
+		}
+
+		void WriteRaw( NetWrite writer );
+
+		public static void RegisterType<T>( Sdf3DReader<T> readRaw )
+			where T : ISdf3D
+		{
+			_sRegisteredTypes.Add( (TypeLibrary.GetType<T>(), ( ref NetRead read ) => readRaw( ref read )) );
+		}
+		
+		public void Write( NetWrite writer )
+		{
+			EnsureTypesRegistered();
+
+			var type = TypeLibrary.GetType( GetType() );
+			var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
+
+			if ( typeIndex == -1 )
+			{
+				throw new NotImplementedException( $"Unable to serialize SDF type {type}" );
+			}
+
+			writer.Write( typeIndex );
+			WriteRaw( writer );
+		}
+
+		public static ISdf3D Read( ref NetRead reader )
+		{
+			EnsureTypesRegistered();
+
+			var typeIndex = reader.Read<int>();
+			var sdfReader = _sRegisteredTypes[typeIndex].Reader;
+
+			return sdfReader( ref reader );
+		}
 	}
 
 	/// <summary>
@@ -49,6 +110,20 @@ namespace Sandbox.Sdf
 	/// </summary>
 	public static class Sdf3DExtensions
 	{
+		[RegisterSdf3DTypes]
+		private static void RegisterTypes()
+		{
+			ISdf3D.RegisterType( BoxSdf3D.ReadRaw );
+			ISdf3D.RegisterType( SphereSdf3D.ReadRaw );
+			ISdf3D.RegisterType( CapsuleSdf3D.ReadRaw );
+			ISdf3D.RegisterType( TransformedSdf3D<ISdf3D>.ReadRaw );
+			ISdf3D.RegisterType( TranslatedSdf3D<ISdf3D>.ReadRaw );
+			ISdf3D.RegisterType( ExpandedSdf3D<ISdf3D>.ReadRaw );
+			ISdf3D.RegisterType( IntersectedSdf3D<ISdf3D, ISdf3D>.ReadRaw );
+			ISdf3D.RegisterType( BiasedSdf3D<ISdf3D, ISdf3D>.ReadRaw );
+			ISdf3D.RegisterType( CellularNoiseSdf3D.ReadRaw );
+		}
+
 		/// <summary>
 		/// Moves the given SDF by the specified offset.
 		/// </summary>
@@ -107,10 +182,7 @@ namespace Sandbox.Sdf
 			where T1 : ISdf3D
 			where T2 : ISdf3D
 		{
-			return new IntersectedSdf3D<T1, T2>( sdf1, sdf2,
-				sdf1.Bounds is { } bounds1 && sdf2.Bounds is { } bounds2
-					? new BBox( Vector3.Max( bounds1.Mins, bounds2.Mins ), Vector3.Min( bounds1.Maxs, bounds2.Maxs ) )
-					: sdf1.Bounds ?? sdf2.Bounds );
+			return new IntersectedSdf3D<T1, T2>( sdf1, sdf2 );
 		}
 
 		public static BiasedSdf3D<T, TBias> Bias<T, TBias>( this T sdf, TBias biasSdf, float biasScale = 1f )
@@ -155,6 +227,21 @@ namespace Sandbox.Sdf
 					: dist3.Length) - CornerRadius;
 			}
 		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			writer.Write( Min );
+			writer.Write( Max );
+			writer.Write( CornerRadius );
+		}
+
+		public static BoxSdf3D ReadRaw( ref NetRead reader )
+		{
+			return new BoxSdf3D(
+				reader.Read<Vector3>(),
+				reader.Read<Vector3>(), 
+				reader.Read<float>() );
+		}
 	}
 
 	/// <summary>
@@ -169,6 +256,19 @@ namespace Sandbox.Sdf
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => (pos - Center).Length - Radius;
+
+		public void WriteRaw( NetWrite writer )
+		{
+			writer.Write( Center );
+			writer.Write( Radius );
+		}
+
+		public static SphereSdf3D ReadRaw( ref NetRead reader )
+		{
+			return new SphereSdf3D(
+				reader.Read<Vector3>(),
+				reader.Read<float>() );
+		}
 	}
 
 	/// <summary>
@@ -220,54 +320,31 @@ namespace Sandbox.Sdf
 				return (pos - closest).Length - Radius;
 			}
 		}
-	}
 
-	public readonly struct TextureSdf3D : ISdf3D
-	{
-		private readonly Vector3 _worldSize;
-		private readonly Vector3 _worldOffset;
-		private readonly Vector3 _invSampleSize;
-		private readonly (int X, int Y, int Z) _imageSize;
-		private readonly float[] _samples;
-
-		public TextureSdf3D( float[] samples, (int X, int Y, int Z) textureSize, Vector3 worldSize )
+		public void WriteRaw( NetWrite writer )
 		{
-			_samples = samples;
-			_imageSize = textureSize;
-			_worldSize = worldSize;
-			_worldOffset = worldSize * -0.5f;
-			_invSampleSize = new Vector3( textureSize.X / _worldSize.x, textureSize.Y / _worldSize.y, textureSize.Z / _worldSize.z );
+			writer.Write( PointA );
+			writer.Write( PointB );
+			writer.Write( Radius );
 		}
 
-		/// <inheritdoc />
-		public BBox? Bounds => new( _worldOffset, _worldSize );
-
-		/// <inheritdoc />
-		public float this[ Vector3 pos]
+		public static CapsuleSdf3D ReadRaw( ref NetRead reader )
 		{
-			get
-			{
-				var localPos = (pos - _worldOffset) * _invSampleSize;
-
-				var x = (int) MathF.Round( localPos.x );
-				var y = (int) MathF.Round( localPos.y );
-				var z = (int) MathF.Round( localPos.z );
-
-				if ( x < 0 || y < 0 || z < 0 || x >= _imageSize.X || y >= _imageSize.Y || z >= _imageSize.Z ) return float.PositiveInfinity;
-
-				return _samples[x + (y + z * _imageSize.Y) * _imageSize.X];
-			}
+			return new CapsuleSdf3D(
+				reader.Read<Vector3>(),
+				reader.Read<Vector3>(),
+				reader.Read<float>() );
 		}
 	}
 
 	/// <summary>
-	/// Helper struct returned by <see cref="Sdf3DExtensions.Transform{T}(T,Transform)"/>
+	/// Helper struct returned by <see cref="Transform"/>
 	/// </summary>
 	public record struct TransformedSdf3D<T>( T Sdf, Transform Transform, BBox? Bounds, float InverseScale ) : ISdf3D
 		where T : ISdf3D
 	{
 		/// <summary>
-		/// Helper struct returned by <see cref="Sdf3DExtensions.Transform{T}(T,Transform)"/>
+		/// Helper struct returned by <see cref="Transform"/>
 		/// </summary>
 		public TransformedSdf3D( T sdf, Transform transform )
 			: this( sdf, transform, sdf.Bounds?.Transform( transform ), 1f / transform.Scale )
@@ -281,6 +358,23 @@ namespace Sandbox.Sdf
 		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			Sdf.SampleRange( Transform.ToLocal( transform ), output, outputSize );
+		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			Sdf.WriteRaw( writer );
+			writer.Write( Transform.Position );
+			writer.Write( Transform.Rotation );
+			writer.Write( Transform.Scale );
+		}
+
+		public static TransformedSdf3D<T> ReadRaw( ref NetRead reader )
+		{
+			return new TransformedSdf3D<T>( (T) ISdf3D.Read( ref reader ),
+				new Transform(
+					reader.Read<Vector3>(),
+					reader.Read<Rotation>(),
+					reader.Read<float>() ) );
 		}
 	}
 
@@ -299,6 +393,17 @@ namespace Sandbox.Sdf
 		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			Sdf.SampleRange( new Transform( Offset ).ToLocal( transform ), output, outputSize );
+		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			Sdf.WriteRaw( writer );
+			writer.Write( Offset );
+		}
+
+		public static TranslatedSdf3D<T> ReadRaw( ref NetRead reader )
+		{
+			return new TranslatedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<Vector3>() );
 		}
 	}
 
@@ -325,6 +430,17 @@ namespace Sandbox.Sdf
 				output[i] -= Margin;
 			}
 		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			Sdf.WriteRaw( writer );
+			writer.Write( Margin );
+		}
+
+		public static ExpandedSdf3D<T> ReadRaw( ref NetRead reader )
+		{
+			return new ExpandedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<float>() );
+		}
 	}
 
 	public record struct IntersectedSdf3D<T1, T2>( T1 Sdf1, T2 Sdf2, BBox? Bounds ) : ISdf3D
@@ -333,6 +449,15 @@ namespace Sandbox.Sdf
 	{
 		/// <inheritdoc />
 		public float this[ Vector3 pos ] => Math.Max( Sdf1[pos], Sdf2[pos] );
+
+		public IntersectedSdf3D( T1 sdf1, T2 sdf2 )
+			: this( sdf1, sdf2,
+				sdf1.Bounds is { } bounds1 && sdf2.Bounds is { } bounds2
+					? new BBox( Vector3.Max( bounds1.Mins, bounds2.Mins ), Vector3.Min( bounds1.Maxs, bounds2.Maxs ) )
+					: sdf1.Bounds ?? sdf2.Bounds )
+		{
+
+		}
 
 		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
@@ -354,6 +479,17 @@ namespace Sandbox.Sdf
 			{
 				ArrayPool<float>.Shared.Return( temp );
 			}
+		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			Sdf1.WriteRaw( writer );
+			Sdf2.WriteRaw( writer );
+		}
+
+		public static IntersectedSdf3D<T1, T2> ReadRaw( ref NetRead reader )
+		{
+			return new IntersectedSdf3D<T1, T2>( (T1) ISdf3D.Read( ref reader ), (T2) ISdf3D.Read( ref reader ) );
 		}
 	}
 
@@ -387,6 +523,18 @@ namespace Sandbox.Sdf
 			{
 				ArrayPool<float>.Shared.Return( temp );
 			}
+		}
+
+		public void WriteRaw( NetWrite writer )
+		{
+			Sdf.WriteRaw( writer );
+			BiasSdf.WriteRaw( writer );
+			writer.Write( BiasScale );
+		}
+
+		public static BiasedSdf3D<T, TBias> ReadRaw( ref NetRead reader )
+		{
+			return new BiasedSdf3D<T, TBias>( (T) ISdf3D.Read( ref reader ), (TBias) ISdf3D.Read( ref reader ), reader.Read<float>() );
 		}
 	}
 }
