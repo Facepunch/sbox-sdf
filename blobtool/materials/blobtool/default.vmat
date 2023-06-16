@@ -20,7 +20,7 @@ Layer0
 
 	//---- Scorch ----
 	ScorchAmbientOcclusion "materials/default/default_ao.tga"
-	ScorchBlendMask "materials/nature/leaves_height.png"
+	ScorchBlendMask "textures/scorch_height.png"
 	ScorchColor "[0.000000 0.000000 0.000000 0.000000]"
 	ScorchMetalness "materials/default/default_metal.tga"
 	ScorchNormal "materials/default/default_normal.tga"
