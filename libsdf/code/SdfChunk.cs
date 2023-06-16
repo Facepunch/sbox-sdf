@@ -29,7 +29,7 @@ internal static class Static
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Entity
+public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : IDisposable
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -52,17 +52,17 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// World that owns this chunk.
 	/// </summary>
-	public abstract TWorld World { get; set; }
+	public TWorld World { get; private set; }
 
 	/// <summary>
 	/// Volume or layer resource controlling the rendering and collision of this chunk.
 	/// </summary>
-	public abstract TResource Resource { get; set; }
+	public TResource Resource { get; private set; }
 
 	/// <summary>
 	/// Position index of this chunk in the world.
 	/// </summary>
-	public abstract TChunkKey Key { get; set; }
+	public TChunkKey Key { get; private set; }
 
 	/// <summary>
 	/// If this chunk has collision, the generated physics mesh for this chunk.
@@ -73,6 +73,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// If this chunk is rendered, the scene object containing the generated mesh.
 	/// </summary>
 	public SceneObject SceneObject { get; private set; }
+
+	public abstract Vector3 LocalPosition { get; }
 
 	protected virtual float MaxNetworkWriteRate => 10f;
 
@@ -94,8 +96,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		Data = new TArray();
 		Data.Init( resource.Quality );
 
-		Name = $"Chunk {Resource.ResourceName} {Key}";
-
 		OnInit();
 	}
 
@@ -108,38 +108,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	}
 
 	/// <inheritdoc />
-	public override void Spawn()
+	public void Dispose()
 	{
-		base.Spawn();
-
-		Transmit = TransmitType.Always;
-	}
-
-	/// <inheritdoc />
-	public override void ClientSpawn()
-	{
-		base.ClientSpawn();
-
-		if ( World == null )
-		{
-			Log.Warning( "World is null!" );
-			return;
-		}
-
-		if ( Resource == null )
-		{
-			Log.Warning( "Resource is null!" );
-			return;
-		}
-
-		World.AddClientChunk( (TChunk) this );
-	}
-
-	/// <inheritdoc />
-	protected override void OnDestroy()
-	{
-		base.OnDestroy();
-
 		if ( Game.IsClient && !World.IsDestroying ) World.RemoveClientChunk( (TChunk)this );
 
 		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
@@ -159,7 +129,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			await _lastModification;
 		}
 
-		_lastModification = Task.RunInThreadAsync( func );
+		_lastModification = World.Task.RunInThreadAsync( func );
 
 		return await _lastModification;
 	}
@@ -232,8 +202,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		UpdateMesh();
 		RunMainThreadTask( MainThreadTask.UpdateRenderMeshes );
 		RunMainThreadTask( MainThreadTask.UpdateLayerTexture );
-
-		if ( SceneObject != null ) SceneObject.Transform = Transform;
 	}
 
 	private void UpdateMesh()
@@ -431,9 +399,9 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( SceneObject == null )
 		{
-			SceneObject = new SceneObject( Scene, model )
+			SceneObject = new SceneObject( World.Scene, model )
 			{
-				Transform = Transform,
+				Transform = new Transform( LocalPosition ),
 				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
 			};
 		}

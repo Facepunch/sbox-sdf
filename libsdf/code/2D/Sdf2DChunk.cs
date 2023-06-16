@@ -9,30 +9,13 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (int X, int Y), Sdf2DArray, ISdf2D>
 {
-	[Net] private Sdf2DWorld NetWorld { get; set; }
-	[Net] private Sdf2DLayer NetResource { get; set; }
-	[Net] private int NetKeyX { get; set; }
-	[Net] private int NetKeyY { get; set; }
-
-	/// <inheritdoc />
-	public override Sdf2DWorld World
+	public override Vector3 LocalPosition
 	{
-		get => NetWorld;
-		set => NetWorld = value;
-	}
-
-	/// <inheritdoc />
-	public override Sdf2DLayer Resource
-	{
-		get => NetResource;
-		set => NetResource = value;
-	}
-
-	/// <inheritdoc />
-	public override (int X, int Y) Key
-	{
-		get => (NetKeyX, NetKeyY);
-		set => (NetKeyX, NetKeyY) = value;
+		get
+		{
+			var quality = Resource.Quality;
+			return new Vector3( Key.X * quality.ChunkSize, Key.Y * quality.ChunkSize );
+		}
 	}
 
 	/// <summary>
@@ -49,16 +32,6 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	/// Render mesh for the cut faces of this chunk.
 	/// </summary>
 	public Mesh Cut { get; set; }
-
-	/// <inheritdoc />
-	protected override void OnInit()
-	{
-		base.OnInit();
-
-		var quality = Resource.Quality;
-
-		LocalPosition = new Vector3( Key.X * quality.ChunkSize, Key.Y * quality.ChunkSize );
-	}
 
 	private TranslatedSdf2D<T> ToLocal<T>( in T sdf )
 		where T : ISdf2D
@@ -135,7 +108,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 				} );
 			}
 
-			await Task.WhenAll( renderTask, collisionTask );
+			await World.Task.WhenAll( renderTask, collisionTask );
 		}
 		finally
 		{

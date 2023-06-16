@@ -9,49 +9,21 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
-	[Net] private Sdf3DWorld NetWorld { get; set; }
-	[Net] private Sdf3DVolume NetResource { get; set; }
-	[Net] private int NetKeyX { get; set; }
-	[Net] private int NetKeyY { get; set; }
-	[Net] private int NetKeyZ { get; set; }
-
 	protected override float MaxNetworkWriteRate => 4f;
 
-	/// <inheritdoc />
-	public override Sdf3DWorld World
+	public override Vector3 LocalPosition
 	{
-		get => NetWorld;
-		set => NetWorld = value;
-	}
-
-	/// <inheritdoc />
-	public override Sdf3DVolume Resource
-	{
-		get => NetResource;
-		set => NetResource = value;
-	}
-
-	/// <inheritdoc />
-	public override (int X, int Y, int Z) Key
-	{
-		get => (NetKeyX, NetKeyY, NetKeyZ);
-		set => (NetKeyX, NetKeyY, NetKeyZ) = value;
+		get
+		{
+			var quality = Resource.Quality;
+			return new Vector3( Key.X * quality.ChunkSize, Key.Y * quality.ChunkSize, Key.Z * quality.ChunkSize );
+		}
 	}
 
 	/// <summary>
 	/// Render mesh used by this chunk.
 	/// </summary>
 	public Mesh Mesh { get; set; }
-
-	/// <inheritdoc />
-	protected override void OnInit()
-	{
-		base.OnInit();
-
-		var quality = Resource.Quality;
-
-		LocalPosition = new Vector3( Key.X * quality.ChunkSize, Key.Y * quality.ChunkSize, Key.Z * quality.ChunkSize );
-	}
 
 	private TranslatedSdf3D<T> ToLocal<T>( in T sdf )
 		where T : ISdf3D
@@ -128,7 +100,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 				} );
 			}
 
-			await Task.WhenAll( renderTask, collisionTask );
+			await World.Task.WhenAll( renderTask, collisionTask );
 		}
 		finally
 		{

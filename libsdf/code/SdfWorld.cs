@@ -172,7 +172,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			modification.Sdf.Write( msg );
 		}
 
-		ClientModificationCounts[client] = modified;
+		ClientModificationCounts[client] = modified + count;
 
 		msg.SendRpc( To.Single( client ), this );
 	}
@@ -191,7 +191,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-
 	private void ReceiveModifications( ref NetRead msg )
 	{
 		var prevCount = msg.Read<int>();
@@ -201,7 +200,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( prevCount != Modifications.Count )
 		{
 			// TODO: ask for them again
-			Log.Error( $"{GetType()} has dropped some modifications!" );
+			Log.Error( $"{GetType()} has dropped some modifications! {prevCount} vs {Modifications.Count}" );
 			return;
 		}
 
@@ -244,7 +243,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		foreach ( var layer in Layers.Values )
 			foreach ( var chunk in layer.Chunks.Values )
-				chunk.Delete();
+				chunk.Dispose();
 
 		Layers.Clear();
 	}
@@ -259,7 +258,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( Layers.Remove( resource, out var layerData ) )
 			foreach ( var chunk in layerData.Chunks.Values )
-				chunk.Delete();
+				chunk.Dispose();
 	}
 
 	/// <summary>
@@ -354,12 +353,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return chunk;
 		}
 
-		layerData.Chunks[key] = chunk = new TChunk
-		{
-			Parent = this,
-			LocalRotation = Rotation.Identity,
-			LocalScale = 1f
-		};
+		layerData.Chunks[key] = chunk = new TChunk();
 
 		chunk.Init( (TWorld) this, resource, key );
 
