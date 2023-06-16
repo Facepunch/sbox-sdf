@@ -8,12 +8,12 @@ internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStr
 }
 
 /// <summary>
-/// Networked array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
+/// Array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
 /// </summary>
 public partial class Sdf2DArray : SdfArray<ISdf2D>
 {
 	/// <summary>
-	/// Networked array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
+	/// Array containing raw SDF samples for a <see cref="Sdf2DChunk"/>.
 	/// </summary>
 	public Sdf2DArray()
 		: base( 2 )

@@ -6,6 +6,72 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
+[AttributeUsage( AttributeTargets.Method )]
+public sealed class RegisterSdfTypesAttribute : Attribute
+{
+
+}
+
+public delegate T SdfReader<out T>( ref NetRead read ) where T : ISdf<T>;
+public delegate T SdfReader<out TBase, out T>( ref NetRead read ) where TBase : ISdf<TBase> where T : TBase;
+
+public interface ISdf<out T>
+	where T : ISdf<T>
+{
+#pragma warning disable SB3000
+	private static readonly List<(TypeDescription Type, SdfReader<T> Reader)> _sRegisteredTypes = new();
+	private static bool _sTypesRegistered;
+#pragma warning restore SB3000
+
+	private static void EnsureTypesRegistered()
+	{
+		if ( _sTypesRegistered ) return;
+
+		_sTypesRegistered = true;
+
+		foreach ( var (method, _) in TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
+		{
+			method.Invoke( null );
+		}
+
+		_sRegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
+	}
+
+	void WriteRaw( NetWrite writer );
+
+	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
+		where TSdf : T
+	{
+		_sRegisteredTypes.Add( (TypeLibrary.GetType<T>(), ( ref NetRead read ) => readRaw( ref read )) );
+	}
+
+	public void Write( NetWrite writer )
+	{
+		EnsureTypesRegistered();
+
+		var type = TypeLibrary.GetType( GetType() );
+		var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
+
+		if ( typeIndex == -1 )
+		{
+			throw new NotImplementedException( $"Unable to serialize SDF type {type}" );
+		}
+
+		writer.Write( typeIndex );
+		WriteRaw( writer );
+	}
+
+	public static T Read( ref NetRead reader )
+	{
+		EnsureTypesRegistered();
+
+		var typeIndex = reader.Read<int>();
+		var sdfReader = _sRegisteredTypes[typeIndex].Reader;
+
+		return sdfReader( ref reader );
+	}
+}
+
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
 /// signed distance fields.
@@ -22,6 +88,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TResource : SdfResource<TResource>
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
+	where TSdf : ISdf<TSdf>
 {
 	/// <inheritdoc />
 	public override void Spawn()

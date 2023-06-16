@@ -5,7 +5,7 @@ namespace Sandbox.Sdf;
 /// <summary>
 /// Base interface for shapes that can be added to or subtracted from a <see cref="Sdf2DWorld"/>.
 /// </summary>
-public interface ISdf2D
+public interface ISdf2D : ISdf<ISdf2D>
 {
 	/// <summary>
 	/// Axis aligned bounds that fully encloses the surface of this shape.
@@ -26,6 +26,18 @@ public interface ISdf2D
 /// </summary>
 public static class Sdf2DExtensions
 {
+	[RegisterSdfTypes]
+	private static void RegisterTypes()
+	{
+		ISdf2D.RegisterType( RectSdf.ReadRaw );
+		ISdf2D.RegisterType( CircleSdf.ReadRaw );
+		ISdf2D.RegisterType( LineSdf.ReadRaw );
+		ISdf2D.RegisterType( TextureSdf.ReadRaw );
+		ISdf2D.RegisterType( TransformedSdf2D<ISdf2D>.ReadRaw );
+		ISdf2D.RegisterType( TranslatedSdf2D<ISdf2D>.ReadRaw );
+		ISdf2D.RegisterType( ExpandedSdf2D<ISdf2D>.ReadRaw );
+	}
+
 	/// <summary>
 	/// Moves the given SDF by the specified offset.
 	/// </summary>
@@ -115,6 +127,21 @@ public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f 
 				: dist2.Length) - CornerRadius;
 		}
 	}
+
+	public void WriteRaw( NetWrite writer )
+	{
+		writer.Write( Min );
+		writer.Write( Max );
+		writer.Write( CornerRadius );
+	}
+
+	public static RectSdf ReadRaw( ref NetRead reader )
+	{
+		return new RectSdf(
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
+	}
 }
 
 /// <summary>
@@ -129,6 +156,19 @@ public record struct CircleSdf( Vector2 Center, float Radius ) : ISdf2D
 
 	/// <inheritdoc />
 	public float this[Vector2 pos] => (pos - Center).Length - Radius;
+
+	public void WriteRaw( NetWrite writer )
+	{
+		writer.Write( Center );
+		writer.Write( Radius );
+	}
+
+	public static CircleSdf ReadRaw( ref NetRead reader )
+	{
+		return new CircleSdf(
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
+	}
 }
 
 /// <summary>
@@ -179,6 +219,21 @@ public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vect
 			return (pos - closest).Length - Radius;
 		}
 	}
+
+	public void WriteRaw( NetWrite writer )
+	{
+		writer.Write( PointA );
+		writer.Write( PointB );
+		writer.Write( Radius );
+	}
+
+	public static LineSdf ReadRaw( ref NetRead reader )
+	{
+		return new LineSdf(
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
+	}
 }
 
 /// <summary>
@@ -212,6 +267,9 @@ public enum ColorChannel
 /// </summary>
 public readonly struct TextureSdf : ISdf2D
 {
+	private readonly Texture _texture;
+	private readonly int _gradientWidthPixels;
+	private readonly ColorChannel _channel;
 	private readonly Vector2 _worldSize;
 	private readonly Vector2 _worldOffset;
 	private readonly Vector2 _invSampleSize;
@@ -233,14 +291,34 @@ public readonly struct TextureSdf : ISdf2D
 	/// <param name="invert">If false (default), bright values are external. If true, bright values are internal.</param>
 	public TextureSdf( Texture texture, int gradientWidthPixels, float worldWidth,
 		Vector2? pivot = null, ColorChannel channel = ColorChannel.R, bool invert = false )
+		: this(
+			texture, 
+			gradientWidthPixels * (invert ? -1 : 1),
+			channel,
+			new Vector2( worldWidth, worldWidth * texture.Height / texture.Width ),
+			new Vector2( worldWidth, worldWidth * texture.Height / texture.Width ) * -(pivot ?? new Vector2( 0.5f, 0.5f )) )
 	{
-		_worldSize = new Vector2( worldWidth, worldWidth * texture.Height / texture.Width );
-		_worldOffset = _worldSize * -(pivot ?? new Vector2( 0.5f, 0.5f ));
+
+	}
+
+	private TextureSdf( Texture texture, int gradientWidthPixels, ColorChannel channel, Vector2 worldSize, Vector2 worldOffset )
+	{
+		if ( texture.ResourceId == 0 )
+		{
+			throw new ArgumentException( "Texture must be a resource loaded from disc." );
+		}
+
+		_texture = texture;
+		_gradientWidthPixels = gradientWidthPixels;
+		_channel = channel;
+
+		_worldSize = worldSize;
+		_worldOffset = worldOffset;
 		_imageSize = (texture.Width, texture.Height);
 		_invSampleSize = new Vector2( _imageSize.Width, _imageSize.Height ) / _worldSize;
 
 		var colors = texture.GetPixels();
-		var scale = worldWidth * gradientWidthPixels / texture.Width * (invert ? -1f : 1f);
+		var scale = worldSize.x * gradientWidthPixels / texture.Width;
 
 		_samples = new float[_imageSize.Width * _imageSize.Height];
 
@@ -284,6 +362,25 @@ public readonly struct TextureSdf : ISdf2D
 			return _samples[x + y * _imageSize.Width];
 		}
 	}
+	
+	public void WriteRaw( NetWrite writer )
+	{
+		writer.Write( _texture );
+		writer.Write( _gradientWidthPixels );
+		writer.Write( _channel );
+		writer.Write( _worldSize );
+		writer.Write( _worldOffset );
+	}
+
+	public static TextureSdf ReadRaw( ref NetRead reader )
+	{
+		return new TextureSdf(
+			reader.ReadClass<Texture>(),
+			reader.Read<int>(),
+			reader.Read<ColorChannel>(),
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>() );
+	}
 }
 
 /// <summary>
@@ -317,6 +414,24 @@ public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bou
 
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
+
+	public void WriteRaw( NetWrite writer )
+	{
+		Sdf.Write( writer );
+		writer.Write( Transform.Position );
+		writer.Write( Transform.Rotation );
+		writer.Write( Transform.Scale );
+	}
+
+	public static TransformedSdf2D<T> ReadRaw( ref NetRead reader )
+	{
+		return new TransformedSdf2D<T>(
+			(T)ISdf2D.Read( ref reader ),
+			new Transform2D(
+				reader.Read<Vector2>(),
+				reader.Read<Rotation2D>(),
+				reader.Read<float>() ) );
+	}
 }
 
 /// <summary>
@@ -330,6 +445,19 @@ public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
 
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos - Offset];
+
+	public void WriteRaw( NetWrite writer )
+	{
+		Sdf.Write( writer );
+		writer.Write( Offset );
+	}
+
+	public static TranslatedSdf2D<T> ReadRaw( ref NetRead reader )
+	{
+		return new TranslatedSdf2D<T>(
+			(T) ISdf2D.Read( ref reader ),
+			reader.Read<Vector2>() );
+	}
 }
 
 /// <summary>
@@ -343,4 +471,17 @@ public record struct ExpandedSdf2D<T>( T Sdf, float Margin ) : ISdf2D
 
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos] - Margin;
+
+	public void WriteRaw( NetWrite writer )
+	{
+		Sdf.Write( writer );
+		writer.Write( Margin );
+	}
+
+	public static ExpandedSdf2D<T> ReadRaw( ref NetRead reader )
+	{
+		return new ExpandedSdf2D<T>(
+			(T) ISdf2D.Read( ref reader ),
+			reader.Read<float>() );
+	}
 }

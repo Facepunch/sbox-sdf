@@ -35,6 +35,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TResource : SdfResource<TResource>
 	where TChunkKey : struct
 	where TArray : SdfArray<TSdf>, new()
+	where TSdf : ISdf<TSdf>
 {
 	internal enum MainThreadTask
 	{
@@ -42,6 +43,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		UpdateCollisionMesh,
 		UpdateLayerTexture
 	}
+
+	/// <summary>
+	/// Array storing SDF samples for this chunk.
+	/// </summary>
+	protected TArray Data { get; private set; }
 
 	/// <summary>
 	/// World that owns this chunk.
@@ -52,11 +58,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// Volume or layer resource controlling the rendering and collision of this chunk.
 	/// </summary>
 	public abstract TResource Resource { get; set; }
-
-	/// <summary>
-	/// Networked array storing SDF samples for this chunk.
-	/// </summary>
-	protected abstract TArray Data { get; set; }
 
 	/// <summary>
 	/// Position index of this chunk in the world.
@@ -80,9 +81,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
 	private CancellationTokenSource _updateMeshCancellationSource;
-
-	private TimeSince _lastNetworked;
-	private bool _invalid;
 
 	private Dictionary<MainThreadTask, (Action Action, TaskCompletionSource Tcs)> MainThreadTasks { get; } = new();
 	private Task<bool> _lastModification;
@@ -142,7 +140,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		base.OnDestroy();
 
-		if ( Game.IsClient && !World.IsDestroying ) World.RemoveClientChunk( (TChunk) this );
+		if ( Game.IsClient && !World.IsDestroying ) World.RemoveClientChunk( (TChunk)this );
 
 		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
 
@@ -150,25 +148,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		Shape = null;
 		SceneObject = null;
-	}
-
-	private void InvalidateArray()
-	{
-		if ( !Game.IsServer ) return;
-
-		_invalid = true;
-	}
-
-	[GameEvent.Tick.Server]
-	private void ServerTick()
-	{
-		if ( _invalid && _lastNetworked * MaxNetworkWriteRate >= 1f )
-		{
-			_invalid = false;
-			_lastNetworked = 0f;
-
-			Data.WriteNetworkData();
-		}
 	}
 
 	private async Task<bool> ModifyAsync( Func<bool> func )
@@ -182,13 +161,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		_lastModification = Task.RunInThreadAsync( func );
 
-		if ( await _lastModification )
-		{
-			InvalidateArray();
-			return true;
-		}
-
-		return false;
+		return await _lastModification;
 	}
 
 	/// <summary>

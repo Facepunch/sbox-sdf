@@ -6,19 +6,10 @@ using Sandbox.Sdf.Noise;
 
 namespace Sandbox.Sdf
 {
-	[AttributeUsage(AttributeTargets.Method)]
-	public sealed class RegisterSdf3DTypesAttribute : Attribute
-	{
-
-	}
-
-	public delegate ISdf3D Sdf3DReader( ref NetRead read );
-	public delegate T Sdf3DReader<out T>( ref NetRead read ) where T : ISdf3D;
-
 	/// <summary>
 	/// Base interface for shapes that can be added to or subtracted from a <see cref="Sdf3DWorld"/>.
 	/// </summary>
-	public interface ISdf3D
+	public interface ISdf3D : ISdf<ISdf3D>
 	{
 		/// <summary>
 		/// Axis aligned bounds that fully encloses the surface of this shape.
@@ -52,57 +43,6 @@ namespace Sandbox.Sdf
 				}
 			}
 		}
-
-		private static readonly List<(TypeDescription Type, Sdf3DReader Reader)> _sRegisteredTypes = new();
-		private static bool _sTypesRegistered;
-
-		private static void EnsureTypesRegistered()
-		{
-			if ( _sTypesRegistered ) return;
-
-			_sTypesRegistered = true;
-
-			foreach ( var (method, _) in TypeLibrary.GetMethodsWithAttribute<RegisterSdf3DTypesAttribute>() )
-			{
-				method.Invoke( null );
-			}
-
-			_sRegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
-		}
-
-		void WriteRaw( NetWrite writer );
-
-		public static void RegisterType<T>( Sdf3DReader<T> readRaw )
-			where T : ISdf3D
-		{
-			_sRegisteredTypes.Add( (TypeLibrary.GetType<T>(), ( ref NetRead read ) => readRaw( ref read )) );
-		}
-		
-		public void Write( NetWrite writer )
-		{
-			EnsureTypesRegistered();
-
-			var type = TypeLibrary.GetType( GetType() );
-			var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
-
-			if ( typeIndex == -1 )
-			{
-				throw new NotImplementedException( $"Unable to serialize SDF type {type}" );
-			}
-
-			writer.Write( typeIndex );
-			WriteRaw( writer );
-		}
-
-		public static ISdf3D Read( ref NetRead reader )
-		{
-			EnsureTypesRegistered();
-
-			var typeIndex = reader.Read<int>();
-			var sdfReader = _sRegisteredTypes[typeIndex].Reader;
-
-			return sdfReader( ref reader );
-		}
 	}
 
 	/// <summary>
@@ -110,7 +50,7 @@ namespace Sandbox.Sdf
 	/// </summary>
 	public static class Sdf3DExtensions
 	{
-		[RegisterSdf3DTypes]
+		[RegisterSdfTypes]
 		private static void RegisterTypes()
 		{
 			ISdf3D.RegisterType( BoxSdf3D.ReadRaw );

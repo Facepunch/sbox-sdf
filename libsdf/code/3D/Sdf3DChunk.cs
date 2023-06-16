@@ -11,7 +11,6 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 {
 	[Net] private Sdf3DWorld NetWorld { get; set; }
 	[Net] private Sdf3DVolume NetResource { get; set; }
-	[Net] private Sdf3DArray NetData { get; set; }
 	[Net] private int NetKeyX { get; set; }
 	[Net] private int NetKeyY { get; set; }
 	[Net] private int NetKeyZ { get; set; }
@@ -30,12 +29,6 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	{
 		get => NetResource;
 		set => NetResource = value;
-	}
-	/// <inheritdoc />
-	protected override Sdf3DArray Data
-	{
-		get => NetData;
-		set => NetData = value;
 	}
 
 	/// <inheritdoc />

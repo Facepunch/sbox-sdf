@@ -6,7 +6,7 @@ namespace Sandbox.Sdf;
 /// Base class for networked arrays containing raw SDF samples as bytes.
 /// </summary>
 /// <typeparam name="TSdf">Interface for SDFs that can modify the array</typeparam>
-public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializer
+public abstract partial class SdfArray<TSdf>
 {
 	/// <summary>
 	/// How far outside the chunk boundary should samples be stored.
@@ -198,23 +198,5 @@ public abstract partial class SdfArray<TSdf> : BaseNetworkable, INetworkSerializ
 	{
 		++ModificationCount;
 		_textureInvalid = true;
-	}
-
-	/// <inheritdoc />
-	public void Read( ref NetRead net )
-	{
-		Init( WorldQuality.Read( ref net ) );
-
-		Samples = net.ReadUnmanagedArray( Samples );
-
-		MarkChanged();
-	}
-
-	/// <inheritdoc />
-	public void Write( NetWrite net )
-	{
-		Quality.Write( net );
-
-		net.WriteUnmanagedArray( Samples );
 	}
 }

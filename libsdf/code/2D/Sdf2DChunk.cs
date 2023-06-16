@@ -11,7 +11,6 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 {
 	[Net] private Sdf2DWorld NetWorld { get; set; }
 	[Net] private Sdf2DLayer NetResource { get; set; }
-	[Net] private Sdf2DArray NetData { get; set; }
 	[Net] private int NetKeyX { get; set; }
 	[Net] private int NetKeyY { get; set; }
 
@@ -27,13 +26,6 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	{
 		get => NetResource;
 		set => NetResource = value;
-	}
-
-	/// <inheritdoc />
-	protected override Sdf2DArray Data
-	{
-		get => NetData;
-		set => NetData = value;
 	}
 
 	/// <inheritdoc />
