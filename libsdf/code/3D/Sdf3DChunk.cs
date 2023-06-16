@@ -9,8 +9,6 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
-	protected override float MaxNetworkWriteRate => 4f;
-
 	public override Vector3 LocalPosition
 	{
 		get
@@ -100,7 +98,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 				} );
 			}
 
-			await World.Task.WhenAll( renderTask, collisionTask );
+			await GameTask.WhenAll( renderTask, collisionTask );
 		}
 		finally
 		{

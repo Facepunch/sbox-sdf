@@ -37,13 +37,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TArray : SdfArray<TSdf>, new()
 	where TSdf : ISdf<TSdf>
 {
-	internal enum MainThreadTask
-	{
-		UpdateRenderMeshes,
-		UpdateCollisionMesh,
-		UpdateLayerTexture
-	}
-
 	/// <summary>
 	/// Array storing SDF samples for this chunk.
 	/// </summary>
@@ -76,15 +69,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	public abstract Vector3 LocalPosition { get; }
 
-	protected virtual float MaxNetworkWriteRate => 10f;
-
 	private int _lastModificationCount;
 	private readonly List<Mesh> _usedMeshes = new();
 
 	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
 	private CancellationTokenSource _updateMeshCancellationSource;
-
-	private Dictionary<MainThreadTask, (Action Action, TaskCompletionSource Tcs)> MainThreadTasks { get; } = new();
 	private Task<bool> _lastModification;
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
@@ -129,9 +118,13 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			await _lastModification;
 		}
 
-		_lastModification = World.Task.RunInThreadAsync( func );
+		_lastModification = GameTask.RunInThreadAsync( func );
 
-		return await _lastModification;
+		var result = await _lastModification;
+
+		_ = RunInMainThread( MainThreadTask.PostModification, PostModification );
+
+		return result;
 	}
 
 	/// <summary>
@@ -189,22 +182,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected abstract bool OnSubtract<T>( in T sdf )
 		where T : TSdf;
 
-	[GameEvent.Tick]
-	private void Tick()
-	{
-		UpdateMesh();
-		RunMainThreadTask( MainThreadTask.UpdateCollisionMesh );
-	}
-
-	[GameEvent.PreRender]
-	private void ClientPreRender()
-	{
-		UpdateMesh();
-		RunMainThreadTask( MainThreadTask.UpdateRenderMeshes );
-		RunMainThreadTask( MainThreadTask.UpdateLayerTexture );
-	}
-
-	private void UpdateMesh()
+	private void PostModification()
 	{
 		ThreadSafe.AssertIsMainThread();
 
@@ -227,22 +205,32 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private async Task UpdateMeshTaskWrapper( CancellationToken token )
 	{
-		token.ThrowIfCancellationRequested();
-
-		await OnUpdateMeshAsync( token );
-
-		token.ThrowIfCancellationRequested();
-
-		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
-
-		await RunInMainThread( MainThreadTask.UpdateLayerTexture, () =>
+		try
 		{
-			foreach ( var reference in Resource.ReferencedTextures )
+			token.ThrowIfCancellationRequested();
+
+			await OnUpdateMeshAsync( token );
+
+			token.ThrowIfCancellationRequested();
+
+			if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
+
+			await RunInMainThread( MainThreadTask.UpdateLayerTexture, () =>
 			{
-				var matching = World.GetChunk( reference.Source, Key );
-				UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
+				foreach ( var reference in Resource.ReferencedTextures )
+				{
+					var matching = World.GetChunk( reference.Source, Key );
+					UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
+				}
+			} );
+		}
+		finally
+		{
+			if ( Data.ModificationCount != _lastModificationCount )
+			{
+				_ = RunInMainThread( MainThreadTask.PostModification, PostModification );
 			}
-		} );
+		}
 	}
 
 	internal void UpdateLayerTexture( TResource resource, TChunk source )
@@ -411,59 +399,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	private void RunMainThreadTask( MainThreadTask task )
-	{
-		if ( World.CurrentTickChunkTaskDuration >= TimeSpan.FromMilliseconds( 1d ) )
-		{
-			return;
-		}
-
-		if ( MainThreadTasks.Count == 0 )
-		{
-			return;
-		}
-
-		var sw = Stopwatch.StartNew();
-
-		(Action Action, TaskCompletionSource Tcs) taskInfo;
-
-		lock ( MainThreadTasks )
-		{
-			if ( !MainThreadTasks.Remove( task, out taskInfo ) )
-			{
-				return;
-			}
-		}
-
-		try
-		{
-			taskInfo.Action();
-			taskInfo.Tcs.SetResult();
-		}
-		catch ( Exception e )
-		{
-			taskInfo.Tcs.SetException( e );
-		}
-		finally
-		{
-			World.CurrentTickChunkTaskDuration += sw.Elapsed;
-		}
-	}
-
 	internal Task RunInMainThread( MainThreadTask task, Action action )
 	{
-		var tcs = new TaskCompletionSource();
-
-		lock ( MainThreadTasks )
-		{
-			if ( MainThreadTasks.TryGetValue( task, out var prev ) )
-			{
-				prev.Tcs.SetCanceled();
-			}
-
-			MainThreadTasks[task] = (action, tcs);
-		}
-
-		return tcs.Task;
+		return World.RunInMainThread( Key, Resource, task, action );
 	}
 }

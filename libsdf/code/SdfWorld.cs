@@ -1,6 +1,7 @@
 ﻿using Sandbox.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -72,6 +73,14 @@ public interface ISdf<T>
 	}
 }
 
+internal enum MainThreadTask
+{
+	PostModification,
+	UpdateRenderMeshes,
+	UpdateCollisionMesh,
+	UpdateLayerTexture
+}
+
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
 /// signed distance fields.
@@ -127,13 +136,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
 
-	internal TimeSpan CurrentTickChunkTaskDuration { get; set; }
-
-	[GameEvent.Tick]
-	private void Tick()
-	{
-		CurrentTickChunkTaskDuration = TimeSpan.Zero;
-	}
+	private Dictionary<MainThreadTask, Dictionary<(TChunkKey Chunk, TResource Resource), (Action Action, TaskCompletionSource Tcs)>> MainThreadTasks { get; } = new();
 
 	[GameEvent.Tick.Server]
 	private void ServerTick()
@@ -142,6 +145,20 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			SendModifications( client );
 		}
+	}
+
+	[GameEvent.Tick]
+	private void Tick()
+	{
+		RunMainThreadTasks( MainThreadTask.PostModification, TimeSpan.FromMilliseconds( 1d ) );
+		RunMainThreadTasks( MainThreadTask.UpdateCollisionMesh, TimeSpan.FromMilliseconds( 1d ) );
+	}
+
+	[GameEvent.PreRender]
+	private void ClientPreRender()
+	{
+		RunMainThreadTasks( MainThreadTask.UpdateRenderMeshes, TimeSpan.FromMilliseconds( 1d ) );
+		RunMainThreadTasks( MainThreadTask.UpdateLayerTexture, TimeSpan.FromMilliseconds( 1d ) );
 	}
 
 	private void SendModifications( IClient client )
@@ -310,16 +327,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return result.Any( x => x );
 	}
 
-	internal void AddClientChunk( TChunk chunk )
-	{
-		Assert.True( Game.IsClient );
-
-		if ( !Layers.TryGetValue( chunk.Resource, out var layer ) )
-			Layers.Add( chunk.Resource, layer = new Layer( new Dictionary<TChunkKey, TChunk>() ) );
-
-		layer.Chunks[chunk.Key] = chunk;
-	}
-
 	internal void RemoveClientChunk( TChunk chunk )
 	{
 		if ( !Layers.TryGetValue( chunk.Resource, out var layer ) ) return;
@@ -432,5 +439,68 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		var result = await GameTask.WhenAll( tasks );
 
 		return result.Any( x => x );
+	}
+
+	private readonly List<(TChunkKey Chunk, TResource Resource)> _tempChunkKeys = new();
+
+	private void RunMainThreadTasks( MainThreadTask task, TimeSpan? timeout = null )
+	{
+		if ( !MainThreadTasks.TryGetValue( task, out var tasks ) || tasks.Count == 0 )
+		{
+			return;
+		}
+
+		var sw = Stopwatch.StartNew();
+
+		do
+		{
+			(Action Action, TaskCompletionSource Tcs) taskInfo;
+
+			lock ( MainThreadTasks )
+			{
+				_tempChunkKeys.Clear();
+				_tempChunkKeys.AddRange( tasks.Keys );
+
+				var key = _tempChunkKeys[Random.Shared.Next( _tempChunkKeys.Count )];
+
+				if ( !tasks.Remove( key, out taskInfo ) )
+				{
+					continue;
+				}
+			}
+
+			try
+			{
+				taskInfo.Action();
+				taskInfo.Tcs.SetResult();
+			}
+			catch ( Exception e )
+			{
+				taskInfo.Tcs.SetException( e );
+			}
+		} while ( (timeout == null || sw.Elapsed < timeout) && tasks.Count > 0 );
+	}
+
+	internal Task RunInMainThread( TChunkKey chunk, TResource resource, MainThreadTask task, Action action )
+	{
+		var tcs = new TaskCompletionSource();
+
+		lock ( MainThreadTasks )
+		{
+			if ( !MainThreadTasks.TryGetValue( task, out var tasks ) )
+			{
+				tasks = new Dictionary<(TChunkKey, TResource), (Action Action, TaskCompletionSource Tcs)>();
+				MainThreadTasks.Add( task, tasks );
+			}
+
+			if ( tasks.TryGetValue( (chunk, resource), out var prev ) )
+			{
+				prev.Tcs.SetCanceled();
+			}
+
+			tasks[(chunk, resource)] = (action, tcs);
+		}
+
+		return tcs.Task;
 	}
 }
