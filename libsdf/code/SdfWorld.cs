@@ -12,10 +12,10 @@ public sealed class RegisterSdfTypesAttribute : Attribute
 
 }
 
-public delegate T SdfReader<out T>( ref NetRead read ) where T : ISdf<T>;
-public delegate T SdfReader<out TBase, out T>( ref NetRead read ) where TBase : ISdf<TBase> where T : TBase;
+public delegate T SdfReader<T>( ref NetRead read ) where T : ISdf<T>;
+public delegate T SdfReader<TBase, T>( ref NetRead read ) where TBase : ISdf<TBase> where T : TBase;
 
-public interface ISdf<out T>
+public interface ISdf<T>
 	where T : ISdf<T>
 {
 #pragma warning disable SB3000
@@ -42,7 +42,7 @@ public interface ISdf<out T>
 	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
 		where TSdf : T
 	{
-		_sRegisteredTypes.Add( (TypeLibrary.GetType<T>(), ( ref NetRead read ) => readRaw( ref read )) );
+		_sRegisteredTypes.Add( (TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
 	}
 
 	public void Write( NetWrite writer )
@@ -54,7 +54,7 @@ public interface ISdf<out T>
 
 		if ( typeIndex == -1 )
 		{
-			throw new NotImplementedException( $"Unable to serialize SDF type {type}" );
+			throw new NotImplementedException( $"Unable to serialize SDF type {type.FullName}" );
 		}
 
 		writer.Write( typeIndex );
@@ -90,6 +90,21 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TArray : SdfArray<TSdf>, new()
 	where TSdf : ISdf<TSdf>
 {
+	private const int SendModificationsRpcIdent = 269924031;
+
+	private enum Operator
+	{
+		Add,
+		Subtract
+	}
+
+	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
+
+	private List<Modification> Modifications { get; } = new();
+	private Dictionary<IClient, int> ClientModificationCounts { get; } = new ();
+
+	private bool _receivingModifications;
+
 	/// <inheritdoc />
 	public override void Spawn()
 	{
@@ -118,6 +133,106 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	private void Tick()
 	{
 		CurrentTickChunkTaskDuration = TimeSpan.Zero;
+	}
+
+	[GameEvent.Tick.Server]
+	private void ServerTick()
+	{
+		foreach ( var client in Game.Clients )
+		{
+			SendModifications( client );
+		}
+	}
+
+	private void SendModifications( IClient client )
+	{
+		if ( !ClientModificationCounts.TryGetValue( client, out var modified ) )
+		{
+			modified = 0;
+		}
+
+		if ( modified >= Modifications.Count )
+		{
+			return;
+		}
+
+		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
+		var count = Math.Min( 8, Modifications.Count - modified );
+
+		msg.Write( modified );
+		msg.Write( count );
+		msg.Write( Modifications.Count );
+
+		for ( var i = 0; i < count; ++i )
+		{
+			var modification = Modifications[modified + i];
+
+			msg.Write( modification.Operator );
+			msg.Write( modification.Resource );
+			modification.Sdf.Write( msg );
+		}
+
+		ClientModificationCounts[client] = modified;
+
+		msg.SendRpc( To.Single( client ), this );
+	}
+
+	protected override void OnCallRemoteProcedure( int id, NetRead read )
+	{
+		switch ( id )
+		{
+			case SendModificationsRpcIdent:
+				ReceiveModifications( ref read );
+				break;
+
+			default:
+				base.OnCallRemoteProcedure( id, read );
+				break;
+		}
+	}
+
+
+	private void ReceiveModifications( ref NetRead msg )
+	{
+		var prevCount = msg.Read<int>();
+		var msgCount = msg.Read<int>();
+		var totalCount = msg.Read<int>();
+
+		if ( prevCount != Modifications.Count )
+		{
+			// TODO: ask for them again
+			Log.Error( $"{GetType()} has dropped some modifications!" );
+			return;
+		}
+
+		_receivingModifications = true;
+
+		try
+		{
+			for ( var i = 0; i < msgCount; ++i )
+			{
+				var op = msg.Read<Operator>();
+				var res = msg.ReadClass<TResource>();
+				var sdf = ISdf<TSdf>.Read( ref msg );
+
+				var modification = new Modification( sdf, res, op );
+
+				switch ( modification.Operator )
+				{
+					case Operator.Add:
+						_ = AddAsync( modification.Sdf, modification.Resource );
+						break;
+
+					case Operator.Subtract:
+						_ = SubtractAsync( modification.Sdf, modification.Resource );
+						break;
+				}
+			}
+		}
+		finally
+		{
+			_receivingModifications = false;
+		}
 	}
 
 	/// <summary>
@@ -157,6 +272,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task<bool> AddAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
+		Modifications.Add( new Modification( sdf, resource, Operator.Add ) );
+
 		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
 	}
 
@@ -170,6 +287,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task<bool> SubtractAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
+		Modifications.Add( new Modification( sdf, resource, Operator.Subtract ) );
+
 		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
 	}
 
@@ -249,7 +368,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void AssertCanModify()
 	{
-		Assert.True( IsClientOnly || Game.IsServer, "Can only modify server-created SDF Worlds on the server." );
+		Assert.True( IsClientOnly || Game.IsServer || _receivingModifications, 
+			"Can only modify server-created SDF Worlds on the server." );
 	}
 
 	internal void ChunkMeshUpdated( TChunk chunk, bool removed )

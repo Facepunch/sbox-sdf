@@ -302,7 +302,7 @@ namespace Sandbox.Sdf
 
 		public void WriteRaw( NetWrite writer )
 		{
-			Sdf.WriteRaw( writer );
+			Sdf.Write( writer );
 			writer.Write( Transform.Position );
 			writer.Write( Transform.Rotation );
 			writer.Write( Transform.Scale );
@@ -337,7 +337,7 @@ namespace Sandbox.Sdf
 
 		public void WriteRaw( NetWrite writer )
 		{
-			Sdf.WriteRaw( writer );
+			Sdf.Write( writer );
 			writer.Write( Offset );
 		}
 
@@ -373,7 +373,7 @@ namespace Sandbox.Sdf
 
 		public void WriteRaw( NetWrite writer )
 		{
-			Sdf.WriteRaw( writer );
+			Sdf.Write( writer );
 			writer.Write( Margin );
 		}
 
@@ -423,8 +423,8 @@ namespace Sandbox.Sdf
 
 		public void WriteRaw( NetWrite writer )
 		{
-			Sdf1.WriteRaw( writer );
-			Sdf2.WriteRaw( writer );
+			Sdf1.Write( writer );
+			Sdf2.Write( writer );
 		}
 
 		public static IntersectedSdf3D<T1, T2> ReadRaw( ref NetRead reader )
@@ -467,8 +467,8 @@ namespace Sandbox.Sdf
 
 		public void WriteRaw( NetWrite writer )
 		{
-			Sdf.WriteRaw( writer );
-			BiasSdf.WriteRaw( writer );
+			Sdf.Write( writer );
+			BiasSdf.Write( writer );
 			writer.Write( BiasScale );
 		}
 
