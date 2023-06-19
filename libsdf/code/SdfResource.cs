@@ -60,6 +60,14 @@ public abstract class SdfResource<T> : GameResource
 		: CollisionTags?.Split( SplitChars, StringSplitOptions.RemoveEmptyEntries ) ?? Array.Empty<string>();
 
 	/// <summary>
+	/// If true, this resource will have a collision mesh. True if <see cref="CollisionTags"/> has any items
+	/// and <see cref="IsTextureSourceOnly"/> is false.
+	/// </summary>
+	[HideInEditor]
+	[JsonIgnore]
+	public bool HasCollision => !IsTextureSourceOnly && !string.IsNullOrWhiteSpace( CollisionTags );
+
+	/// <summary>
 	/// Controls mesh visual quality, affecting performance and networking costs.
 	/// </summary>
 	public WorldQualityPreset QualityLevel { get; set; } = WorldQualityPreset.Medium;

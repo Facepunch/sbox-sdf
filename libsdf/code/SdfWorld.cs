@@ -423,6 +423,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
 
+		if ( !Game.IsClient && !resource.HasCollision )
+		{
+			// Only care about collision on the server
+			return false;
+		}
+
 		var tasks = new List<Task<bool>>();
 
 		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
