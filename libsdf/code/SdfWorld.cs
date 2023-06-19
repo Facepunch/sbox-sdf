@@ -136,7 +136,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
 
-	private Dictionary<MainThreadTask, Dictionary<(TChunkKey Chunk, TResource Resource), (Action Action, TaskCompletionSource Tcs)>> MainThreadTasks { get; } = new();
+	private Dictionary<MainThreadTask, Dictionary<TChunk, (Action Action, TaskCompletionSource Tcs)>> MainThreadTasks { get; } = new();
 
 	[GameEvent.Tick.Server]
 	private void ServerTick()
@@ -447,7 +447,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return result.Any( x => x );
 	}
 
-	private readonly List<(TChunkKey Chunk, TResource Resource)> _tempChunkKeys = new();
+	// ReSharper disable StaticMemberInGenericType
+#pragma warning disable SB3000
+	private static List<Vector3> TempPlayerPositions { get; } = new List<Vector3>();
+	private static List<(TChunk Chunk, float Distance)> TempChunkDistances { get; } = new List<(TChunk Chunk, float Distance)>();
+#pragma warning restore SB3000
+	// ReSharper enable StaticMemberInGenericType
 
 	private void RunMainThreadTasks( MainThreadTask task, TimeSpan? timeout = null )
 	{
@@ -458,17 +463,65 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		var sw = Stopwatch.StartNew();
 
+		TempPlayerPositions.Clear();
+		TempChunkDistances.Clear();
+
+		if ( Game.IsClient )
+		{
+			if ( Game.LocalPawn is { } pawn )
+			{
+				TempPlayerPositions.Add( pawn.Position );
+			}
+		}
+		else
+		{
+			foreach ( var client in Game.Clients )
+			{
+				if ( client.Pawn is { } pawn )
+				{
+					TempPlayerPositions.Add( pawn.Position );
+				}
+			}
+		}
+
+		lock ( MainThreadTasks )
+		{
+			TempChunkDistances.AddRange( tasks.Keys.Select( x => (x, Random.Shared.NextSingle()) ) );
+		}
+
+		if ( TempPlayerPositions.Count > 0 )
+		{
+			for ( var i = 0; i < TempChunkDistances.Count; i++ )
+			{
+				var chunk = TempChunkDistances[i].Chunk;
+				var chunkPos = Transform.PointToWorld( chunk.LocalPosition + chunk.Resource.Quality.ChunkSize * 0.5f );
+				var bestDist2 = float.PositiveInfinity;
+
+				foreach ( var pos in TempPlayerPositions )
+				{
+					var dist2 = (pos - chunkPos).LengthSquared;
+
+					if ( dist2 < bestDist2 )
+					{
+						bestDist2 = dist2;
+					}
+				}
+
+				TempChunkDistances[i] = (chunk, bestDist2);
+			}
+		}
+
+		TempChunkDistances.Sort( ( a, b ) => b.Distance.CompareTo( a.Distance ) );
+
 		do
 		{
 			(Action Action, TaskCompletionSource Tcs) taskInfo;
 
+			var key = TempChunkDistances[^1].Chunk;
+			TempChunkDistances.RemoveAt( TempChunkDistances.Count - 1 );
+
 			lock ( MainThreadTasks )
 			{
-				_tempChunkKeys.Clear();
-				_tempChunkKeys.AddRange( tasks.Keys );
-
-				var key = _tempChunkKeys[Random.Shared.Next( _tempChunkKeys.Count )];
-
 				if ( !tasks.Remove( key, out taskInfo ) )
 				{
 					continue;
@@ -484,10 +537,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			{
 				taskInfo.Tcs.SetException( e );
 			}
-		} while ( (timeout == null || sw.Elapsed < timeout) && tasks.Count > 0 );
+		} while ( (timeout == null || sw.Elapsed < timeout) && TempChunkDistances.Count > 0 );
 	}
 
-	internal Task RunInMainThread( TChunkKey chunk, TResource resource, MainThreadTask task, Action action )
+	internal Task RunInMainThread( TChunk chunk, MainThreadTask task, Action action )
 	{
 		var tcs = new TaskCompletionSource();
 
@@ -495,16 +548,16 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			if ( !MainThreadTasks.TryGetValue( task, out var tasks ) )
 			{
-				tasks = new Dictionary<(TChunkKey, TResource), (Action Action, TaskCompletionSource Tcs)>();
+				tasks = new Dictionary<TChunk, (Action Action, TaskCompletionSource Tcs)>();
 				MainThreadTasks.Add( task, tasks );
 			}
 
-			if ( tasks.TryGetValue( (chunk, resource), out var prev ) )
+			if ( tasks.TryGetValue( chunk, out var prev ) )
 			{
 				prev.Tcs.SetCanceled();
 			}
 
-			tasks[(chunk, resource)] = (action, tcs);
+			tasks[chunk] = (action, tcs);
 		}
 
 		return tcs.Task;

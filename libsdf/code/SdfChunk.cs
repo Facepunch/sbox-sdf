@@ -401,6 +401,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal Task RunInMainThread( MainThreadTask task, Action action )
 	{
-		return World.RunInMainThread( Key, Resource, task, action );
+		return World.RunInMainThread( (TChunk) this, task, action );
 	}
 }
