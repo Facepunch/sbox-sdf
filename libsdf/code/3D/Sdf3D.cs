@@ -3,6 +3,7 @@ using System.Linq;
 using System.Buffers;
 using System.Collections.Generic;
 using Sandbox.Sdf.Noise;
+using Sandbox.UI;
 
 namespace Sandbox.Sdf
 {
@@ -182,6 +183,11 @@ namespace Sandbox.Sdf
 				reader.Read<Vector3>(), 
 				reader.Read<float>() );
 		}
+
+		public override string ToString()
+		{
+			return $"Box {{ Min: ({Min}), Max: ({Max}), CornerRadius: {CornerRadius} }}";
+		}
 	}
 
 	/// <summary>
@@ -208,6 +214,11 @@ namespace Sandbox.Sdf
 			return new SphereSdf3D(
 				reader.Read<Vector3>(),
 				reader.Read<float>() );
+		}
+
+		public override string ToString()
+		{
+			return $"Sphere {{ Center: ({Center}), Radius: {Radius} }}";
 		}
 	}
 
@@ -275,6 +286,11 @@ namespace Sandbox.Sdf
 				reader.Read<Vector3>(),
 				reader.Read<float>() );
 		}
+
+		public override string ToString()
+		{
+			return $"Capsule {{ PointA: ({PointA}), PointB: ({PointB}), Radius: {Radius} }}";
+		}
 	}
 
 	/// <summary>
@@ -316,6 +332,11 @@ namespace Sandbox.Sdf
 					reader.Read<Rotation>(),
 					reader.Read<float>() ) );
 		}
+
+		public override string ToString()
+		{
+			return $"Transformed {{ Sdf: {Sdf}, Transform: {{ {Transform} }} }}";
+		}
 	}
 
 	/// <summary>
@@ -344,6 +365,11 @@ namespace Sandbox.Sdf
 		public static TranslatedSdf3D<T> ReadRaw( ref NetRead reader )
 		{
 			return new TranslatedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<Vector3>() );
+		}
+
+		public override string ToString()
+		{
+			return $"Translated {{ Sdf: {Sdf}, Offset: ({Offset}) }}";
 		}
 	}
 
@@ -380,6 +406,11 @@ namespace Sandbox.Sdf
 		public static ExpandedSdf3D<T> ReadRaw( ref NetRead reader )
 		{
 			return new ExpandedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<float>() );
+		}
+
+		public override string ToString()
+		{
+			return $"Expanded {{ Sdf: {Sdf}, Margin: {Margin} }}";
 		}
 	}
 
@@ -431,6 +462,11 @@ namespace Sandbox.Sdf
 		{
 			return new IntersectedSdf3D<T1, T2>( (T1) ISdf3D.Read( ref reader ), (T2) ISdf3D.Read( ref reader ) );
 		}
+
+		public override string ToString()
+		{
+			return $"Intersected {{ Sdf1: {Sdf1}, Sdf2: {Sdf2} }}";
+		}
 	}
 
 	public record struct BiasedSdf3D<T, TBias>( T Sdf, TBias BiasSdf, float BiasScale ) : ISdf3D
@@ -475,6 +511,10 @@ namespace Sandbox.Sdf
 		public static BiasedSdf3D<T, TBias> ReadRaw( ref NetRead reader )
 		{
 			return new BiasedSdf3D<T, TBias>( (T) ISdf3D.Read( ref reader ), (TBias) ISdf3D.Read( ref reader ), reader.Read<float>() );
+		}
+		public override string ToString()
+		{
+			return $"Biased {{ Sdf: {Sdf}, BiasSdf: {BiasSdf}, BiasScale: {BiasScale} }}";
 		}
 	}
 }
