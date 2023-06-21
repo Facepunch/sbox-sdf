@@ -20,16 +20,16 @@ public class Sdf3DVolume : SdfResource<Sdf3DVolume>
 		switch ( preset )
 		{
 			case WorldQualityPreset.Low:
-				return new( 8, 256f, 32f );
+				return new( 8, 512f, 96f );
 
 			case WorldQualityPreset.Medium:
-				return new( 16, 256f, 64f );
+				return new( 16, 512f, 48f );
 
 			case WorldQualityPreset.High:
-				return new( 32, 256f, 96f );
+				return new( 32, 512f, 24f );
 
 			case WorldQualityPreset.Extreme:
-				return new( 16, 128f, 32f );
+				return new( 16, 256f, 24f );
 
 			default:
 				throw new NotImplementedException();

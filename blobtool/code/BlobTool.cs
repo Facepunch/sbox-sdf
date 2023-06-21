@@ -15,7 +15,6 @@ namespace Sandbox.Sdf
 		private static Sdf3DVolume _sScorchVolume;
 
 		public static Sdf3DVolume DefaultVolume => _sDefaultVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/default.sdfvol" );
-		public static Sdf3DVolume CollisionVolume => _sCollisionVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/collision.sdfvol" );
 		public static Sdf3DVolume ScorchVolume => _sScorchVolume ??= ResourceLibrary.Get<Sdf3DVolume>( "sdf/scorch.sdfvol" );
 
 		public static Sdf3DWorld SdfWorld { get; set; }
@@ -24,6 +23,7 @@ namespace Sandbox.Sdf
 		public const float MaxEditDistance = 2048f;
 
 		public Vector3? LastEditPos { get; set; }
+		private Task _lastEditTask = Task.CompletedTask;
 
 		[Net]
 		public float EditDistance { get; set; }
@@ -77,7 +77,7 @@ namespace Sandbox.Sdf
 				Preview.EnableDrawing = EditDistance > EditRadius + 32f;
 			}
 
-			if ( !Game.IsServer || SdfWorld == null )
+			if ( !Game.IsServer || SdfWorld == null || !_lastEditTask.IsCompleted )
 			{
 				return;
 			}
@@ -118,19 +118,17 @@ namespace Sandbox.Sdf
 
 			var sdf = capsule.Bias( noise, -0.25f );
 
-			var sw = Stopwatch.StartNew();
-
 			if ( add )
 			{
-				_ = SdfWorld.AddAsync( sdf, DefaultVolume );
-				_ = SdfWorld.AddAsync( sdf, CollisionVolume );
-				_ = SdfWorld.SubtractAsync( sdf.Expand( 16f ), ScorchVolume );
+				_lastEditTask = GameTask.WhenAll(
+					SdfWorld.AddAsync( sdf, DefaultVolume ),
+					SdfWorld.SubtractAsync( sdf.Expand( 16f ), ScorchVolume ) );
 			}
 			else
 			{
-				_ = SdfWorld.SubtractAsync( sdf, DefaultVolume );
-				_ = SdfWorld.SubtractAsync( sdf, CollisionVolume );
-				_ = SdfWorld.AddAsync( sdf.Expand( 16f ), ScorchVolume );
+				_lastEditTask = GameTask.WhenAll(
+					SdfWorld.SubtractAsync( sdf, DefaultVolume ),
+					SdfWorld.AddAsync( sdf.Expand( 16f ), ScorchVolume ) );
 			}
 
 			LastEditPos = editPos;

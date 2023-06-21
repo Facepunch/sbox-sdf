@@ -1,7 +1,7 @@
 {
   "Material": "materials/blobtool/default.vmat",
   "IsTextureSourceOnly": false,
-  "CollisionTags": "",
+  "CollisionTags": "solid",
   "QualityLevel": "Medium",
   "ChunkResolution": 16,
   "ChunkSize": 256,
