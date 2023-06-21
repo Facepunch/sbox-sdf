@@ -18,21 +18,6 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		}
 	}
 
-	/// <summary>
-	/// Render mesh for the front face of this chunk.
-	/// </summary>
-	public Mesh Front { get; set; }
-
-	/// <summary>
-	/// Render mesh for the back face of this chunk.
-	/// </summary>
-	public Mesh Back { get; set; }
-
-	/// <summary>
-	/// Render mesh for the cut faces of this chunk.
-	/// </summary>
-	public Mesh Cut { get; set; }
-
 	private TranslatedSdf2D<T> ToLocal<T>( in T sdf )
 		where T : ISdf2D
 	{
@@ -52,7 +37,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	}
 
 	/// <inheritdoc />
-	protected override async Task OnUpdateMeshAsync( CancellationToken token )
+	protected override async Task OnUpdateMeshAsync()
 	{
 		var enableRenderMesh = !Game.IsServer;
 		var enableCollisionMesh = Resource.HasCollision;
@@ -68,26 +53,16 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		{
 			await GameTask.RunInThreadAsync( () => Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh ) );
 
-			token.ThrowIfCancellationRequested();
-
 			var renderTask = Task.CompletedTask;
 			var collisionTask = Task.CompletedTask;
 
 			if ( enableRenderMesh )
 			{
-				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
-				{
-					Front = Resource.FrontFaceMaterial != null && writer.HasFrontFaces ? Front ?? new Mesh( Resource.FrontFaceMaterial ) : null;
-					Back = Resource.FrontFaceMaterial != null && writer.HasBackFaces ? Back ?? new Mesh( Resource.BackFaceMaterial ) : null;
-					Cut = Resource.FrontFaceMaterial != null && writer.HasCutFaces ? Cut ?? new Mesh( Resource.CutFaceMaterial ) : null;
-
-					writer.ApplyTo( Front, Back, Cut );
-					
-					UpdateRenderMeshes( Front, Back, Cut );
-				} );
+				renderTask = UpdateRenderMeshesAsync(
+					new MeshDescription( writer.FrontWriter, Resource.FrontFaceMaterial ),
+					new MeshDescription( writer.BackWriter, Resource.BackFaceMaterial ),
+					new MeshDescription( writer.CutWriter, Resource.CutFaceMaterial ) );
 			}
-
-			token.ThrowIfCancellationRequested();
 
 			if ( enableCollisionMesh )
 			{

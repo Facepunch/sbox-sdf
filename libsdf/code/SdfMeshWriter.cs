@@ -3,6 +3,14 @@ using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
 
+public interface IMeshWriter
+{
+	bool IsEmpty { get; }
+	void ApplyTo( Mesh mesh );
+}
+
+public record struct MeshDescription( IMeshWriter Writer, Material Material );
+
 internal abstract class SdfMeshWriter<T>
 	where T : SdfMeshWriter<T>, new()
 {

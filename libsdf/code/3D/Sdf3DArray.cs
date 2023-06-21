@@ -213,7 +213,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return changed;
 	}
 
-	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume, CancellationToken token )
+	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume )
 	{
 		if ( writer.Samples == null || writer.Samples.Length < Samples.Length )
 		{
@@ -222,6 +222,6 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		Array.Copy( Samples, writer.Samples, Samples.Length );
 
-		return writer.WriteAsync( new Sdf3DArrayData( writer.Samples, Margin, ArraySize ), volume, token );
+		return writer.WriteAsync( new Sdf3DArrayData( writer.Samples, Margin, ArraySize ), volume );
 	}
 }

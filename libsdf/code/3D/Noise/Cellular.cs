@@ -19,9 +19,9 @@ namespace Sandbox.Sdf.Noise
 			{
 				var localPos = pos * InvCellSize;
 				var cell = (
-					X: (int)Math.Floor( localPos.x ),
-					Y: (int)Math.Floor( localPos.y ),
-					Z: (int)Math.Floor( localPos.z ));
+					X: (int)MathF.Floor( localPos.x ),
+					Y: (int)MathF.Floor( localPos.y ),
+					Z: (int)MathF.Floor( localPos.z ));
 
 				var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * CellSize;
 				var cellLocalPos = pos - cellPos;
@@ -42,6 +42,8 @@ namespace Sandbox.Sdf.Noise
 
 		Vector3 GetFeature( int x, int y, int z )
 		{
+			var temp = PointOffsets;
+
 			var hashX = HashCode.Combine( Seed, x, y, z );
 			var hashY = HashCode.Combine( z, Seed, x, y );
 			var hashZ = HashCode.Combine( y, z, Seed, x );
@@ -97,9 +99,9 @@ namespace Sandbox.Sdf.Noise
 							var pos = transform.PointToWorld( new Vector3( x, y, z ) );
 							var localPos = pos * InvCellSize;
 							var cell = (
-								X: (int) Math.Floor( localPos.x ),
-								Y: (int) Math.Floor( localPos.y ),
-								Z: (int) Math.Floor( localPos.z ));
+								X: (int) MathF.Floor( localPos.x ),
+								Y: (int) MathF.Floor( localPos.y ),
+								Z: (int) MathF.Floor( localPos.z ));
 
 							var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * CellSize;
 							var cellLocalPos = pos - cellPos;

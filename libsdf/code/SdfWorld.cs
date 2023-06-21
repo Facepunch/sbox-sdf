@@ -73,14 +73,6 @@ public interface ISdf<T>
 	}
 }
 
-internal enum MainThreadTask
-{
-	PostModification,
-	UpdateRenderMeshes,
-	UpdateCollisionMesh,
-	UpdateLayerTexture
-}
-
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
 /// signed distance fields.
@@ -132,11 +124,16 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		IsDestroying = true;
 	}
 
-	private record struct Layer( Dictionary<TChunkKey, TChunk> Chunks );
+	private class Layer
+	{
+		public Dictionary<TChunkKey, TChunk> Chunks { get; } = new();
+		public HashSet<TChunk> NeedsMeshUpdate { get; } = new();
+		public Task UpdateMeshTask { get; set; } = System.Threading.Tasks.Task.CompletedTask;
+	}
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
 
-	private Dictionary<MainThreadTask, Dictionary<TChunk, (Action Action, TaskCompletionSource Tcs)>> MainThreadTasks { get; } = new();
+	private Task<bool> _lastModificationTask = System.Threading.Tasks.Task.FromResult( false );
 
 	[GameEvent.Tick.Server]
 	private void ServerTick()
@@ -145,20 +142,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			SendModifications( client );
 		}
-	}
-
-	[GameEvent.Tick]
-	private void Tick()
-	{
-		RunMainThreadTasks( MainThreadTask.PostModification, TimeSpan.FromMilliseconds( 1d ) );
-		RunMainThreadTasks( MainThreadTask.UpdateCollisionMesh, TimeSpan.FromMilliseconds( 1d ) );
-	}
-
-	[GameEvent.PreRender]
-	private void ClientPreRender()
-	{
-		RunMainThreadTasks( MainThreadTask.UpdateRenderMeshes, TimeSpan.FromMilliseconds( 1d ) );
-		RunMainThreadTasks( MainThreadTask.UpdateLayerTexture, TimeSpan.FromMilliseconds( 1d ) );
 	}
 
 	private void SendModifications( IClient client )
@@ -254,28 +237,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// Removes all layers / volumes, making this equivalent to a brand new empty world.
 	/// </summary>
-	public void Clear()
+	public Task ClearAsync()
 	{
-		AssertCanModify();
-
-		foreach ( var layer in Layers.Values )
-			foreach ( var chunk in layer.Chunks.Values )
-				chunk.Dispose();
-
-		Layers.Clear();
+		throw new NotImplementedException();
 	}
 
 	/// <summary>
 	/// Removes the given layer or volume.
 	/// </summary>
 	/// <param name="resource">Layer or volume to clear</param>
-	public void Clear( TResource resource )
+	public Task ClearAsync( TResource resource )
 	{
-		AssertCanModify();
-
-		if ( Layers.Remove( resource, out var layerData ) )
-			foreach ( var chunk in layerData.Chunks.Values )
-				chunk.Dispose();
+		throw new NotImplementedException();
 	}
 
 	/// <summary>
@@ -351,7 +324,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		if ( !Layers.TryGetValue( resource, out var layerData ) )
 		{
-			layerData = new Layer( new Dictionary<TChunkKey, TChunk>() );
+			layerData = new Layer();
 			Layers.Add( resource, layerData );
 		}
 
@@ -418,7 +391,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
-		ThreadSafe.AssertIsMainThread();
 		AssertCanModify();
 
 		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
@@ -429,7 +401,19 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return false;
 		}
 
-		var tasks = new List<Task<bool>>();
+		await Task.MainThread();
+
+		_lastModificationTask = ModifyChunksAsyncImpl( sdf, resource, createChunks, func );
+		return await _lastModificationTask;
+	}
+
+	private async Task<bool> ModifyChunksAsyncImpl<T>( T sdf, TResource resource, bool createChunks,
+		Func<TChunk, T, Task<bool>> func )
+		where T : TSdf
+	{
+		await _lastModificationTask;
+
+		var tasks = new List<(TChunk Chunk, Task<bool> Task)>();
 
 		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
 		{
@@ -439,127 +423,56 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 			if ( chunk == null ) continue;
 
-			tasks.Add( func( chunk, sdf ) );
+			tasks.Add( (chunk, func( chunk, sdf )) );
 		}
 
-		var result = await GameTask.WhenAll( tasks );
+		var result = await GameTask.WhenAll( tasks.Select( x => x.Task ) );
+		var modified = result.Any( x => x );
 
-		return result.Any( x => x );
+		await Task.MainThread();
+
+		if ( Layers.TryGetValue( resource, out var layer ) )
+		{
+			for ( var i = 0; i < tasks.Count; ++i )
+			{
+				if ( result[i] )
+				{
+					layer.NeedsMeshUpdate.Add( tasks[i].Chunk );
+				}
+			}
+
+			DispatchUpdateMesh( layer );
+		}
+
+		return modified;
 	}
 
-	// ReSharper disable StaticMemberInGenericType
-#pragma warning disable SB3000
-	private static List<Vector3> TempPlayerPositions { get; } = new List<Vector3>();
-	private static List<(TChunk Chunk, float Distance)> TempChunkDistances { get; } = new List<(TChunk Chunk, float Distance)>();
-#pragma warning restore SB3000
-	// ReSharper enable StaticMemberInGenericType
-
-	private void RunMainThreadTasks( MainThreadTask task, TimeSpan? timeout = null )
+	private void DispatchUpdateMesh( Layer layer )
 	{
-		if ( !MainThreadTasks.TryGetValue( task, out var tasks ) || tasks.Count == 0 )
+		ThreadSafe.AssertIsMainThread();
+
+		if ( layer.NeedsMeshUpdate.Count == 0 )
 		{
 			return;
 		}
 
-		var sw = Stopwatch.StartNew();
-
-		TempPlayerPositions.Clear();
-		TempChunkDistances.Clear();
-
-		if ( Game.IsClient )
+		if ( layer.UpdateMeshTask.IsCompleted )
 		{
-			if ( Game.LocalPawn is { } pawn )
-			{
-				TempPlayerPositions.Add( pawn.Position );
-			}
+			layer.UpdateMeshTask = UpdateMesh( layer );
 		}
-		else
-		{
-			foreach ( var client in Game.Clients )
-			{
-				if ( client.Pawn is { } pawn )
-				{
-					TempPlayerPositions.Add( pawn.Position );
-				}
-			}
-		}
-
-		lock ( MainThreadTasks )
-		{
-			TempChunkDistances.AddRange( tasks.Keys.Select( x => (x, Random.Shared.NextSingle()) ) );
-		}
-
-		if ( TempPlayerPositions.Count > 0 )
-		{
-			for ( var i = 0; i < TempChunkDistances.Count; i++ )
-			{
-				var chunk = TempChunkDistances[i].Chunk;
-				var chunkPos = Transform.PointToWorld( chunk.LocalPosition + chunk.Resource.Quality.ChunkSize * 0.5f );
-				var bestDist2 = float.PositiveInfinity;
-
-				foreach ( var pos in TempPlayerPositions )
-				{
-					var dist2 = (pos - chunkPos).LengthSquared;
-
-					if ( dist2 < bestDist2 )
-					{
-						bestDist2 = dist2;
-					}
-				}
-
-				TempChunkDistances[i] = (chunk, bestDist2);
-			}
-		}
-
-		TempChunkDistances.Sort( ( a, b ) => b.Distance.CompareTo( a.Distance ) );
-
-		do
-		{
-			(Action Action, TaskCompletionSource Tcs) taskInfo;
-
-			var key = TempChunkDistances[^1].Chunk;
-			TempChunkDistances.RemoveAt( TempChunkDistances.Count - 1 );
-
-			lock ( MainThreadTasks )
-			{
-				if ( !tasks.Remove( key, out taskInfo ) )
-				{
-					continue;
-				}
-			}
-
-			try
-			{
-				taskInfo.Action();
-				taskInfo.Tcs.SetResult();
-			}
-			catch ( Exception e )
-			{
-				taskInfo.Tcs.SetException( e );
-			}
-		} while ( (timeout == null || sw.Elapsed < timeout) && TempChunkDistances.Count > 0 );
 	}
 
-	internal Task RunInMainThread( TChunk chunk, MainThreadTask task, Action action )
+	private async Task UpdateMesh( Layer layer )
 	{
-		var tcs = new TaskCompletionSource();
+		ThreadSafe.AssertIsMainThread();
 
-		lock ( MainThreadTasks )
-		{
-			if ( !MainThreadTasks.TryGetValue( task, out var tasks ) )
-			{
-				tasks = new Dictionary<TChunk, (Action Action, TaskCompletionSource Tcs)>();
-				MainThreadTasks.Add( task, tasks );
-			}
+		var tasks = layer.NeedsMeshUpdate.Select( x => x.UpdateMesh() ).ToArray();
 
-			if ( tasks.TryGetValue( chunk, out var prev ) )
-			{
-				prev.Tcs.SetCanceled();
-			}
+		layer.NeedsMeshUpdate.Clear();
 
-			tasks[chunk] = (action, tcs);
-		}
+		await Task.WhenAll( tasks );
+		await Task.MainThread();
 
-		return tcs.Task;
+		DispatchUpdateMesh( layer );
 	}
 }

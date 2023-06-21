@@ -17,6 +17,35 @@ internal static class Static
 		.WithFormat( ImageFormat.I8 )
 		.WithData( new byte[] { 255 } )
 		.Finish();
+
+	private const int MaxPooledMeshes = 256;
+
+	private static List<Mesh> _sMeshPool { get; } = new();
+
+	public static Mesh RentMesh( Material mat )
+	{
+		if ( _sMeshPool.Count == 0 )
+		{
+			return new Mesh( mat );
+		}
+
+		var last = _sMeshPool[^1];
+		_sMeshPool.RemoveAt( _sMeshPool.Count - 1 );
+
+		last.Material = mat;
+
+		return last;
+	}
+
+	public static void ReturnMesh( Mesh mesh )
+	{
+		if ( _sMeshPool.Count >= MaxPooledMeshes )
+		{
+			return;
+		}
+
+		_sMeshPool.Add( mesh );
+	}
 }
 
 /// <summary>
@@ -72,10 +101,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	private int _lastModificationCount;
 	private readonly List<Mesh> _usedMeshes = new();
 
-	private Task _updateMeshTask = System.Threading.Tasks.Task.CompletedTask;
-	private CancellationTokenSource _updateMeshCancellationSource;
-	private Task<bool> _lastModification;
-
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
 		World = world;
@@ -109,22 +134,9 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		SceneObject = null;
 	}
 
-	private async Task<bool> ModifyAsync( Func<bool> func )
+	private Task<bool> ModifyAsync( Func<bool> func )
 	{
-		ThreadSafe.AssertIsMainThread();
-
-		if ( _lastModification != null )
-		{
-			await _lastModification;
-		}
-
-		_lastModification = GameTask.RunInThreadAsync( func );
-
-		var result = await _lastModification;
-
-		_ = RunInMainThread( MainThreadTask.PostModification, PostModification );
-
-		return result;
+		return GameTask.RunInThreadAsync( func );
 	}
 
 	/// <summary>
@@ -182,54 +194,18 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected abstract bool OnSubtract<T>( in T sdf )
 		where T : TSdf;
 
-	private void PostModification()
+	internal async Task UpdateMesh()
 	{
-		ThreadSafe.AssertIsMainThread();
+		await OnUpdateMeshAsync();
 
-		if ( Data == null || World == null || !_updateMeshTask.IsCompleted ) return;
+		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
-		var modificationCount = Data.ModificationCount;
+		await GameTask.MainThread();
 
-		if ( modificationCount == _lastModificationCount ) return;
-		_lastModificationCount = modificationCount;
-
-		World.ChunkMeshUpdated( (TChunk) this, false );
-
-		if ( Resource.IsTextureSourceOnly ) return;
-
-		_updateMeshCancellationSource?.Cancel();
-		_updateMeshCancellationSource = new CancellationTokenSource();
-
-		_updateMeshTask = UpdateMeshTaskWrapper( _updateMeshCancellationSource.Token );
-	}
-
-	private async Task UpdateMeshTaskWrapper( CancellationToken token )
-	{
-		try
+		foreach ( var reference in Resource.ReferencedTextures )
 		{
-			token.ThrowIfCancellationRequested();
-
-			await OnUpdateMeshAsync( token );
-
-			token.ThrowIfCancellationRequested();
-
-			if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
-
-			await RunInMainThread( MainThreadTask.UpdateLayerTexture, () =>
-			{
-				foreach ( var reference in Resource.ReferencedTextures )
-				{
-					var matching = World.GetChunk( reference.Source, Key );
-					UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
-				}
-			} );
-		}
-		finally
-		{
-			if ( Data.ModificationCount != _lastModificationCount )
-			{
-				_ = RunInMainThread( MainThreadTask.PostModification, PostModification );
-			}
+			var matching = World.GetChunk( reference.Source, Key );
+			UpdateLayerTexture( reference.TargetAttribute, reference.Source, matching );
 		}
 	}
 
@@ -288,19 +264,23 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// </summary>
 	/// <param name="token">Token to cancel outdated mesh updates</param>
 	/// <returns>Task that completes when the meshes have finished updating.</returns>
-	protected abstract Task OnUpdateMeshAsync( CancellationToken token );
+	protected abstract Task OnUpdateMeshAsync();
 
 	/// <summary>
 	/// Asynchronously updates the collision shape to the defined mesh.
 	/// </summary>
 	/// <param name="vertices">Collision mesh vertices</param>
 	/// <param name="indices">Collision mesh indices</param>
-	protected Task UpdateCollisionMeshAsync( List<Vector3> vertices, List<int> indices )
+	protected async Task UpdateCollisionMeshAsync( List<Vector3> vertices, List<int> indices )
 	{
-		return RunInMainThread( MainThreadTask.UpdateCollisionMesh, () =>
-		{
-			UpdateCollisionMesh( vertices, indices );
-		} );
+		await GameTask.MainThread();
+		UpdateCollisionMesh( vertices, indices );
+	}
+
+	protected async Task UpdateRenderMeshesAsync( params MeshDescription[] meshes )
+	{
+		await GameTask.MainThread();
+		UpdateRenderMeshes( meshes );
 	}
 
 	/// <summary>
@@ -338,41 +318,45 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// Updates this chunk's model to use the given set of meshes. Must be called on the main thread.
 	/// </summary>
 	/// <param name="meshes">Set of meshes this model should use</param>
-	protected void UpdateRenderMeshes( params Mesh[] meshes )
+	private void UpdateRenderMeshes( params MeshDescription[] meshes )
 	{
+		meshes = meshes.Where( x => x.Material != null && !x.Writer.IsEmpty ).ToArray();
+
 		ThreadSafe.AssertIsMainThread();
 
-		var anyChanges = false;
+		var meshCountChanged = meshes.Length != _usedMeshes.Count;
 
-		foreach ( var mesh in meshes )
+		if ( meshCountChanged )
 		{
-			if ( mesh == null || mesh.IndexCount == 0 || _usedMeshes.Contains( mesh ) )
+			foreach ( var mesh in _usedMeshes )
 			{
-				continue;
+				Static.ReturnMesh( mesh );
 			}
 
-			anyChanges = true;
-			break;
-		}
+			_usedMeshes.Clear();
 
-		foreach ( var mesh in _usedMeshes )
-		{
-			if ( mesh.IndexCount > 0 && Array.IndexOf( meshes, mesh ) != -1 )
+			foreach ( var mesh in meshes )
 			{
-				continue;
+				_usedMeshes.Add( Static.RentMesh( mesh.Material ) );
 			}
-
-			anyChanges = true;
-			break;
+		}
+		else
+		{
+			for ( var i = 0; i < meshes.Length; ++i )
+			{
+				_usedMeshes[i].Material = meshes[i].Material;
+			}
 		}
 
-		if ( !anyChanges )
+		for ( var i = 0; i < meshes.Length; ++i )
+		{
+			meshes[i].Writer.ApplyTo( _usedMeshes[i] );
+		}
+
+		if ( !meshCountChanged )
 		{
 			return;
 		}
-
-		_usedMeshes.Clear();
-		_usedMeshes.AddRange( meshes.Where( x => x is { IndexCount: > 0 } ) );
 
 		if ( _usedMeshes.Count == 0 )
 		{
@@ -397,10 +381,5 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			SceneObject.Model = model;
 		}
-	}
-
-	internal Task RunInMainThread( MainThreadTask task, Action action )
-	{
-		return World.RunInMainThread( (TChunk) this, task, action );
 	}
 }

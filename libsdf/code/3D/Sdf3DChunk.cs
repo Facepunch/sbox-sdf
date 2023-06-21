@@ -18,11 +18,6 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		}
 	}
 
-	/// <summary>
-	/// Render mesh used by this chunk.
-	/// </summary>
-	public Mesh Mesh { get; set; }
-
 	private TranslatedSdf3D<T> ToLocal<T>( in T sdf )
 		where T : ISdf3D
 	{
@@ -42,7 +37,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	}
 
 	/// <inheritdoc />
-	protected override async Task OnUpdateMeshAsync( CancellationToken token )
+	protected override async Task OnUpdateMeshAsync()
 	{
 		var enableRenderMesh = !Game.IsServer && Resource.Material != null;
 		var enableCollisionMesh = Resource.HasCollision;
@@ -56,26 +51,15 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 		try
 		{
-			await Data.WriteToAsync( writer, Resource, token );
-
-			token.ThrowIfCancellationRequested();
+			await Data.WriteToAsync( writer, Resource );
 
 			var renderTask = Task.CompletedTask;
 			var collisionTask = Task.CompletedTask;
 
 			if ( enableRenderMesh )
 			{
-				renderTask = RunInMainThread( MainThreadTask.UpdateRenderMeshes, () =>
-				{
-					Mesh = Resource.Material != null && writer.Indices.Count > 0 ? Mesh ?? new Mesh( Resource.Material ) : null;
-
-					writer.ApplyTo( Mesh );
-
-					UpdateRenderMeshes( Mesh );
-				} );
+				renderTask = UpdateRenderMeshesAsync( new MeshDescription( writer, Resource.Material ) );
 			}
-
-			token.ThrowIfCancellationRequested();
 
 			if ( enableCollisionMesh )
 			{
@@ -89,8 +73,6 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 					{
 						vertices[i] += offset;
 					}
-
-					token.ThrowIfCancellationRequested();
 
 					await UpdateCollisionMeshAsync( writer.VertexPositions, writer.Indices );
 				} );

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
-internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
+internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>, IMeshWriter
 {
 	private ConcurrentQueue<Triangle> Triangles { get; } = new ConcurrentQueue<Triangle>();
 	private Dictionary<VertexKey, int> VertexMap { get; } = new Dictionary<VertexKey, int>();
@@ -14,6 +14,8 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 	public List<Vertex> Vertices { get; } = new List<Vertex>();
 	public List<Vector3> VertexPositions { get; } = new List<Vector3>();
 	public List<int> Indices { get; } = new List<int>();
+
+	public bool IsEmpty => Indices.Count == 0;
 
 	public byte[] Samples { get; set; }
 
@@ -37,7 +39,7 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 				AddTriangles( in data, x, y, z );
 	}
 
-	public async Task WriteAsync( Sdf3DArrayData data, Sdf3DVolume volume, CancellationToken token )
+	public async Task WriteAsync( Sdf3DArrayData data, Sdf3DVolume volume )
 	{
 		Triangles.Clear();
 		VertexMap.Clear();
@@ -55,15 +57,11 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 
 			tasks.Add( GameTask.RunInThreadAsync( () =>
 			{
-				token.ThrowIfCancellationRequested();
-
 				WriteSlice( data, volume, zCopy );
 			} ) );
 		}
 
 		await GameTask.WhenAll( tasks );
-
-		token.ThrowIfCancellationRequested();
 
 		await GameTask.RunInThreadAsync( () =>
 		{
@@ -76,8 +74,6 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>
 				Indices.Add( AddVertex( data, triangle.V2, unitSize ) );
 			}
 		} );
-
-		token.ThrowIfCancellationRequested();
 
 		await GameTask.RunInThreadAsync( () =>
 		{

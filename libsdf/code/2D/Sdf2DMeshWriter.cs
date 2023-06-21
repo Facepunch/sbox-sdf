@@ -5,7 +5,7 @@ namespace Sandbox.Sdf;
 
 partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 {
-	private abstract class SubMesh<T>
+	private abstract class SubMesh<T> : IMeshWriter
 		where T : unmanaged
 	{
 		public List<T> Vertices { get; } = new();
@@ -15,7 +15,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		public abstract void ClearMap();
 
-		protected static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
+		internal static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
 		{
 			switch ( key.Vertex )
 			{
@@ -50,6 +50,8 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			Vertices.Clear();
 			Indices.Clear();
 		}
+
+		public bool IsEmpty => Indices.Count == 0;
 
 		public void ApplyTo( Mesh mesh )
 		{
@@ -276,6 +278,10 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 	private FrontBackSubMesh Front { get; } = new();
 	private FrontBackSubMesh Back { get; } = new();
 	private CutSubMesh Cut { get; } = new();
+
+	public IMeshWriter FrontWriter => Front;
+	public IMeshWriter BackWriter => Back;
+	public IMeshWriter CutWriter => Cut;
 
 	private List<SolidBlock> SolidBlocks { get; } = new();
 
@@ -635,20 +641,6 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 	public bool HasFrontFaces => Front.Indices.Count > 0;
 	public bool HasBackFaces => Back.Indices.Count > 0;
 	public bool HasCutFaces => Cut.Indices.Count > 0;
-
-	public void ApplyTo( Mesh front, Mesh back, Mesh cut )
-	{
-		ThreadSafe.AssertIsMainThread();
-
-		if ( Front.Indices.Count > 0 )
-		{
-			if ( front != null ) Front.ApplyTo( front );
-
-			if ( back != null ) Back.ApplyTo( back );
-		}
-
-		if ( Cut.Indices.Count > 0 && Cut != null ) Cut.ApplyTo( cut );
-	}
 
 	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
 }
