@@ -144,6 +144,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	[GameEvent.Tick]
+	private void Tick()
+	{
+		foreach ( var layer in Layers.Values )
+		{
+			if ( layer.NeedsMeshUpdate.Count > 0 && layer.UpdateMeshTask.IsCompleted )
+			{
+				DispatchUpdateMesh( layer );
+			}
+		}
+	}
+
 	private void SendModifications( IClient client )
 	{
 		if ( !ClientModificationCounts.TryGetValue( client, out var modified ) )
@@ -471,8 +483,5 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		layer.NeedsMeshUpdate.Clear();
 
 		await Task.WhenAll( tasks );
-		await Task.MainThread();
-
-		DispatchUpdateMesh( layer );
 	}
 }
