@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Sandbox.Sdf.Noise;
 using Sandbox.UI;
 
@@ -31,18 +32,23 @@ namespace Sandbox.Sdf
 		/// <param name="transform">Transformation to apply to the SDF.</param>
 		/// <param name="output">Array to write signed distance values to.</param>
 		/// <param name="outputSize">Dimensions of the <paramref name="output"/> array.</param>
-		public void SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		public Task SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			for ( var z = 0; z < outputSize.Z; ++z )
+			return GameTask.RunInThreadAsync( () =>
 			{
-				for ( var y = 0; y < outputSize.Y; ++y )
+				for ( var z = 0; z < outputSize.Z; ++z )
 				{
-					for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
+					for ( var y = 0; y < outputSize.Y; ++y )
 					{
-						output[index] = this[transform.PointToWorld( new Vector3( x, y, z ) )];
+						for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
+						{
+							output[index] = this[transform.PointToWorld( new Vector3( x, y, z ) )];
+						}
 					}
 				}
-			}
+			} );
+		}
+	}
 		}
 	}
 
@@ -311,9 +317,9 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[Transform.PointToLocal( pos )] * InverseScale;
 
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( Transform.ToLocal( transform ), output, outputSize );
+			return Sdf.SampleRangeAsync( Transform.ToLocal( transform ), output, outputSize );
 		}
 
 		public void WriteRaw( NetWrite writer )
@@ -351,9 +357,9 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos - Offset];
 
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( new Transform( Offset ).ToLocal( transform ), output, outputSize );
+			return Sdf.SampleRangeAsync( new Transform( Offset ).ToLocal( transform ), output, outputSize );
 		}
 
 		public void WriteRaw( NetWrite writer )
@@ -385,9 +391,9 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] - Margin;
 
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( in transform, output, outputSize );
+			await Sdf.SampleRangeAsync( transform, output, outputSize );
 
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 
@@ -430,16 +436,16 @@ namespace Sandbox.Sdf
 
 		}
 
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf1.SampleRange( in transform, output, outputSize );
-
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
 
 			try
 			{
-				Sdf2.SampleRange( in transform, temp, outputSize );
+				await GameTask.WhenAll(
+					Sdf1.SampleRangeAsync( transform, output, outputSize ),
+					Sdf2.SampleRangeAsync( transform, temp, outputSize ) );
 
 				for ( var i = 0; i < sampleCount; ++i )
 				{
@@ -479,16 +485,16 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => Sdf[pos] + BiasSdf[pos] * BiasScale;
 
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			Sdf.SampleRange( in transform, output, outputSize );
-
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
 
 			try
 			{
-				BiasSdf.SampleRange( in transform, temp, outputSize );
+				await GameTask.WhenAll(
+					Sdf.SampleRangeAsync( transform, output, outputSize ),
+					BiasSdf.SampleRangeAsync( transform, temp, outputSize ) );
 
 				for ( var i = 0; i < sampleCount; ++i )
 				{

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf.Noise
 {
@@ -42,8 +43,6 @@ namespace Sandbox.Sdf.Noise
 
 		Vector3 GetFeature( int x, int y, int z )
 		{
-			var temp = PointOffsets;
-
 			var hashX = HashCode.Combine( Seed, x, y, z );
 			var hashY = HashCode.Combine( z, Seed, x, y );
 			var hashZ = HashCode.Combine( y, z, Seed, x );
@@ -54,7 +53,7 @@ namespace Sandbox.Sdf.Noise
 		private static (int X, int Y, int Z)[] PointOffsets { get; } = Enumerable.Range( -1, 3 ).SelectMany( z =>
 			Enumerable.Range( -1, 3 ).SelectMany( y => Enumerable.Range( -1, 3 ).Select( x => (x, y, z) ) ) ).ToArray();
 		
-		void ISdf3D.SampleRange( in Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			var localBounds = new BBox( 0f, new Vector3( outputSize.X, outputSize.Y, outputSize.Z ) );
 			var bounds = localBounds.Transform( transform );
@@ -90,42 +89,53 @@ namespace Sandbox.Sdf.Noise
 					}
 				}
 
-				for ( var z = 0; z < outputSize.Z; ++z )
+				var cellSize = CellSize;
+				var invCellSize = InvCellSize;
+				var distanceOffset = DistanceOffset;
+
+				await GameTask.RunInThreadAsync( () =>
 				{
-					for ( var y = 0; y < outputSize.Y; ++y )
+					for ( var z = 0; z < outputSize.Z; ++z )
 					{
-						for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
+						for ( var y = 0; y < outputSize.Y; ++y )
 						{
-							var pos = transform.PointToWorld( new Vector3( x, y, z ) );
-							var localPos = pos * InvCellSize;
-							var cell = (
-								X: (int) MathF.Floor( localPos.x ),
-								Y: (int) MathF.Floor( localPos.y ),
-								Z: (int) MathF.Floor( localPos.z ));
-
-							var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * CellSize;
-							var cellLocalPos = pos - cellPos;
-
-							var minDistSq = float.PositiveInfinity;
-
-							foreach ( var offset in PointOffsets )
+							for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X;
+							     x < outputSize.X;
+							     ++x, ++index )
 							{
-								var featureCell = (
-									X: cell.X + offset.X - cellMin.X,
-									Y: cell.Y + offset.Y - cellMin.Y,
-									Z: cell.Z + offset.Z - cellMin.Z);
-								var featureIndex = featureCell.X + featureCell.Y * cellCounts.X + featureCell.Z * cellCounts.X * cellCounts.Y;
+								var pos = transform.PointToWorld( new Vector3( x, y, z ) );
+								var localPos = pos * invCellSize;
+								var cell = (
+									X: (int)MathF.Floor( localPos.x ),
+									Y: (int)MathF.Floor( localPos.y ),
+									Z: (int)MathF.Floor( localPos.z ));
 
-								var feature = features[featureIndex] + new Vector3( offset.X, offset.Y, offset.Z ) * CellSize;
-								var distSq = (feature - cellLocalPos).LengthSquared;
+								var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * cellSize;
+								var cellLocalPos = pos - cellPos;
 
-								minDistSq = Math.Min( minDistSq, distSq );
+								var minDistSq = float.PositiveInfinity;
+
+								foreach ( var offset in PointOffsets )
+								{
+									var featureCell = (
+										X: cell.X + offset.X - cellMin.X,
+										Y: cell.Y + offset.Y - cellMin.Y,
+										Z: cell.Z + offset.Z - cellMin.Z);
+									var featureIndex = featureCell.X + featureCell.Y * cellCounts.X +
+									                   featureCell.Z * cellCounts.X * cellCounts.Y;
+
+									var feature = features[featureIndex] +
+									              new Vector3( offset.X, offset.Y, offset.Z ) * cellSize;
+									var distSq = (feature - cellLocalPos).LengthSquared;
+
+									minDistSq = Math.Min( minDistSq, distSq );
+								}
+
+								output[index] = MathF.Sqrt( minDistSq ) - distanceOffset;
 							}
-
-							output[index] = MathF.Sqrt( minDistSq ) - DistanceOffset;
 						}
 					}
-				}
+				} );
 			}
 			finally
 			{

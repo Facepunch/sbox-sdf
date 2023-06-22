@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -142,7 +143,7 @@ public abstract partial class SdfArray<TSdf>
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to add</param>
 	/// <returns>True if any geometry was modified</returns>
-	public abstract bool Add<T>( in T sdf )
+	public abstract Task<bool> AddAsync<T>( T sdf )
 		where T : TSdf;
 
 	/// <summary>
@@ -151,7 +152,7 @@ public abstract partial class SdfArray<TSdf>
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public abstract bool Subtract<T>( in T sdf )
+	public abstract Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf;
 
 	internal void Init( WorldQuality quality )

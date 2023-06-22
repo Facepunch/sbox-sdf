@@ -108,44 +108,50 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	}
 
 	/// <inheritdoc />
-	public override bool Add<T>( in T sdf )
+	public override async Task<bool> AddAsync<T>( T sdf )
 	{
 		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
-		var changed = false;
-
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
+
+		bool changed;
 
 		try
 		{
-			sdf.SampleRange( transform, samples, size );
-
-			for ( var z = min.Z; z < max.Z; ++z )
+			await sdf.SampleRangeAsync( transform, samples, size );
+			changed = await GameTask.RunInThreadAsync( () =>
 			{
-				for ( var y = min.Y; y < max.Y; ++y )
+				var changed = false;
+
+				for ( var z = min.Z; z < max.Z; ++z )
 				{
-					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
-
-					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+					for ( var y = min.Y; y < max.Y; ++y )
 					{
-						var sampled = samples[srcIndex];
+						var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+						var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
 
-						if ( sampled >= maxDist ) continue;
+						for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+						{
+							var sampled = samples[srcIndex];
 
-						var encoded = Encode( sampled );
+							if ( sampled >= maxDist ) continue;
 
-						var oldValue = Samples[dstIndex];
-						var newValue = Math.Min( encoded, oldValue );
+							var encoded = Encode( sampled );
 
-						Samples[dstIndex] = newValue;
+							var oldValue = Samples[dstIndex];
+							var newValue = Math.Min( encoded, oldValue );
 
-						changed |= oldValue != newValue;
+							Samples[dstIndex] = newValue;
+
+							changed |= oldValue != newValue;
+						}
 					}
 				}
-			}
+
+				return changed;
+			} );
 		}
 		finally
 		{
@@ -161,44 +167,50 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	}
 
 	/// <inheritdoc />
-	public override bool Subtract<T>( in T sdf )
+	public override async Task<bool> SubtractAsync<T>( T sdf )
 	{
 		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
 		var maxDist = Quality.MaxDistance;
 
-		var changed = false;
-
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
+
+		bool changed;
 
 		try
 		{
-			sdf.SampleRange( transform, samples, size );
-
-			for ( var z = min.Z; z < max.Z; ++z )
+			await sdf.SampleRangeAsync( transform, samples, size );
+			changed = await GameTask.RunInThreadAsync( () =>
 			{
-				for ( var y = min.Y; y < max.Y; ++y )
+				var changed = false;
+
+				for ( var z = min.Z; z < max.Z; ++z )
 				{
-					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
-
-					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+					for ( var y = min.Y; y < max.Y; ++y )
 					{
-						var sampled = samples[srcIndex];
+						var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+						var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
 
-						if ( sampled >= maxDist ) continue;
+						for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+						{
+							var sampled = samples[srcIndex];
 
-						var encoded = Encode( sampled );
+							if ( sampled >= maxDist ) continue;
 
-						var oldValue = Samples[dstIndex];
-						var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
+							var encoded = Encode( sampled );
 
-						Samples[dstIndex] = newValue;
+							var oldValue = Samples[dstIndex];
+							var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
-						changed |= oldValue != newValue;
+							Samples[dstIndex] = newValue;
+
+							changed |= oldValue != newValue;
+						}
 					}
 				}
-			}
+
+				return changed;
+			} );
 		}
 		finally
 		{

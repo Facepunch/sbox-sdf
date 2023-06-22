@@ -25,15 +25,15 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	}
 
 	/// <inheritdoc />
-	protected override bool OnAdd<T>( in T sdf )
+	public override Task<bool> AddAsync<T>( T sdf )
 	{
-		return Data.Add( ToLocal( sdf ) );
+		return Data.AddAsync( ToLocal( sdf ) );
 	}
 
 	/// <inheritdoc />
-	protected override bool OnSubtract<T>( in T sdf )
+	public override Task<bool> SubtractAsync<T>( T sdf )
 	{
-		return Data.Subtract( ToLocal( sdf ) );
+		return Data.SubtractAsync( ToLocal( sdf ) );
 	}
 
 	/// <inheritdoc />

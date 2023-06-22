@@ -115,7 +115,7 @@ partial class Sdf2DMeshWriter
 		}
 	}
 	
-	private record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
+	private readonly record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
 	{
 		public (FrontBackTriangle Tri0, FrontBackTriangle Tri1) Triangles
 		{

@@ -134,22 +134,14 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		SceneObject = null;
 	}
 
-	private Task<bool> ModifyAsync( Func<bool> func )
-	{
-		return GameTask.RunInThreadAsync( func );
-	}
-
 	/// <summary>
 	/// Sets every sample in this chunk's SDF to solid or empty.
 	/// </summary>
 	/// <param name="solid">Solidity to set each sample to.</param>
 	public Task ClearAsync( bool solid )
 	{
-		return ModifyAsync( () =>
-		{
-			Data.Clear( solid );
-			return true;
-		} );
+		Data.Clear( solid );
+		return Task.CompletedTask;
 	}
 
 	/// <summary>
@@ -158,19 +150,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to add</param>
 	/// <returns>True if any geometry was modified</returns>
-	public Task<bool> AddAsync<T>( T sdf )
-		where T : TSdf
-	{
-		return ModifyAsync( () => OnAdd( sdf ) );
-	}
-
-	/// <summary>
-	/// Implements adding a world-space shape to this chunk.
-	/// </summary>
-	/// <typeparam name="T">SDF type</typeparam>
-	/// <param name="sdf">Shape to add</param>
-	/// <returns>True if any geometry was modified</returns>
-	protected abstract bool OnAdd<T>( in T sdf )
+	public abstract Task<bool> AddAsync<T>( T sdf )
 		where T : TSdf;
 
 	/// <summary>
@@ -179,19 +159,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public Task<bool> SubtractAsync<T>( T sdf )
-		where T : TSdf
-	{
-		return ModifyAsync( () => OnSubtract( sdf ) );
-	}
-
-	/// <summary>
-	/// Implements subtracting a world-space shape from this chunk.
-	/// </summary>
-	/// <typeparam name="T">SDF type</typeparam>
-	/// <param name="sdf">Shape to subtract</param>
-	/// <returns>True if any geometry was modified</returns>
-	protected abstract bool OnSubtract<T>( in T sdf )
+	public abstract Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf;
 
 	internal async Task UpdateMesh()

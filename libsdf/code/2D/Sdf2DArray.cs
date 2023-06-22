@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
@@ -46,34 +47,39 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 	}
 
 	/// <inheritdoc />
-	public override bool Add<T>( in T sdf )
+	public override async Task<bool> AddAsync<T>( T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;
 
-		var changed = false;
-
-		for ( var y = minY; y < maxY; ++y )
+		var changed = await GameTask.RunInThreadAsync( () =>
 		{
-			var worldY = (y - Margin) * UnitSize;
+			var changed = false;
 
-			for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
+			for ( var y = minY; y < maxY; ++y )
 			{
-				var worldX = (x - Margin) * UnitSize;
-				var sampled = sdf[new Vector2( worldX, worldY )];
+				var worldY = (y - Margin) * UnitSize;
 
-				if ( sampled >= maxDist ) continue;
+				for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
+				{
+					var worldX = (x - Margin) * UnitSize;
+					var sampled = sdf[new Vector2( worldX, worldY )];
 
-				var encoded = Encode( sampled );
+					if ( sampled >= maxDist ) continue;
 
-				var oldValue = Samples[index];
-				var newValue = Math.Min( encoded, oldValue );
+					var encoded = Encode( sampled );
 
-				Samples[index] = newValue;
+					var oldValue = Samples[index];
+					var newValue = Math.Min( encoded, oldValue );
 
-				changed |= oldValue != newValue;
+					Samples[index] = newValue;
+
+					changed |= oldValue != newValue;
+				}
 			}
-		}
+
+			return changed;
+		} );
 
 		if ( changed )
 		{
@@ -84,34 +90,39 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 	}
 
 	/// <inheritdoc />
-	public override bool Subtract<T>( in T sdf )
+	public override async Task<bool> SubtractAsync<T>( T sdf )
 	{
 		var (minX, minY, maxX, maxY) = GetSampleRange( sdf.Bounds );
 		var maxDist = Quality.MaxDistance;
 
-		var changed = false;
-
-		for ( var y = minY; y < maxY; ++y )
+		var changed = await GameTask.RunInThreadAsync( () =>
 		{
-			var worldY = (y - Margin) * UnitSize;
+			var changed = false;
 
-			for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
+			for ( var y = minY; y < maxY; ++y )
 			{
-				var worldX = (x - Margin) * UnitSize;
-				var sampled = sdf[new Vector2( worldX, worldY )];
+				var worldY = (y - Margin) * UnitSize;
 
-				if ( sampled >= maxDist ) continue;
+				for ( int x = minX, index = minX + y * ArraySize; x < maxX; ++x, ++index )
+				{
+					var worldX = (x - Margin) * UnitSize;
+					var sampled = sdf[new Vector2( worldX, worldY )];
 
-				var encoded = Encode( sampled );
+					if ( sampled >= maxDist ) continue;
 
-				var oldValue = Samples[index];
-				var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
+					var encoded = Encode( sampled );
 
-				Samples[index] = newValue;
+					var oldValue = Samples[index];
+					var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
-				changed |= oldValue != newValue;
+					Samples[index] = newValue;
+
+					changed |= oldValue != newValue;
+				}
 			}
-		}
+
+			return changed;
+		} );
 
 		if ( changed )
 		{
