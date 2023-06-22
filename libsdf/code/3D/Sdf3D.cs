@@ -50,6 +50,16 @@ namespace Sandbox.Sdf
 		}
 	}
 
+	public interface IComputeSdf3D<TSdf, TShader> : ISdf3D
+		where TSdf : IComputeSdf3D<TSdf, TShader>
+		where TShader : Sdf3DShader<TSdf, TShader>, new()
+	{
+		Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			return Sdf3DShader<TSdf, TShader>.RunAsync( (TSdf) this, transform, output, outputSize );
+		}
+	}
+
 	/// <summary>
 	/// Some extension methods for <see cref="ISdf3D"/>.
 	/// </summary>
@@ -194,8 +204,21 @@ namespace Sandbox.Sdf
 	/// </summary>
 	/// <param name="Center">Position of the center of the sphere</param>
 	/// <param name="Radius">Distance from the center to the surface of the sphere</param>
-	public record struct SphereSdf3D( Vector3 Center, float Radius ) : ISdf3D
+	public record struct SphereSdf3D( Vector3 Center, float Radius ) : IComputeSdf3D<SphereSdf3D, SphereSdf3D.Shader>
 	{
+		public class Shader : Sdf3DShader<SphereSdf3D, Shader>
+		{
+			public Shader() : base( "sdf_sphere_cs" ) { }
+
+			protected override Task OnInitializeAsync( SphereSdf3D sdf, Transform transform, (int X, int Y, int Z) outputSize )
+			{
+				Attributes.Set( "Center", sdf.Center );
+				Attributes.Set( "Radius", sdf.Radius );
+
+				return base.OnInitializeAsync( sdf, transform, outputSize );
+			}
+		}
+
 		/// <inheritdoc />
 		public BBox? Bounds => new( Center - Radius, Radius * 2f );
 
@@ -226,8 +249,22 @@ namespace Sandbox.Sdf
 	/// Internal helper vector for optimization.
 	/// Please use the other constructor instead of specifying this yourself.
 	/// </param>
-	public record struct CapsuleSdf3D( Vector3 PointA, Vector3 PointB, float Radius, Vector3 Along ) : ISdf3D
+	public record struct CapsuleSdf3D( Vector3 PointA, Vector3 PointB, float Radius, Vector3 Along ) : IComputeSdf3D<CapsuleSdf3D, CapsuleSdf3D.Shader>
 	{
+		public class Shader : Sdf3DShader<CapsuleSdf3D, Shader>
+		{
+			public Shader() : base( "sdf_capsule_cs" ) { }
+
+			protected override Task OnInitializeAsync( CapsuleSdf3D sdf, Transform transform, (int X, int Y, int Z) outputSize )
+			{
+				Attributes.Set( "PointA", sdf.PointA );
+				Attributes.Set( "PointA", sdf.PointB );
+				Attributes.Set( "Radius", sdf.Radius );
+
+				return base.OnInitializeAsync( sdf, transform, outputSize );
+			}
+		}
+
 		/// <summary>
 		/// Describes two spheres connected by a cylinder, all with a common radius.
 		/// </summary>
