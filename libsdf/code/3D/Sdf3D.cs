@@ -49,8 +49,6 @@ namespace Sandbox.Sdf
 			} );
 		}
 	}
-		}
-	}
 
 	/// <summary>
 	/// Some extension methods for <see cref="ISdf3D"/>.
