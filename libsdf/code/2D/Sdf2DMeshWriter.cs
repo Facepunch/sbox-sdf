@@ -285,6 +285,8 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 	private List<SolidBlock> SolidBlocks { get; } = new();
 
+	public byte[] Samples { get; set; }
+
 	public override void Clear()
 	{
 		SolidBlocks.Clear();
@@ -637,10 +639,6 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			}
 		}
 	}
-
-	public bool HasFrontFaces => Front.Indices.Count > 0;
-	public bool HasBackFaces => Back.Indices.Count > 0;
-	public bool HasCutFaces => Cut.Indices.Count > 0;
 
 	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh => (Collision.Vertices, Collision.Indices);
 }

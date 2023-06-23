@@ -134,7 +134,14 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 	internal void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
-		writer.Write( new Sdf2DArrayData( Samples, Margin * ArraySize + Margin, ArraySize ),
+		if ( writer.Samples == null || writer.Samples.Length < Samples.Length )
+		{
+			writer.Samples = new byte[Samples.Length];
+		}
+
+		Array.Copy( Samples, writer.Samples, Samples.Length );
+
+		writer.Write( new Sdf2DArrayData( writer.Samples, Margin * ArraySize + Margin, ArraySize ),
 			layer, renderMesh, collisionMesh );
 	}
 }
