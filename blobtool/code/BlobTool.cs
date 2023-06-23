@@ -10,6 +10,12 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
+		[ConCmd.Admin( "blobs_clear" )]
+		public static void ClearWorld()
+		{
+			_ = SdfWorld?.ClearAsync();
+		}
+
 		private static Sdf3DVolume _sDefaultVolume;
 		private static Sdf3DVolume _sCollisionVolume;
 		private static Sdf3DVolume _sScorchVolume;
@@ -21,6 +27,8 @@ namespace Sandbox.Sdf
 
 		public const float MinDistanceBetweenEdits = 4f;
 		public const float MaxEditDistance = 2048f;
+
+		private int _editSeed;
 
 		public Vector3? LastEditPos { get; set; }
 		private Task _lastEditTask = Task.CompletedTask;
@@ -98,6 +106,7 @@ namespace Sandbox.Sdf
 				}
 
 				EditRadius = (MathF.Sin( Time.Now * MathF.PI ) * 0.25f + 0.75f) * Math.Clamp( EditDistance / 2f, 64f, 256f );
+				_editSeed = Random.Shared.Next();
 			}
 
 			if ( !add && !subtract )
@@ -113,8 +122,8 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			var capsule = new CapsuleSdf3D( LastEditPos ?? editPos, editPos, EditRadius );
-			var noise = new CellularNoiseSdf3D( 0x123abc, new Vector3( 128f, 128f, 128f ), 64f );
+			var capsule = new CapsuleSdf3D( SdfWorld.Transform.PointToLocal( LastEditPos ?? editPos ),  SdfWorld.Transform.PointToLocal( editPos ), EditRadius );
+			var noise = new CellularNoiseSdf3D( _editSeed, new Vector3( 128f, 128f, 128f ), 96f );
 
 			var sdf = capsule.Bias( noise, -0.25f );
 

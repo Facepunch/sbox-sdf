@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.Utility;
 
 namespace Sandbox.Sdf;
 
@@ -102,7 +103,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
 
 	private List<Modification> Modifications { get; } = new();
-	private Dictionary<IClient, int> ClientModificationCounts { get; } = new ();
+	private Dictionary<IClient, (int ClearCount, int ModificationCount)> ClientModificationCounts { get; } = new ();
 
 	private bool _receivingModifications;
 	private int _clearCount;
@@ -177,34 +178,38 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void SendModifications( IClient client )
 	{
-		if ( !ClientModificationCounts.TryGetValue( client, out var modified ) )
+		if ( !ClientModificationCounts.TryGetValue( client, out var counts ) )
 		{
-			modified = 0;
+			counts = (0, 0);
 		}
 
-		if ( modified >= Modifications.Count )
+		if ( counts.ClearCount != _clearCount )
+		{
+			counts = (_clearCount, 0);
+		}
+		else if ( counts.ModificationCount >= Modifications.Count )
 		{
 			return;
 		}
 
 		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
-		var count = Math.Min( 8, Modifications.Count - modified );
+		var count = Math.Min( 8, Modifications.Count - counts.ModificationCount );
 
 		msg.Write( _clearCount );
-		msg.Write( modified );
+		msg.Write( counts.ModificationCount );
 		msg.Write( count );
 		msg.Write( Modifications.Count );
 
 		for ( var i = 0; i < count; ++i )
 		{
-			var modification = Modifications[modified + i];
+			var modification = Modifications[counts.ModificationCount + i];
 
 			msg.Write( modification.Operator );
 			msg.Write( modification.Resource );
 			modification.Sdf.Write( msg );
 		}
 
-		ClientModificationCounts[client] = modified + count;
+		ClientModificationCounts[client] = (counts.ClearCount, counts.ModificationCount + count);
 
 		msg.SendRpc( To.Single( client ), this );
 	}
@@ -223,12 +228,21 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	private IDisposable AllowClientModifications()
+	{
+		_receivingModifications = true;
+
+		return new DisposeAction( () => _receivingModifications = false );
+	}
+
 	private void ReceiveModifications( ref NetRead msg )
 	{
 		var clearCount = msg.Read<int>();
 		var prevCount = msg.Read<int>();
 		var msgCount = msg.Read<int>();
 		var totalCount = msg.Read<int>();
+
+		using var clientMods = AllowClientModifications();
 
 		if ( clearCount != _clearCount )
 		{
@@ -243,33 +257,24 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return;
 		}
 
-		_receivingModifications = true;
-
-		try
+		for ( var i = 0; i < msgCount; ++i )
 		{
-			for ( var i = 0; i < msgCount; ++i )
+			var op = msg.Read<Operator>();
+			var res = msg.ReadClass<TResource>();
+			var sdf = ISdf<TSdf>.Read( ref msg );
+
+			var modification = new Modification( sdf, res, op );
+
+			switch ( modification.Operator )
 			{
-				var op = msg.Read<Operator>();
-				var res = msg.ReadClass<TResource>();
-				var sdf = ISdf<TSdf>.Read( ref msg );
+				case Operator.Add:
+					_ = AddAsync( modification.Sdf, modification.Resource );
+					break;
 
-				var modification = new Modification( sdf, res, op );
-
-				switch ( modification.Operator )
-				{
-					case Operator.Add:
-						_ = AddAsync( modification.Sdf, modification.Resource );
-						break;
-
-					case Operator.Subtract:
-						_ = SubtractAsync( modification.Sdf, modification.Resource );
-						break;
-				}
+				case Operator.Subtract:
+					_ = SubtractAsync( modification.Sdf, modification.Resource );
+					break;
 			}
-		}
-		finally
-		{
-			_receivingModifications = false;
 		}
 	}
 
@@ -303,8 +308,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		await _lastModificationTask;
 
+		await Task.MainThread();
+
 		foreach ( var layer in Layers.Values )
 		{
+			await layer.UpdateMeshTask;
+
 			foreach ( var chunk in layer.Chunks.Values )
 			{
 				chunk.Dispose();
