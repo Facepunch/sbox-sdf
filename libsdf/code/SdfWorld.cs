@@ -105,6 +105,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	private Dictionary<IClient, int> ClientModificationCounts { get; } = new ();
 
 	private bool _receivingModifications;
+	private int _clearCount;
 
 	/// <inheritdoc />
 	public override void Spawn()
@@ -171,6 +172,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
 		var count = Math.Min( 8, Modifications.Count - modified );
 
+		msg.Write( _clearCount );
 		msg.Write( modified );
 		msg.Write( count );
 		msg.Write( Modifications.Count );
@@ -205,9 +207,16 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void ReceiveModifications( ref NetRead msg )
 	{
+		var clearCount = msg.Read<int>();
 		var prevCount = msg.Read<int>();
 		var msgCount = msg.Read<int>();
 		var totalCount = msg.Read<int>();
+
+		if ( clearCount != _clearCount )
+		{
+			_clearCount = clearCount;
+			_ = ClearAsync();
+		}
 
 		if ( prevCount != Modifications.Count )
 		{
@@ -255,9 +264,36 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// Removes all layers / volumes, making this equivalent to a brand new empty world.
 	/// </summary>
-	public Task ClearAsync()
+	public async Task ClearAsync()
 	{
-		throw new NotImplementedException();
+		AssertCanModify();
+
+		await Task.MainThread();
+
+		Modifications.Clear();
+
+		if ( Game.IsServer )
+		{
+			++_clearCount;
+		}
+
+		_lastModificationTask = ClearImpl();
+		await _lastModificationTask;
+	}
+
+	private async Task ClearImpl()
+	{
+		await _lastModificationTask;
+
+		foreach ( var layer in Layers.Values )
+		{
+			foreach ( var chunk in layer.Chunks.Values )
+			{
+				chunk.Dispose();
+			}
+		}
+
+		Layers.Clear();
 	}
 
 	[Obsolete( $"Please use {nameof( ClearAsync )}" )]
