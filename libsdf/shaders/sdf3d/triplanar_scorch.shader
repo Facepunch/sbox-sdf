@@ -60,6 +60,8 @@ VS
 
 PS
 {
+	#define TRIPLANAR_OBJECT_SPACE
+	
 	#include "sdf3d/triplanar.hlsl"
 	#include "sdf3d/shared.hlsl"
 

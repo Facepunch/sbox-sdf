@@ -9,7 +9,11 @@ float3 RnmBlendUnpacked(float3 n1, float3 n2)
 
 Material ToMaterialTriplanar( in PixelInput i, in Texture2D tColor, in Texture2D tNormal, in Texture2D tRma )
 {
+#ifdef TRIPLANAR_OBJECT_SPACE
+	float3 worldPos = i.vPositionOs.xyz / 256.0;
+#else
 	float3 worldPos = (i.vPositionWithOffsetWs.xyz + g_vCameraPositionWs.xyz) / 256.0;
+#endif
 
 	float2 uvX = worldPos.zy;
 	float2 uvY = worldPos.xz;

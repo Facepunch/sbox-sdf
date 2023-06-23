@@ -33,6 +33,8 @@ struct VertexInput
 struct PixelInput
 {
 	#include "common/pixelinput.hlsl"
+	
+	float3 vPositionOs : TEXCOORD15;
 };
 
 //=========================================================================================================================
@@ -47,6 +49,8 @@ VS
 	PixelInput MainVs( VertexInput i )
 	{
 		PixelInput o = ProcessVertex( i );
+		
+		o.vPositionOs = i.vPositionOs;
 
 		return FinalizeVertex( o );
 	}
@@ -56,6 +60,8 @@ VS
 
 PS
 {
+	#define TRIPLANAR_OBJECT_SPACE
+	
 	#include "sdf3d/triplanar.hlsl"
 
 	//
