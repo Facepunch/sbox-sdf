@@ -133,7 +133,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
 
-	private Task<bool> _lastModificationTask = System.Threading.Tasks.Task.FromResult( false );
+	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
 	[GameEvent.Tick.Server]
 	private void ServerTick()
@@ -246,12 +246,24 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	[Obsolete($"Please use {nameof(ClearAsync)}")]
+	public void Clear()
+	{
+		_ = ClearAsync();
+	}
+
 	/// <summary>
 	/// Removes all layers / volumes, making this equivalent to a brand new empty world.
 	/// </summary>
 	public Task ClearAsync()
 	{
 		throw new NotImplementedException();
+	}
+
+	[Obsolete( $"Please use {nameof( ClearAsync )}" )]
+	public void Clear( TResource resource )
+	{
+		_ = ClearAsync( resource );
 	}
 
 	/// <summary>
@@ -263,6 +275,14 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		throw new NotImplementedException();
 	}
 
+	[Obsolete( $"Please use {nameof( AddAsync )}" )]
+	public bool Add<T>( in T sdf, TResource resource )
+		where T : TSdf
+	{
+		_ = AddAsync( in sdf, resource );
+		return false;
+	}
+
 	/// <summary>
 	/// Add a shape to the given layer or volume.
 	/// </summary>
@@ -270,12 +290,20 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">Shape to add</param>
 	/// <param name="resource">Layer or volume to add to</param>
 	/// <returns>True if any geometry was modified</returns>
-	public Task<bool> AddAsync<T>( in T sdf, TResource resource )
+	public Task AddAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
 		Modifications.Add( new Modification( sdf, resource, Operator.Add ) );
 
 		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
+	}
+
+	[Obsolete( $"Please use {nameof( SubtractAsync )}" )]
+	public bool Subtract<T>( in T sdf, TResource resource )
+		where T : TSdf
+	{
+		_ = SubtractAsync( in sdf, resource );
+		return false;
 	}
 
 	/// <summary>
@@ -285,12 +313,20 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">Shape to subtract</param>
 	/// <param name="resource">Layer or volume to subtract from</param>
 	/// <returns>True if any geometry was modified</returns>
-	public Task<bool> SubtractAsync<T>( in T sdf, TResource resource )
+	public Task SubtractAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
 		Modifications.Add( new Modification( sdf, resource, Operator.Subtract ) );
 
 		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
+	}
+
+	[Obsolete( $"Please use {nameof( SubtractAsync )}" )]
+	public bool Subtract<T>( in T sdf )
+		where T : TSdf
+	{
+		_ = SubtractAsync( sdf );
+		return false;
 	}
 
 	/// <summary>
@@ -299,17 +335,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public async Task<bool> SubtractAsync<T>( T sdf )
+	public async Task SubtractAsync<T>( T sdf )
 		where T : TSdf
 	{
-		var tasks = new List<Task<bool>>();
+		var tasks = new List<Task>();
 
 		foreach ( var material in Layers.Keys )
 			tasks.Add( SubtractAsync( sdf, material ) );
 
-		var result = await GameTask.WhenAll( tasks );
-
-		return result.Any( x => x );
+		await GameTask.WhenAll( tasks );
 	}
 
 	internal void RemoveClientChunk( TChunk chunk )
@@ -399,7 +433,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality)
 		where T : TSdf;
 	
-	private async Task<bool> ModifyChunksAsync<T>( T sdf, TResource resource, bool createChunks,
+	private async Task ModifyChunksAsync<T>( T sdf, TResource resource, bool createChunks,
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
@@ -410,16 +444,16 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( !Game.IsClient && !resource.HasCollision )
 		{
 			// Only care about collision on the server
-			return false;
+			return;
 		}
 
 		await Task.MainThread();
 
 		_lastModificationTask = ModifyChunksAsyncImpl( sdf, resource, createChunks, func );
-		return await _lastModificationTask;
+		await _lastModificationTask;
 	}
 
-	private async Task<bool> ModifyChunksAsyncImpl<T>( T sdf, TResource resource, bool createChunks,
+	private async Task ModifyChunksAsyncImpl<T>( T sdf, TResource resource, bool createChunks,
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
@@ -456,7 +490,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			DispatchUpdateMesh( layer );
 		}
 
-		return modified;
+		return;
 	}
 
 	private void DispatchUpdateMesh( Layer layer )
