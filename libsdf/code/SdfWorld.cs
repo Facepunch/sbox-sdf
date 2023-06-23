@@ -106,6 +106,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private bool _receivingModifications;
 	private int _clearCount;
+	private Transform _lastTransform;
 
 	/// <inheritdoc />
 	public override void Spawn()
@@ -142,6 +143,23 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		foreach ( var client in Game.Clients )
 		{
 			SendModifications( client );
+		}
+	}
+
+	[GameEvent.Tick.Client]
+	private void ClientTick()
+	{
+		if ( !_lastTransform.Equals( Transform ) )
+		{
+			_lastTransform = Transform;
+
+			foreach ( var layer in Layers.Values )
+			{
+				foreach ( var chunk in layer.Chunks.Values )
+				{
+					chunk.UpdateTransform();
+				}
+			}
 		}
 	}
 

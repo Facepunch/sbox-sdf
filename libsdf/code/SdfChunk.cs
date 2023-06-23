@@ -98,7 +98,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	public abstract Vector3 LocalPosition { get; }
 
-	private int _lastModificationCount;
 	private readonly List<Mesh> _usedMeshes = new();
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
@@ -341,13 +340,25 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			SceneObject = new SceneObject( World.Scene, model )
 			{
-				Transform = new Transform( LocalPosition ),
 				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
 			};
+
+			UpdateTransform();
 		}
 		else
 		{
 			SceneObject.Model = model;
 		}
+	}
+
+	internal void UpdateTransform()
+	{
+		if ( SceneObject == null )
+		{
+			return;
+		}
+
+		SceneObject.Transform = World.Transform;
+		SceneObject.Position = World.Transform.PointToWorld( LocalPosition );
 	}
 }
