@@ -473,7 +473,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 
 		var result = await GameTask.WhenAll( tasks.Select( x => x.Task ) );
-		var modified = result.Any( x => x );
 
 		await Task.MainThread();
 
@@ -489,8 +488,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 			DispatchUpdateMesh( layer );
 		}
-
-		return;
 	}
 
 	private void DispatchUpdateMesh( Layer layer )
