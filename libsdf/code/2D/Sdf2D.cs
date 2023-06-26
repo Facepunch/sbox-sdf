@@ -365,7 +365,7 @@ public readonly struct TextureSdf : ISdf2D
 	
 	public void WriteRaw( NetWrite writer )
 	{
-		writer.Write( _texture );
+		writer.Write( _texture.ResourcePath );
 		writer.Write( _gradientWidthPixels );
 		writer.Write( _channel );
 		writer.Write( _worldSize );
@@ -375,7 +375,7 @@ public readonly struct TextureSdf : ISdf2D
 	public static TextureSdf ReadRaw( ref NetRead reader )
 	{
 		return new TextureSdf(
-			reader.ReadClass<Texture>(),
+			Texture.Load( FileSystem.Mounted, reader.ReadString() ),
 			reader.Read<int>(),
 			reader.Read<ColorChannel>(),
 			reader.Read<Vector2>(),
