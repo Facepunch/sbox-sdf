@@ -25,13 +25,13 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	}
 
 	/// <inheritdoc />
-	public override Task<bool> AddAsync<T>( T sdf )
+	protected override Task<bool> OnAddAsync<T>( T sdf )
 	{
 		return Data.AddAsync( ToLocal( sdf ) );
 	}
 
 	/// <inheritdoc />
-	public override Task<bool> SubtractAsync<T>( T sdf )
+	protected override Task<bool> OnSubtractAsync<T>( T sdf )
 	{
 		return Data.SubtractAsync( ToLocal( sdf ) );
 	}

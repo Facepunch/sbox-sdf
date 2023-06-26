@@ -100,6 +100,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private readonly List<Mesh> _usedMeshes = new();
 
+	private Task<bool> _lastModificationTask = System.Threading.Tasks.Task.FromResult( false );
+
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
 		World = world;
@@ -149,8 +151,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to add</param>
 	/// <returns>True if any geometry was modified</returns>
-	public abstract Task<bool> AddAsync<T>( T sdf )
-		where T : TSdf;
+	public Task<bool> AddAsync<T>( T sdf )
+		where T : TSdf
+	{
+		ThreadSafe.AssertIsMainThread();
+		return _lastModificationTask = ModifyWrapper( sdf, OnAddAsync );
+	}
 
 	/// <summary>
 	/// Subtract a world-space shape from this chunk.
@@ -158,7 +164,22 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <typeparam name="T">SDF type</typeparam>
 	/// <param name="sdf">Shape to subtract</param>
 	/// <returns>True if any geometry was modified</returns>
-	public abstract Task<bool> SubtractAsync<T>( T sdf )
+	public Task<bool> SubtractAsync<T>( T sdf )
+		where T : TSdf
+	{
+		ThreadSafe.AssertIsMainThread();
+		return _lastModificationTask = ModifyWrapper( sdf, OnSubtractAsync );
+	}
+
+	private async Task<bool> ModifyWrapper<T>( T sdf, Func<T, Task<bool>> func )
+	{
+		await _lastModificationTask;
+		return await func( sdf );
+	}
+
+	protected abstract Task<bool> OnAddAsync<T>( T sdf )
+		where T : TSdf;
+	protected abstract Task<bool> OnSubtractAsync<T>( T sdf )
 		where T : TSdf;
 
 	internal async Task UpdateMesh()

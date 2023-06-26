@@ -522,8 +522,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
-		await _lastModificationTask;
-
 		var tasks = new List<(TChunk Chunk, Task<bool> Task)>();
 
 		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
