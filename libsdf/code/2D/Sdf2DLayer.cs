@@ -53,16 +53,16 @@ public class Sdf2DLayer : SdfResource<Sdf2DLayer>
 		switch ( preset )
 		{
 			case WorldQualityPreset.Low:
-				return new( 8, 256f, 32f );
+				return new( 8, 256f, 48f );
 
 			case WorldQualityPreset.Medium:
-				return new( 16, 256f, 64f );
+				return new( 16, 256f, 24f );
 
 			case WorldQualityPreset.High:
-				return new( 32, 256f, 96f );
+				return new( 32, 256f, 12f );
 
 			case WorldQualityPreset.Extreme:
-				return new( 16, 128f, 32f );
+				return new( 32, 128f, 6f );
 
 			default:
 				throw new NotImplementedException();
