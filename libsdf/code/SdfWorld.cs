@@ -176,6 +176,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	private const int MaxModificationsPerMessage = 64;
+
 	private void SendModifications( IClient client )
 	{
 		if ( !ClientModificationCounts.TryGetValue( client, out var counts ) )
@@ -193,7 +195,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 
 		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
-		var count = Math.Min( 8, Modifications.Count - counts.ModificationCount );
+		var count = Math.Min( MaxModificationsPerMessage, Modifications.Count - counts.ModificationCount );
 
 		msg.Write( _clearCount );
 		msg.Write( counts.ModificationCount );
