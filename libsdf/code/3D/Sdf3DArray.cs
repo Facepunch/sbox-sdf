@@ -116,42 +116,38 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
 
-		bool changed;
+		var changed = false;
 
 		try
 		{
 			await sdf.SampleRangeAsync( transform, samples, size );
-			changed = await GameTask.RunInThreadAsync( () =>
+
+			await GameTask.WorkerThread();
+
+			for ( var z = min.Z; z < max.Z; ++z )
 			{
-				var changed = false;
-
-				for ( var z = min.Z; z < max.Z; ++z )
+				for ( var y = min.Y; y < max.Y; ++y )
 				{
-					for ( var y = min.Y; y < max.Y; ++y )
+					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+
+					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
 					{
-						var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-						var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+						var sampled = samples[srcIndex];
 
-						for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
-						{
-							var sampled = samples[srcIndex];
+						if ( sampled >= maxDist ) continue;
 
-							if ( sampled >= maxDist ) continue;
+						var encoded = Encode( sampled );
 
-							var encoded = Encode( sampled );
+						var oldValue = Samples[dstIndex];
+						var newValue = Math.Min( encoded, oldValue );
 
-							var oldValue = Samples[dstIndex];
-							var newValue = Math.Min( encoded, oldValue );
+						Samples[dstIndex] = newValue;
 
-							Samples[dstIndex] = newValue;
-
-							changed |= oldValue != newValue;
-						}
+						changed |= oldValue != newValue;
 					}
 				}
-
-				return changed;
-			} );
+			}
 		}
 		finally
 		{
@@ -175,42 +171,38 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
 
-		bool changed;
+		var changed = false;
 
 		try
 		{
 			await sdf.SampleRangeAsync( transform, samples, size );
-			changed = await GameTask.RunInThreadAsync( () =>
+
+			await GameTask.WorkerThread();
+
+			for ( var z = min.Z; z < max.Z; ++z )
 			{
-				var changed = false;
-
-				for ( var z = min.Z; z < max.Z; ++z )
+				for ( var y = min.Y; y < max.Y; ++y )
 				{
-					for ( var y = min.Y; y < max.Y; ++y )
+					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+
+					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
 					{
-						var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-						var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+						var sampled = samples[srcIndex];
 
-						for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
-						{
-							var sampled = samples[srcIndex];
+						if ( sampled >= maxDist ) continue;
 
-							if ( sampled >= maxDist ) continue;
+						var encoded = Encode( sampled );
 
-							var encoded = Encode( sampled );
+						var oldValue = Samples[dstIndex];
+						var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
-							var oldValue = Samples[dstIndex];
-							var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
+						Samples[dstIndex] = newValue;
 
-							Samples[dstIndex] = newValue;
-
-							changed |= oldValue != newValue;
-						}
+						changed |= oldValue != newValue;
 					}
 				}
-
-				return changed;
-			} );
+			}
 		}
 		finally
 		{

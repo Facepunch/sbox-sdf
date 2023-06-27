@@ -93,49 +93,44 @@ namespace Sandbox.Sdf.Noise
 				var invCellSize = InvCellSize;
 				var distanceOffset = DistanceOffset;
 
-				await GameTask.RunInThreadAsync( () =>
+				await GameTask.WorkerThread();
+
+				for ( var z = 0; z < outputSize.Z; ++z )
 				{
-					for ( var z = 0; z < outputSize.Z; ++z )
+					for ( var y = 0; y < outputSize.Y; ++y )
 					{
-						for ( var y = 0; y < outputSize.Y; ++y )
+						for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
 						{
-							for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X;
-							     x < outputSize.X;
-							     ++x, ++index )
+							var pos = transform.PointToWorld( new Vector3( x, y, z ) );
+							var localPos = pos * invCellSize;
+							var cell = (
+								X: (int)MathF.Floor( localPos.x ),
+								Y: (int)MathF.Floor( localPos.y ),
+								Z: (int)MathF.Floor( localPos.z ));
+
+							var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * cellSize;
+							var cellLocalPos = pos - cellPos;
+
+							var minDistSq = float.PositiveInfinity;
+
+							foreach ( var offset in PointOffsets )
 							{
-								var pos = transform.PointToWorld( new Vector3( x, y, z ) );
-								var localPos = pos * invCellSize;
-								var cell = (
-									X: (int)MathF.Floor( localPos.x ),
-									Y: (int)MathF.Floor( localPos.y ),
-									Z: (int)MathF.Floor( localPos.z ));
+								var featureCell = (
+									X: cell.X + offset.X - cellMin.X,
+									Y: cell.Y + offset.Y - cellMin.Y,
+									Z: cell.Z + offset.Z - cellMin.Z);
+								var featureIndex = featureCell.X + featureCell.Y * cellCounts.X + featureCell.Z * cellCounts.X * cellCounts.Y;
 
-								var cellPos = new Vector3( cell.X, cell.Y, cell.Z ) * cellSize;
-								var cellLocalPos = pos - cellPos;
+								var feature = features[featureIndex] + new Vector3( offset.X, offset.Y, offset.Z ) * cellSize;
+								var distSq = (feature - cellLocalPos).LengthSquared;
 
-								var minDistSq = float.PositiveInfinity;
-
-								foreach ( var offset in PointOffsets )
-								{
-									var featureCell = (
-										X: cell.X + offset.X - cellMin.X,
-										Y: cell.Y + offset.Y - cellMin.Y,
-										Z: cell.Z + offset.Z - cellMin.Z);
-									var featureIndex = featureCell.X + featureCell.Y * cellCounts.X +
-									                   featureCell.Z * cellCounts.X * cellCounts.Y;
-
-									var feature = features[featureIndex] +
-									              new Vector3( offset.X, offset.Y, offset.Z ) * cellSize;
-									var distSq = (feature - cellLocalPos).LengthSquared;
-
-									minDistSq = Math.Min( minDistSq, distSq );
-								}
-
-								output[index] = MathF.Sqrt( minDistSq ) - distanceOffset;
+								minDistSq = Math.Min( minDistSq, distSq );
 							}
+
+							output[index] = MathF.Sqrt( minDistSq ) - distanceOffset;
 						}
 					}
-				} );
+				}
 			}
 			finally
 			{

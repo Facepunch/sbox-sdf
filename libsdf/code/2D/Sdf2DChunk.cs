@@ -51,7 +51,9 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 
 		try
 		{
-			await GameTask.RunInThreadAsync( () => Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh ) );
+			await GameTask.WorkerThread();
+
+			Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
 
 			var renderTask = Task.CompletedTask;
 			var collisionTask = Task.CompletedTask;

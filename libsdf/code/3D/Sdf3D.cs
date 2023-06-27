@@ -32,21 +32,20 @@ namespace Sandbox.Sdf
 		/// <param name="transform">Transformation to apply to the SDF.</param>
 		/// <param name="output">Array to write signed distance values to.</param>
 		/// <param name="outputSize">Dimensions of the <paramref name="output"/> array.</param>
-		public Task SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		public async Task SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
-			return GameTask.RunInThreadAsync( () =>
+			await GameTask.WorkerThread();
+
+			for ( var z = 0; z < outputSize.Z; ++z )
 			{
-				for ( var z = 0; z < outputSize.Z; ++z )
+				for ( var y = 0; y < outputSize.Y; ++y )
 				{
-					for ( var y = 0; y < outputSize.Y; ++y )
+					for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
 					{
-						for ( int x = 0, index = (y + z * outputSize.Y) * outputSize.X; x < outputSize.X; ++x, ++index )
-						{
-							output[index] = this[transform.PointToWorld( new Vector3( x, y, z ) )];
-						}
+						output[index] = this[transform.PointToWorld( new Vector3( x, y, z ) )];
 					}
 				}
-			} );
+			}
 		}
 	}
 

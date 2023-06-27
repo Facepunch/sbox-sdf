@@ -63,27 +63,23 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>, IMeshWr
 
 		await GameTask.WhenAll( tasks );
 
-		await GameTask.RunInThreadAsync( () =>
+		await GameTask.WorkerThread();
+
+		var unitSize = volume.Quality.UnitSize;
+
+		foreach ( var triangle in Triangles )
 		{
-			var unitSize = volume.Quality.UnitSize;
+			Indices.Add( AddVertex( data, triangle.V0, unitSize ) );
+			Indices.Add( AddVertex( data, triangle.V1, unitSize ) );
+			Indices.Add( AddVertex( data, triangle.V2, unitSize ) );
+		}
 
-			foreach ( var triangle in Triangles )
-			{
-				Indices.Add( AddVertex( data, triangle.V0, unitSize ) );
-				Indices.Add( AddVertex( data, triangle.V1, unitSize ) );
-				Indices.Add( AddVertex( data, triangle.V2, unitSize ) );
-			}
-		} );
-
-		await GameTask.RunInThreadAsync( () =>
+		for ( var i = baseIndex; i < Vertices.Count; ++i )
 		{
-			for ( var i = baseIndex; i < Vertices.Count; ++i )
-			{
-				var vertex = Vertices[i];
+			var vertex = Vertices[i];
 
-				Vertices[i] = vertex with { Normal = vertex.Normal.Normal };
-			}
-		} );
+			Vertices[i] = vertex with { Normal = vertex.Normal.Normal };
+		}
 	}
 
 	public void ApplyTo( Mesh mesh )
