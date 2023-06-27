@@ -34,11 +34,6 @@ public abstract partial class SdfArray<TSdf>
 	public byte[] Samples { get; private set; }
 
 	/// <summary>
-	/// Counter incremented whenever this array is modified, used to detect changes.
-	/// </summary>
-	public int ModificationCount { get; set; }
-
-	/// <summary>
 	/// Number of samples stored in one dimension of this array.
 	/// </summary>
 	public int ArraySize { get; private set; }
@@ -188,7 +183,6 @@ public abstract partial class SdfArray<TSdf>
 	public void Clear( bool solid )
 	{
 		Array.Fill( Samples, solid ? (byte) 0 : (byte) 255 );
-		++ModificationCount;
 	}
 
 	/// <summary>
@@ -197,7 +191,6 @@ public abstract partial class SdfArray<TSdf>
 	/// </summary>
 	protected void MarkChanged()
 	{
-		++ModificationCount;
 		_textureInvalid = true;
 	}
 }
