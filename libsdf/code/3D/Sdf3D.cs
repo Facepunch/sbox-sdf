@@ -449,6 +449,12 @@ namespace Sandbox.Sdf
 
 		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
+			if ( BiasScale == 0f )
+			{
+				await Sdf.SampleRangeAsync( transform, output, outputSize );
+				return;
+			}
+
 			var sampleCount = outputSize.X * outputSize.Y * outputSize.Z;
 			var temp = ArrayPool<float>.Shared.Rent( sampleCount );
 
