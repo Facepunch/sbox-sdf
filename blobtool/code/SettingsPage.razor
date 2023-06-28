@@ -1,0 +1,41 @@
+@using System.Threading.Tasks;
+@using System.Collections.Generic;
+@using System.Linq
+@using Sandbox;
+@using Sandbox.UI;
+
+@inherits Panel;
+
+<root class="spawnpage">
+	<label text="Hello"></label>
+</root>
+
+@code
+{
+    private static Button Button { get; set; }
+    private static SettingsPage Instance { get; set; }
+
+    public static void AddToSpawnMenu()
+    {
+	    if ( Instance != null )
+	    {
+		    return;
+	    }
+
+	    var left = SpawnMenu.Instance.Children.Single( x => x.HasClass( "left" ) );
+	    var tabs = left.ChildrenOfType<ButtonGroup>().Single( x => x.HasClass( "tabs" ) );
+	    var body = left.Children.Single( x => x.HasClass( "body" ) );
+
+        Instance = body.AddChild<SettingsPage>();
+	    Button = tabs.AddButtonActive( "#spawnmenu.blobs", ( b ) => Instance.SetClass( "active", b ) );
+    }
+
+    public static void RemoveFromSpawnMenu()
+    {
+	    Button?.Delete();
+	    Button = null;
+
+	    Instance?.Delete();
+	    Instance = null;
+    }
+}

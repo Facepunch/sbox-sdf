@@ -58,6 +58,10 @@ namespace Sandbox.Sdf
 					Predictable = true
 				};
 			}
+			else
+			{
+				SettingsPage.AddToSpawnMenu();
+			}
 		}
 
 		public override void Deactivate()
@@ -68,6 +72,10 @@ namespace Sandbox.Sdf
 			{
 				Preview?.Delete();
 				Preview = null;
+			}
+			else
+			{
+				SettingsPage.RemoveFromSpawnMenu();
 			}
 		}
 
