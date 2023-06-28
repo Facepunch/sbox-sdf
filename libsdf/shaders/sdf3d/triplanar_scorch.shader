@@ -35,6 +35,7 @@ struct PixelInput
 	#include "common/pixelinput.hlsl"
 
 	float3 vPositionOs : TEXCOORD15;
+	float3 vNormalOs : TEXCOORD16;
 };
 
 //=========================================================================================================================
@@ -51,6 +52,7 @@ VS
 		PixelInput o = ProcessVertex( i );
 
 		o.vPositionOs = i.vPositionOs;
+		o.vNormalOs = i.vNormalOs.xyz;
 
 		return FinalizeVertex( o );
 	}
