@@ -1,13 +1,25 @@
-@using System.Threading.Tasks;
-@using System.Collections.Generic;
+@using System.Threading.Tasks
+@using System.Collections.Generic
 @using System.Linq
-@using Sandbox;
-@using Sandbox.UI;
+@using Sandbox
+@using Sandbox.UI
+@using Sandbox.Sdf
 
-@inherits Panel;
+@inherits Panel
 
-<root class="spawnpage">
-	<label text="Hello"></label>
+<root class="spawnpage settingspage">
+	<panel class="setting">
+		<label class="title" text="Radius"></label>
+		<SliderControl Min="@BlobTool.MinRadius" Max="@BlobTool.MaxRadius" Step="@(1f)" Value="@BlobTool.BrushRadius" NumberFormat="0u" OnValueChanged="@OnBrushRadiusChanged"></SliderControl>
+	</panel>
+	<panel class="setting">
+		<label class="title" text="Distance"></label>
+		<SliderControl Min="@BlobTool.MinDistance" Max="@BlobTool.MaxDistance" Step="@(8f)" Value="@BlobTool.BrushDistance" NumberFormat="0u" OnValueChanged="@OnBrushDistanceChanged"></SliderControl>
+	</panel>
+	<panel class="setting">
+		<label class="title" text="Roughness"></label>
+		<SliderControl Min="@(0f)" Max="@(1f)" Step="@(0.1f)" Value="@BlobTool.BrushRoughness" NumberFormat="0%" OnValueChanged="@OnBrushRoughnessChanged"></SliderControl>
+	</panel>
 </root>
 
 @code
@@ -15,27 +27,52 @@
     private static Button Button { get; set; }
     private static SettingsPage Instance { get; set; }
 
-    public static void AddToSpawnMenu()
-    {
-	    if ( Instance != null )
-	    {
-		    return;
-	    }
+    public BlobTool Tool { get; private set; }
 
-	    var left = SpawnMenu.Instance.Children.Single( x => x.HasClass( "left" ) );
-	    var tabs = left.ChildrenOfType<ButtonGroup>().Single( x => x.HasClass( "tabs" ) );
-	    var body = left.Children.Single( x => x.HasClass( "body" ) );
+    public SettingsPage()
+    {
+        StyleSheet.Load( "/SettingsPage.scss" );
+    }
+
+    public static void AddToSpawnMenu( BlobTool tool )
+    {
+        if ( Instance != null )
+        {
+            Instance.Tool = tool;
+            return;
+        }
+
+        var left = SpawnMenu.Instance.Children.Single( x => x.HasClass( "left" ) );
+        var tabs = left.ChildrenOfType<ButtonGroup>().Single( x => x.HasClass( "tabs" ) );
+        var body = left.Children.Single( x => x.HasClass( "body" ) );
 
         Instance = body.AddChild<SettingsPage>();
-	    Button = tabs.AddButtonActive( "#spawnmenu.blobs", ( b ) => Instance.SetClass( "active", b ) );
+        Button = tabs.AddButtonActive( "#spawnmenu.blobs", ( b ) => Instance.SetClass( "active", b ) );
+
+        Instance.Tool = tool;
     }
 
     public static void RemoveFromSpawnMenu()
     {
-	    Button?.Delete();
-	    Button = null;
+        Button?.Delete();
+        Button = null;
 
-	    Instance?.Delete();
-	    Instance = null;
+        Instance?.Delete();
+        Instance = null;
+    }
+
+    public void OnBrushRadiusChanged( float value )
+    {
+	    BlobTool.BrushRadius = value;
+    }
+
+	public void OnBrushDistanceChanged( float value )
+	{
+		BlobTool.BrushDistance = value;
+    }
+
+    public void OnBrushRoughnessChanged( float value )
+    {
+	    BlobTool.BrushRoughness = value;
     }
 }

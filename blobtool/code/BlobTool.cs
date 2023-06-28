@@ -10,6 +10,12 @@ namespace Sandbox.Sdf
 	[Library( "tool_blob", Title = "Blobs", Description = "Create Blobs!", Group = "construction" )]
 	public partial class BlobTool : BaseTool
 	{
+		public const float MinRadius = 32f;
+		public const float MaxRadius = 256f;
+
+		public const float MinDistance = 32f;
+		public const float MaxDistance = 1024f;
+
 		[ConCmd.Admin( "blobs_clear" )]
 		public static void ClearWorld()
 		{
@@ -26,23 +32,24 @@ namespace Sandbox.Sdf
 		public static Sdf3DWorld SdfWorld { get; set; }
 
 		public const float MinDistanceBetweenEdits = 4f;
-		public const float MaxEditDistance = 2048f;
 
 		private int _editSeed;
 
 		public Vector3? LastEditPos { get; set; }
 		private Task _lastEditTask = Task.CompletedTask;
 
-		[Net]
-		public float EditDistance { get; set; }
+		[ConVar.ClientData("blobs_brush_radius")]
+		public static float BrushRadius { get; set; } = 48f;
 
-		[Net]
-		public float EditRadius { get; set; } = 48f;
+		[ConVar.ClientData( "blobs_brush_distance" )]
+		public static float BrushDistance { get; set; } = 256f;
+
+		[ConVar.ClientData( "blobs_brush_roughness" )]
+		public static float BrushRoughness { get; set; } = 0.5f;
 
 		[Net]
 		public bool IsDrawing { get; set; }
 
-		[Net]
 		public ModelEntity Preview { get; set; }
 
 		public override void Activate()
@@ -52,15 +59,16 @@ namespace Sandbox.Sdf
 			if ( Game.IsServer )
 			{
 				SdfWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld();
+			}
+			else
+			{
+				SettingsPage.AddToSpawnMenu( this );
+
 				Preview = new ModelEntity( "models/blob_preview.vmdl" )
 				{
 					Owner = Owner,
 					Predictable = true
 				};
-			}
-			else
-			{
-				SettingsPage.AddToSpawnMenu();
 			}
 		}
 
@@ -68,29 +76,36 @@ namespace Sandbox.Sdf
 		{
 			base.Deactivate();
 
-			if ( Game.IsServer )
-			{
-				Preview?.Delete();
-				Preview = null;
-			}
-			else
+			if ( !Game.IsServer )
 			{
 				SettingsPage.RemoveFromSpawnMenu();
+
+				Preview?.Delete();
+				Preview = null;
 			}
 		}
 
 		public override void Simulate()
 		{
-			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
+			var radius = Game.IsServer
+				? Owner.Client.GetClientData( "blobs_brush_radius", 48f )
+				: BrushRadius;
+			var distance = Game.IsServer
+				? Owner.Client.GetClientData( "blobs_brush_distance", 256f )
+				: BrushDistance;
+			var roughness = Game.IsServer
+				? Owner.Client.GetClientData( "blobs_brush_roughness", 0.5f )
+				: BrushRoughness;
+
+			var editPos = Owner.EyePosition + Owner.EyeRotation.Forward * (distance + radius);
 
 			var add = Input.Down( "attack1" );
 			var subtract = Input.Down( "attack2" );
 
 			if ( Preview != null )
 			{
-				Preview.Scale = EditRadius / 48f;
-				Preview.Position = Owner.EyePosition + Owner.EyeRotation.Forward * EditDistance;
-				Preview.EnableDrawing = EditDistance > EditRadius + 32f;
+				Preview.Scale = radius / 48f;
+				Preview.Position = editPos;
 			}
 
 			if ( !Game.IsServer || SdfWorld == null || !_lastEditTask.IsCompleted )
@@ -102,18 +117,6 @@ namespace Sandbox.Sdf
 
 			if ( LastEditPos == null )
 			{
-				var tr = DoTrace();
-
-				if ( tr.Hit && tr.Entity.IsValid() )
-				{
-					EditDistance = Math.Min( tr.Distance, MaxEditDistance );
-				}
-				else
-				{
-					EditDistance = MaxEditDistance;
-				}
-
-				EditRadius = (MathF.Sin( Time.Now * MathF.PI ) * 0.25f + 0.75f) * Math.Clamp( EditDistance / 2f, 64f, 256f );
 				_editSeed = Random.Shared.Next();
 			}
 
@@ -130,10 +133,10 @@ namespace Sandbox.Sdf
 				return;
 			}
 
-			var capsule = new CapsuleSdf3D( SdfWorld.Transform.PointToLocal( LastEditPos ?? editPos ),  SdfWorld.Transform.PointToLocal( editPos ), EditRadius );
+			var capsule = new CapsuleSdf3D( SdfWorld.Transform.PointToLocal( LastEditPos ?? editPos ),  SdfWorld.Transform.PointToLocal( editPos ), radius );
 			var noise = new CellularNoiseSdf3D( _editSeed, new Vector3( 128f, 128f, 128f ), 96f );
 
-			var sdf = capsule.Bias( noise, -0.25f );
+			var sdf = capsule.Bias( noise, roughness * -0.5f );
 
 			if ( add )
 			{
