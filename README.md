@@ -3,8 +3,8 @@ Allows you to define a 2D / 3D field of signed distances to a virtual surface, p
 
 ![20230602134828_1](https://github.com/Facepunch/sbox-sdf/assets/1110904/87cd8c4c-8ff3-4782-b6b0-7ebde4e52aef)
 
-## Pacakges
-* [`facepunch.libsdf`](https://asset.party/facepunch/blobtool) - Main library package that you can reference in your own projects
+## Packages
+* [`facepunch.libsdf`](https://asset.party/facepunch/libsdf) - Main library package that you can reference in your own projects
 * [`facepunch.blobtool`](https://asset.party/facepunch/blobtool) - Tech demo tool addon for [`facepunch.sandbox`](https://asset.party/facepunch/sandbox)
 
 ## Tutorials
