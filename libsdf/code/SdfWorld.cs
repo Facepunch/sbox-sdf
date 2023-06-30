@@ -75,6 +75,34 @@ public interface ISdf<T>
 	}
 }
 
+internal static class ConsoleCommands
+{
+	[ConCmd.Server( "sdf_request_missing" )]
+	public static void RequestMissingModifications( int worldIdent, int clearCount, int modificationCount )
+	{
+		var worldEnt = Entity.FindByIndex( worldIdent );
+		var client = ConsoleSystem.Caller;
+
+		if ( worldEnt is not ISdfWorld world )
+		{
+			return;
+		}
+
+		if ( !client.IsValid )
+		{
+			return;
+		}
+
+		world.RequestMissing( client, clearCount, modificationCount );
+	}
+}
+
+internal interface ISdfWorld
+{
+	void RequestMissing( IClient client, int clearCount, int modificationCount );
+}
+
+
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
 /// signed distance fields.
@@ -85,7 +113,7 @@ public interface ISdf<T>
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ModelEntity
+public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ModelEntity, ISdfWorld
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -102,15 +130,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	}
 
 	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
+	private record struct ClientState( int ClearCount, int ModificationCount, TimeSince LastMessage );
 
 	private List<Modification> Modifications { get; } = new();
-	private Dictionary<IClient, (int ClearCount, int ModificationCount)> ClientModificationCounts { get; } = new();
+	private Dictionary<IClient, ClientState> ClientStates { get; } = new();
 
 	private ConcurrentQueue<TChunk> UpdatedChunkQueue { get; } = new();
 
 	private bool _receivingModifications;
 	private int _clearCount;
 	private Transform _lastTransform;
+
+	private TimeSince _notifiedMissingModifications;
 
 	/// <inheritdoc />
 	public override void Spawn()
@@ -181,42 +212,45 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	private const int MaxModificationsPerMessage = 64;
+	private const int MaxModificationsPerMessage = 256;
+	private const float HeartbeatPeriod = 2f;
 
 	private void SendModifications( IClient client )
 	{
-		if ( !ClientModificationCounts.TryGetValue( client, out var counts ) )
+		if ( !ClientStates.TryGetValue( client, out var state ) )
 		{
-			counts = (0, 0);
+			state = new ClientState( 0, 0, 0f );
 		}
 
-		if ( counts.ClearCount != _clearCount )
+		if ( state.ClearCount != _clearCount )
 		{
-			counts = (_clearCount, 0);
+			state = state with { ClearCount = _clearCount };
 		}
-		else if ( counts.ModificationCount >= Modifications.Count )
+		else if ( state.ModificationCount >= Modifications.Count && state.LastMessage < HeartbeatPeriod )
 		{
 			return;
 		}
 
+		state = state with { LastMessage = 0f };
+
 		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
-		var count = Math.Min( MaxModificationsPerMessage, Modifications.Count - counts.ModificationCount );
+		var count = Math.Min( MaxModificationsPerMessage, Modifications.Count - state.ModificationCount );
 
 		msg.Write( _clearCount );
-		msg.Write( counts.ModificationCount );
+		msg.Write( state.ModificationCount );
 		msg.Write( count );
 		msg.Write( Modifications.Count );
 
 		for ( var i = 0; i < count; ++i )
 		{
-			var modification = Modifications[counts.ModificationCount + i];
+			var modification = Modifications[state.ModificationCount + i];
 
 			msg.Write( modification.Operator );
 			msg.Write( modification.Resource );
 			modification.Sdf.Write( msg );
 		}
 
-		ClientModificationCounts[client] = (counts.ClearCount, counts.ModificationCount + count);
+		ClientStates[client] = state with { ModificationCount = state.ModificationCount + count };
 
 		msg.SendRpc( To.Single( client ), this );
 	}
@@ -265,10 +299,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( prevCount != Modifications.Count )
 		{
-			// TODO: ask for them again
-			Log.Error( $"{GetType()} has dropped some modifications! {prevCount} vs {Modifications.Count}" );
+			if ( _notifiedMissingModifications >= 0.5f )
+			{
+				_notifiedMissingModifications = 0f;
+				Log.Warning( $"{this} has dropped some modifications! {prevCount} vs {Modifications.Count}" );
+
+				ConsoleCommands.RequestMissingModifications( NetworkIdent, _clearCount, Modifications.Count );
+			}
+
 			return;
 		}
+
+		_notifiedMissingModifications = float.PositiveInfinity;
 
 		for ( var i = 0; i < msgCount; ++i )
 		{
@@ -355,6 +397,16 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		throw new NotImplementedException();
 	}
 
+	private void EnsureLayerExists( TResource resource )
+	{
+		ThreadSafe.AssertIsMainThread();
+
+		if ( !Layers.ContainsKey( resource ) )
+		{
+			Layers.Add( resource, new Layer() );
+		}
+	}
+
 	[Obsolete( $"Please use {nameof( AddAsync )}" )]
 	public bool Add<T>( in T sdf, TResource resource )
 		where T : TSdf
@@ -373,6 +425,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task AddAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
+		EnsureLayerExists( resource );
+
 		Modifications.Add( new Modification( sdf, resource, Operator.Add ) );
 
 		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
@@ -396,6 +450,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task SubtractAsync<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
+		EnsureLayerExists( resource );
+
 		Modifications.Add( new Modification( sdf, resource, Operator.Subtract ) );
 
 		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
@@ -450,8 +506,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		if ( !Layers.TryGetValue( resource, out var layerData ) )
 		{
-			layerData = new Layer();
-			Layers.Add( resource, layerData );
+			throw new Exception( "Layer doesn't exist!" );
 		}
 
 		if ( layerData.Chunks.TryGetValue( key, out var chunk ) )
@@ -614,5 +669,20 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		layer.NeedsMeshUpdate.Clear();
 
 		await Task.WhenAll( tasks );
+	}
+
+	void ISdfWorld.RequestMissing( IClient client, int clearCount, int modificationCount )
+	{
+		if ( !ClientStates.TryGetValue( client, out var state ) )
+		{
+			return;
+		}
+
+		if ( state.ClearCount != clearCount || state.ModificationCount <= modificationCount )
+		{
+			return;
+		}
+
+		ClientStates[client] = state with { ModificationCount = modificationCount };
 	}
 }
