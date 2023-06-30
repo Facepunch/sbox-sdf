@@ -169,6 +169,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	}
 
 	private Dictionary<TResource, Layer> Layers { get; } = new();
+	private List<TChunk> AllChunks { get; } = new();
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
@@ -188,12 +189,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			_lastTransform = Transform;
 
-			foreach ( var layer in Layers.Values )
+			for ( var i = AllChunks.Count - 1; i >= 0; --i )
 			{
-				foreach ( var chunk in layer.Chunks.Values )
-				{
-					chunk.UpdateTransform();
-				}
+				AllChunks[i].UpdateTransform();
 			}
 		}
 	}
@@ -381,6 +379,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			}
 		}
 
+		AllChunks.Clear();
 		Layers.Clear();
 	}
 
@@ -517,8 +516,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 
 		layerData.Chunks[key] = chunk = new TChunk();
-
 		chunk.Init( (TWorld) this, resource, key );
+
+		AllChunks.Add( chunk );
 
 		return chunk;
 	}
