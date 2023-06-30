@@ -1,5 +1,6 @@
 ﻿using Sandbox.Diagnostics;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -103,7 +104,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
 
 	private List<Modification> Modifications { get; } = new();
-	private Dictionary<IClient, (int ClearCount, int ModificationCount)> ClientModificationCounts { get; } = new ();
+	private Dictionary<IClient, (int ClearCount, int ModificationCount)> ClientModificationCounts { get; } = new();
+
+	private ConcurrentQueue<TChunk> UpdatedChunkQueue { get; } = new();
 
 	private bool _receivingModifications;
 	private int _clearCount;
@@ -167,6 +170,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	[GameEvent.Tick]
 	private void Tick()
 	{
+		ProcessUpdatedChunkQueue();
+
 		foreach ( var layer in Layers.Values )
 		{
 			if ( layer.NeedsMeshUpdate.Count > 0 && layer.UpdateMeshTask.IsCompleted )
@@ -302,7 +307,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			++_clearCount;
 		}
 
-		_lastModificationTask = ClearImpl();
+		lock ( this )
+		{
+			_lastModificationTask = ClearImpl();
+		}
+
 		await _lastModificationTask;
 	}
 
@@ -512,16 +521,25 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return;
 		}
 
-		await Task.MainThread();
+		Task task;
 
-		_lastModificationTask = ModifyChunksAsyncImpl( sdf, resource, createChunks, func );
-		await _lastModificationTask;
+		lock ( this )
+		{
+			_lastModificationTask = task = ModifyChunksAsyncImpl( sdf, resource, createChunks, func );
+		}
+
+		await task;
 	}
 
 	private async Task ModifyChunksAsyncImpl<T>( T sdf, TResource resource, bool createChunks,
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf
 	{
+		var prevTask = _lastModificationTask;
+
+		await GameTask.WorkerThread();
+		await prevTask;
+
 		var tasks = new List<(TChunk Chunk, Task<bool> Task)>();
 
 		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
@@ -537,19 +555,32 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		var result = await GameTask.WhenAll( tasks.Select( x => x.Task ) );
 
-		await Task.MainThread();
-
-		if ( Layers.TryGetValue( resource, out var layer ) )
+		for ( var i = 0; i < tasks.Count; ++i )
 		{
-			for ( var i = 0; i < tasks.Count; ++i )
+			if ( result[i] )
 			{
-				if ( result[i] )
-				{
-					layer.NeedsMeshUpdate.Add( tasks[i].Chunk );
-				}
+				UpdatedChunkQueue.Enqueue( tasks[i].Chunk );
+			}
+		}
+	}
+
+	private void ProcessUpdatedChunkQueue()
+	{
+		ThreadSafe.AssertIsMainThread();
+
+		while ( UpdatedChunkQueue.TryDequeue( out var chunk ) )
+		{
+			if ( !chunk.IsValid )
+			{
+				continue;
 			}
 
-			DispatchUpdateMesh( layer );
+			if ( !Layers.TryGetValue( chunk.Resource, out var layer ) )
+			{
+				continue;
+			}
+
+			layer.NeedsMeshUpdate.Add( chunk );
 		}
 	}
 

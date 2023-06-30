@@ -58,7 +58,7 @@ internal static class Static
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : IDisposable
+public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : IDisposable, IValid
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -95,15 +95,17 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// If this chunk is rendered, the scene object containing the generated mesh.
 	/// </summary>
 	public SceneObject SceneObject { get; private set; }
+	
+	public bool IsValid { get; private set; }
 
 	public abstract Vector3 LocalPosition { get; }
 
 	private readonly List<Mesh> _usedMeshes = new();
 
-	private Task<bool> _lastModificationTask = System.Threading.Tasks.Task.FromResult( false );
-
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
+		IsValid = true;
+
 		World = world;
 		Resource = resource;
 		Key = key;
@@ -125,6 +127,13 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <inheritdoc />
 	public void Dispose()
 	{
+		if ( !IsValid )
+		{
+			return;
+		}
+
+		IsValid = false;
+
 		if ( Game.IsClient && !World.IsDestroying ) World.RemoveClientChunk( (TChunk)this );
 
 		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
@@ -154,8 +163,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task<bool> AddAsync<T>( T sdf )
 		where T : TSdf
 	{
-		ThreadSafe.AssertIsMainThread();
-		return _lastModificationTask = ModifyWrapper( sdf, OnAddAsync );
+		return OnAddAsync( sdf );
 	}
 
 	/// <summary>
@@ -167,14 +175,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	public Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf
 	{
-		ThreadSafe.AssertIsMainThread();
-		return _lastModificationTask = ModifyWrapper( sdf, OnSubtractAsync );
-	}
-
-	private async Task<bool> ModifyWrapper<T>( T sdf, Func<T, Task<bool>> func )
-	{
-		await _lastModificationTask;
-		return await func( sdf );
+		return OnSubtractAsync( sdf );
 	}
 
 	protected abstract Task<bool> OnAddAsync<T>( T sdf )
