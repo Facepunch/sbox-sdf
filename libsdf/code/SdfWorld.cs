@@ -483,18 +483,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		await GameTask.WhenAll( tasks );
 	}
 
-	internal void RemoveClientChunk( TChunk chunk )
-	{
-		if ( !Layers.TryGetValue( chunk.Resource, out var layer ) ) return;
-
-		if ( layer.Chunks.TryGetValue( chunk.Key, out var existing ) && existing == chunk )
-		{
-			layer.Chunks.Remove( chunk.Key );
-
-			ChunkMeshUpdated( chunk, true );
-		}
-	}
-
 	internal TChunk GetChunk( TResource resource, TChunkKey key )
 	{
 		return Layers.TryGetValue( resource, out var layerData )

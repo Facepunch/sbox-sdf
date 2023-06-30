@@ -134,8 +134,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		IsValid = false;
 
-		if ( Game.IsClient && !World.IsDestroying ) World.RemoveClientChunk( (TChunk)this );
-
 		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
 
 		if ( SceneObject.IsValid() ) SceneObject.Delete();
