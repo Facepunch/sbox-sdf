@@ -251,7 +251,13 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		using var clientMods = AllowClientModifications();
 
-		if ( clearCount != _clearCount )
+		if ( clearCount < _clearCount )
+		{
+			// Outdated
+			return;
+		}
+
+		if ( clearCount > _clearCount )
 		{
 			_clearCount = clearCount;
 			_ = ClearAsync();
