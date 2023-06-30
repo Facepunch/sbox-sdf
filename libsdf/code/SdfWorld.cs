@@ -224,7 +224,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( state.ClearCount != _clearCount )
 		{
-			state = state with { ClearCount = _clearCount };
+			state = state with { ClearCount = _clearCount, ModificationCount = 0 };
 		}
 		else if ( state.ModificationCount >= Modifications.Count && state.LastMessage < HeartbeatPeriod )
 		{
@@ -295,6 +295,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			_clearCount = clearCount;
 			_ = ClearAsync();
+
+			Assert.AreEqual( 0, Modifications.Count );
 		}
 
 		if ( prevCount != Modifications.Count )
