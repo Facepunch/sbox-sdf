@@ -9,6 +9,17 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
+	public Sdf3DWorld()
+	{
+
+	}
+
+	public Sdf3DWorld( SceneWorld scene )
+		: base( scene )
+	{
+
+	}
+
 	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max) GetChunkRange( BBox bounds, WorldQuality quality )
 	{
 		var unitSize = quality.UnitSize;

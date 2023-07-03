@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.Internal;
 using Sandbox.Utility;
 
 namespace Sandbox.Sdf;
@@ -32,7 +33,7 @@ public interface ISdf<T>
 
 		_sTypesRegistered = true;
 
-		foreach ( var (method, _) in TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
+		foreach ( var (method, _) in GlobalGameNamespace.TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
 		{
 			method.Invoke( null );
 		}
@@ -45,14 +46,14 @@ public interface ISdf<T>
 	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
 		where TSdf : T
 	{
-		_sRegisteredTypes.Add( (TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
+		_sRegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
 	}
 
 	public void Write( NetWrite writer )
 	{
 		EnsureTypesRegistered();
 
-		var type = TypeLibrary.GetType( GetType() );
+		var type = GlobalGameNamespace.TypeLibrary.GetType( GetType() );
 		var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
 
 		if ( typeIndex == -1 )
@@ -80,10 +81,10 @@ internal static class ConsoleCommands
 	[ConCmd.Server( "sdf_request_missing" )]
 	public static void RequestMissingModifications( int worldIdent, int clearCount, int modificationCount )
 	{
-		var worldEnt = Entity.FindByIndex( worldIdent );
+		var entity = Entity.FindByIndex( worldIdent );
 		var client = ConsoleSystem.Caller;
 
-		if ( worldEnt is not ISdfWorld world )
+		if ( entity is not SdfWorldEntity worldEnt )
 		{
 			return;
 		}
@@ -93,15 +94,95 @@ internal static class ConsoleCommands
 			return;
 		}
 
-		world.RequestMissing( client, clearCount, modificationCount );
+		worldEnt.World.RequestMissing( client, clearCount, modificationCount );
 	}
 }
 
 internal interface ISdfWorld
 {
+	bool IsDestroying { get; set; }
+	SdfWorldEntity Entity { get; set; }
+
+	void SendModifications();
+	void UpdateChunkTransforms();
+	void Tick();
+	void ReceiveModifications( ref NetRead read );
+
 	void RequestMissing( IClient client, int clearCount, int modificationCount );
 }
 
+internal partial class SdfWorldEntity : ModelEntity
+{
+	public const int SendModificationsRpcIdent = 269924031;
+
+	public ISdfWorld World { get; internal set; }
+
+	[Net]
+	public int TypeIdent { get; set; }
+
+	/// <inheritdoc />
+	public override void Spawn()
+	{
+		base.Spawn();
+
+		Transmit = TransmitType.Always;
+	}
+
+	public override void ClientSpawn()
+	{
+		base.ClientSpawn();
+
+		Log.Info( $"ident: {TypeIdent}" );
+
+		var type = GlobalGameNamespace.TypeLibrary.GetTypeByIdent( TypeIdent );
+
+		World = type.Create<ISdfWorld>();
+		World.Entity = this;
+	}
+
+	/// <inheritdoc />
+	protected override void OnDestroy()
+	{
+		if ( World != null )
+		{
+			World.IsDestroying = true;
+		}
+
+		base.OnDestroy();
+	}
+
+	[GameEvent.Tick.Server]
+	private void ServerTick()
+	{
+		World?.SendModifications();
+	}
+
+	[GameEvent.Tick.Client]
+	private void ClientTick()
+	{
+		World?.UpdateChunkTransforms();
+	}
+
+	[GameEvent.Tick]
+	private void Tick()
+	{
+		World?.Tick();
+	}
+	
+	protected override void OnCallRemoteProcedure( int id, NetRead read )
+	{
+		switch ( id )
+		{
+			case SendModificationsRpcIdent:
+				World?.ReceiveModifications( ref read );
+				break;
+
+			default:
+				base.OnCallRemoteProcedure( id, read );
+				break;
+		}
+	}
+}
 
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
@@ -113,7 +194,7 @@ internal interface ISdfWorld
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ModelEntity, ISdfWorld
+public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ISdfWorld
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -121,7 +202,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TArray : SdfArray<TSdf>, new()
 	where TSdf : ISdf<TSdf>
 {
-	private const int SendModificationsRpcIdent = 269924031;
+	public static implicit operator Entity( SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> world )
+	{
+		return world.Entity;
+	}
 
 	private enum Operator
 	{
@@ -140,25 +224,110 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	private bool _receivingModifications;
 	private int _clearCount;
 	private Transform _lastTransform;
+	private Transform _transform;
 
 	private TimeSince _notifiedMissingModifications;
 
-	/// <inheritdoc />
-	public override void Spawn()
-	{
-		base.Spawn();
+	internal SdfWorldEntity Entity { get; private set; }
 
-		Transmit = TransmitType.Always;
+	SdfWorldEntity ISdfWorld.Entity
+	{
+		get => Entity;
+		set => Entity = value;
 	}
 
-	internal bool IsDestroying { get; private set; }
+	public SceneWorld Scene { get; }
 
-	/// <inheritdoc />
-	protected override void OnDestroy()
+	public Transform Transform
 	{
-		base.OnDestroy();
+		get => Entity?.Transform ?? _transform;
+		set
+		{
+			if ( Entity != null )
+			{
+				Entity.Transform = value;
+			}
+			else
+			{
+				_transform = value;
+			}
+		}
+	}
 
-		IsDestroying = true;
+	public Vector3 Position
+	{
+		get => Transform.Position;
+		set => Transform = Transform.WithPosition( value );
+	}
+	
+	public Rotation Rotation
+	{
+		get => Transform.Rotation;
+		set => Transform = Transform.WithRotation( value );
+	}
+
+	public float Scale
+	{
+		get => Transform.Scale;
+		set => Transform = Transform.WithScale( value );
+	}
+
+	public Vector3 LocalPosition
+	{
+		get => Entity?.LocalPosition ?? Position;
+		set
+		{
+			if ( Entity != null )
+			{
+				Entity.LocalPosition = value;
+			}
+			else
+			{
+				Position = value;
+			}
+		}
+	}
+
+	public Rotation LocalRotation
+	{
+		get => Entity?.LocalRotation ?? Rotation;
+		set
+		{
+			if ( Entity != null )
+			{
+				Entity.LocalRotation = value;
+			}
+			else
+			{
+				Rotation = value;
+			}
+		}
+	}
+
+	public float LocalScale
+	{
+		get => Entity?.LocalScale ?? Scale;
+		set
+		{
+			if ( Entity != null )
+			{
+				Entity.LocalScale = value;
+			}
+			else
+			{
+				Scale = value;
+			}
+		}
+	}
+
+	public EntityTags Tags => Entity?.Tags ?? default;
+
+	public bool IsDestroying { get; private set; }
+
+	bool ISdfWorld.IsDestroying
+	{
+		get => IsDestroying;
+		set => IsDestroying = value;
 	}
 
 	private class Layer
@@ -173,8 +342,26 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
-	[GameEvent.Tick.Server]
-	private void ServerTick()
+	protected SdfWorld()
+	{
+		if ( Game.IsServer )
+		{
+			Entity = new SdfWorldEntity
+			{
+				TypeIdent = GlobalGameNamespace.TypeLibrary.GetTypeIdent( GetType() ),
+				World = this
+			};
+		}
+
+		Scene = Game.SceneWorld;
+	}
+
+	protected SdfWorld( SceneWorld scene )
+	{
+		Scene = scene;
+	}
+
+	void ISdfWorld.SendModifications()
 	{
 		foreach ( var client in Game.Clients )
 		{
@@ -182,8 +369,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	[GameEvent.Tick.Client]
-	private void ClientTick()
+	void ISdfWorld.UpdateChunkTransforms()
 	{
 		if ( !_lastTransform.Equals( Transform ) )
 		{
@@ -196,8 +382,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	[GameEvent.Tick]
-	private void Tick()
+	void ISdfWorld.Tick()
 	{
 		ProcessUpdatedChunkQueue();
 
@@ -231,7 +416,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		state = state with { LastMessage = 0f };
 
-		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
+		var msg = NetWrite.StartRpc( SdfWorldEntity.SendModificationsRpcIdent, Entity );
 		var count = Math.Min( MaxModificationsPerMessage, Modifications.Count - state.ModificationCount );
 
 		msg.Write( _clearCount );
@@ -250,21 +435,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		ClientStates[client] = state with { ModificationCount = state.ModificationCount + count };
 
-		msg.SendRpc( To.Single( client ), this );
-	}
-
-	protected override void OnCallRemoteProcedure( int id, NetRead read )
-	{
-		switch ( id )
-		{
-			case SendModificationsRpcIdent:
-				ReceiveModifications( ref read );
-				break;
-
-			default:
-				base.OnCallRemoteProcedure( id, read );
-				break;
-		}
+		msg.SendRpc( To.Single( client ), Entity );
 	}
 
 	private IDisposable AllowClientModifications()
@@ -274,7 +445,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return new DisposeAction( () => _receivingModifications = false );
 	}
 
-	private void ReceiveModifications( ref NetRead msg )
+	void ISdfWorld.ReceiveModifications( ref NetRead msg )
 	{
 		var clearCount = msg.Read<int>();
 		var prevCount = msg.Read<int>();
@@ -304,7 +475,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 				_notifiedMissingModifications = 0f;
 				Log.Warning( $"{this} has dropped some modifications! {prevCount} vs {Modifications.Count}" );
 
-				ConsoleCommands.RequestMissingModifications( NetworkIdent, _clearCount, Modifications.Count );
+				ConsoleCommands.RequestMissingModifications( Entity.NetworkIdent, _clearCount, Modifications.Count );
 			}
 
 			return;
@@ -346,7 +517,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		AssertCanModify();
 
-		await Task.MainThread();
+		await GameTask.MainThread();
 
 		Modifications.Clear();
 
@@ -374,7 +545,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			await lastTask;
 		}
 
-		await Task.MainThread();
+		await GameTask.MainThread();
 
 		foreach ( var layer in Layers.Values )
 		{
@@ -521,7 +692,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void AssertCanModify()
 	{
-		Assert.True( IsClientOnly || Game.IsServer || _receivingModifications, 
+		Assert.True( (Entity?.IsClientOnly ?? false) || !Game.IsClient || _receivingModifications, 
 			"Can only modify server-created SDF Worlds on the server." );
 	}
 
@@ -547,13 +718,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
 	{
-		if ( PhysicsBody == null )
+		Assert.NotNull( Entity );
+
+		if ( Entity.PhysicsBody == null )
 		{
-			SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
-			PhysicsBody!.ClearShapes();
+			Entity.SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
+			Entity.PhysicsBody!.ClearShapes();
 		}
 
-		return PhysicsBody.AddMeshShape( vertices, indices );
+		return Entity.PhysicsBody.AddMeshShape( vertices, indices );
 	}
 
 	/// <summary>
@@ -677,7 +850,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		layer.NeedsMeshUpdate.Clear();
 
-		await Task.WhenAll( tasks );
+		await GameTask.WhenAll( tasks );
 	}
 
 	void ISdfWorld.RequestMissing( IClient client, int clearCount, int modificationCount )

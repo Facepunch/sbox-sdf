@@ -134,7 +134,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		IsValid = false;
 
-		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
+		if ( !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
 
 		if ( SceneObject.IsValid() ) SceneObject.Delete();
 
@@ -278,6 +278,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices )
 	{
 		ThreadSafe.AssertIsMainThread();
+
+		if ( World.Entity == null )
+		{
+			return;
+		}
 
 		if ( indices.Count == 0 )
 		{
