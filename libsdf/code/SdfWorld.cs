@@ -365,7 +365,14 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private async Task ClearImpl()
 	{
-		await _lastModificationTask;
+		ThreadSafe.AssertIsMainThread();
+
+		var lastTask = _lastModificationTask;
+
+		if ( !lastTask.IsCompleted )
+		{
+			await lastTask;
+		}
 
 		await Task.MainThread();
 
@@ -377,10 +384,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			{
 				chunk.Dispose();
 			}
+
+			layer.Chunks.Clear();
 		}
 
 		AllChunks.Clear();
-		Layers.Clear();
 	}
 
 	[Obsolete( $"Please use {nameof( ClearAsync )}" )]
