@@ -589,29 +589,40 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		var prevTask = _lastModificationTask;
 
 		await GameTask.WorkerThread();
-		await prevTask;
 
-		var tasks = new List<(TChunk Chunk, Task<bool> Task)>();
-
-		foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
+		if ( !prevTask.IsCompleted )
 		{
-			var chunk = !createChunks
-				? GetChunk( resource, key )
-				: GetOrCreateChunk( resource, key );
-
-			if ( chunk == null ) continue;
-
-			tasks.Add( (chunk, func( chunk, sdf )) );
+			await prevTask;
 		}
 
-		var result = await GameTask.WhenAll( tasks.Select( x => x.Task ) );
-
-		for ( var i = 0; i < tasks.Count; ++i )
+		try
 		{
-			if ( result[i] )
+			var tasks = new List<(TChunk Chunk, Task<bool> Task)>();
+
+			foreach ( var key in GetAffectedChunks( sdf, resource.Quality ) )
 			{
-				UpdatedChunkQueue.Enqueue( tasks[i].Chunk );
+				var chunk = !createChunks
+					? GetChunk( resource, key )
+					: GetOrCreateChunk( resource, key );
+
+				if ( chunk == null ) continue;
+
+				tasks.Add( (chunk, func( chunk, sdf )) );
 			}
+
+			var result = await GameTask.WhenAll( tasks.Select( x => x.Task ) );
+
+			for ( var i = 0; i < tasks.Count; ++i )
+			{
+				if ( result[i] )
+				{
+					UpdatedChunkQueue.Enqueue( tasks[i].Chunk );
+				}
+			}
+		}
+		catch ( Exception e )
+		{
+			Log.Error( e );
 		}
 	}
 
