@@ -156,9 +156,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <inheritdoc />
 	protected override void OnDestroy()
 	{
-		base.OnDestroy();
-
 		IsDestroying = true;
+
+		_ = ClearAsync();
 	}
 
 	private class Layer
@@ -344,7 +344,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// </summary>
 	public async Task ClearAsync()
 	{
-		AssertCanModify();
+		if ( !IsDestroying )
+		{
+			AssertCanModify();
+		}
 
 		await Task.MainThread();
 
@@ -493,6 +496,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal TChunk GetChunk( TResource resource, TChunkKey key )
 	{
+		if ( IsDestroying ) return null;
+
 		return Layers.TryGetValue( resource, out var layerData )
 			&& layerData.Chunks.TryGetValue( key, out var chunk )
 				? chunk
@@ -501,6 +506,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private TChunk GetOrCreateChunk( TResource resource, TChunkKey key )
 	{
+		if ( IsDestroying ) return null;
+
 		if ( !Layers.TryGetValue( resource, out var layerData ) )
 		{
 			throw new Exception( "Layer doesn't exist!" );

@@ -19,7 +19,8 @@ namespace Sandbox.Sdf
 		[ConCmd.Admin( "blobs_clear" )]
 		public static void ClearWorld()
 		{
-			_ = SdfWorld?.ClearAsync();
+			SdfWorld?.Delete();
+			SdfWorld = null;
 		}
 
 		private static Sdf3DVolume _sDefaultVolume;
@@ -56,11 +57,7 @@ namespace Sandbox.Sdf
 		{
 			base.Activate();
 
-			if ( Game.IsServer )
-			{
-				SdfWorld ??= Entity.All.OfType<Sdf3DWorld>().FirstOrDefault() ?? new Sdf3DWorld();
-			}
-			else
+			if ( Game.IsClient )
 			{
 				SettingsPage.AddToSpawnMenu( this );
 
@@ -76,7 +73,7 @@ namespace Sandbox.Sdf
 		{
 			base.Deactivate();
 
-			if ( !Game.IsServer )
+			if ( Game.IsClient )
 			{
 				SettingsPage.RemoveFromSpawnMenu();
 
@@ -106,6 +103,11 @@ namespace Sandbox.Sdf
 			{
 				Preview.Scale = radius / 48f;
 				Preview.Position = editPos;
+			}
+
+			if ( Game.IsServer )
+			{
+				SdfWorld ??= new Sdf3DWorld();
 			}
 
 			if ( !Game.IsServer || SdfWorld == null || !_lastEditTask.IsCompleted )
