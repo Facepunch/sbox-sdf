@@ -4,6 +4,27 @@ using System.Collections.Generic;
 namespace Sandbox.Sdf;
 
 /// <summary>
+/// Options for how front / back faces connect to the cut face in a <see cref="Sdf2DLayer"/>.
+/// </summary>
+public enum EdgeStyle
+{
+	/// <summary>
+	/// The two faces meet at a 90 degree angle.
+	/// </summary>
+	Sharp,
+
+	/// <summary>
+	/// The two faces are connected by a 45 degree bevel.
+	/// </summary>
+	Bevel,
+
+	/// <summary>
+	/// The two faces smoothly join with a rounded edge.
+	/// </summary>
+	Round
+}
+
+/// <summary>
 /// Controls the appearance and physical properties of a layer in a <see cref="Sdf2DWorld"/>.
 /// </summary>
 [GameResource( "SDF 2D Layer", "sdflayer", $"Properties of a layer in a {nameof( Sdf2DWorld )}", Icon = "layers" )]
@@ -47,6 +68,17 @@ public class Sdf2DLayer : SdfResource<Sdf2DLayer>
 	/// </summary>
 	[HideIf( nameof( IsTextureSourceOnly ), true )]
 	public Material CutFaceMaterial { get; set; }
+
+	/// <summary>
+	/// Options for how front / back faces connect to the cut face.
+	/// </summary>
+	public EdgeStyle EdgeStyle { get; set; }
+
+	/// <summary>
+	/// How wide the connecting edge should be between front / back faces and the cut face.
+	/// </summary>
+	[HideIf( nameof(EdgeStyle), EdgeStyle.Sharp )]
+	public float EdgeRadius { get; set; } = 2f;
 
 	internal override WorldQuality GetQualityFromPreset( WorldQualityPreset preset )
 	{
