@@ -13,9 +13,7 @@ public abstract partial class SdfArray<TSdf>
 	/// How far outside the chunk boundary should samples be stored.
 	/// This is used to ensure generated normals are smooth when on a chunk boundary.
 	/// </summary>
-#pragma warning disable SB3000
 	public const int Margin = 1;
-#pragma warning restore SB3000
 
 	/// <summary>
 	/// Spacial dimensions of the array (2D / 3D).

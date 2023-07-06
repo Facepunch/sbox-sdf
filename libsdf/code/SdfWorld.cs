@@ -21,10 +21,12 @@ public delegate T SdfReader<TBase, T>( ref NetRead read ) where TBase : ISdf<TBa
 public interface ISdf<T>
 	where T : ISdf<T>
 {
+	// ReSharper disable StaticMemberInGenericType
 #pragma warning disable SB3000
 	private static readonly List<(TypeDescription Type, SdfReader<T> Reader)> _sRegisteredTypes = new();
-	private static bool _sTypesRegistered;
 #pragma warning restore SB3000
+	private static bool _sTypesRegistered;
+	// ReSharper enable StaticMemberInGenericType
 
 	private static void EnsureTypesRegistered()
 	{

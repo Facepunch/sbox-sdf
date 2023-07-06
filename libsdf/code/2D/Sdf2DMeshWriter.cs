@@ -265,6 +265,17 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			Indices.Add( aBackIndex );
 		}
 
+		public void AddNeighborQuad( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, CutFace face )
+		{
+			var aPos = GetVertexPos( data, biasSampleSpace, face.V0 );
+			var bPos = GetVertexPos( data, biasSampleSpace, face.V1 );
+
+			var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
+
+			AddVertices( aPos, normal, unitSize, uvScale, face.V0 );
+			AddVertices( bPos, normal, unitSize, uvScale, face.V1 );
+		}
+
 		public override void ClearMap()
 		{
 			Map.Clear();
@@ -273,6 +284,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 	private List<FrontBackTriangle> FrontBackTriangles { get; } = new();
 	private List<CutFace> CutFaces { get; } = new();
+	private List<CutFace> NeighborCutFaces { get; } = new();
 
 	private CollisionSubMesh Collision { get; } = new();
 	private FrontBackSubMesh Front { get; } = new();
@@ -292,6 +304,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		SolidBlocks.Clear();
 		FrontBackTriangles.Clear();
 		CutFaces.Clear();
+		NeighborCutFaces.Clear();
 
 		Collision.Clear();
 		Front.Clear();
@@ -304,11 +317,253 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		return (a - 127.5f) * (d - 127.5f) - (b - 127.5f) * (c - 127.5f);
 	}
 
+	private void AddFrontBack( SquareConfiguration config, int x, int y, int aRaw, int bRaw, int cRaw, int dRaw )
+	{
+		switch ( config )
+		{
+			case SquareConfiguration.None:
+				break;
+
+			case SquareConfiguration.A:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
+					SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.B:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
+					SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.C:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
+					SquareVertex.AC ) );
+				break;
+
+			case SquareConfiguration.D:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
+					SquareVertex.CD ) );
+				break;
+
+
+			case SquareConfiguration.AB:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
+					SquareVertex.B ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AC,
+					SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.AC:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
+					SquareVertex.AB ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
+					SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.CD:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.D,
+					SquareVertex.AC ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
+					SquareVertex.AC ) );
+				break;
+
+			case SquareConfiguration.BD:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
+					SquareVertex.D ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AB,
+					SquareVertex.CD ) );
+				break;
+
+
+			case SquareConfiguration.AD:
+				if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) > 0f )
+				{
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
+						SquareVertex.D ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC,
+						SquareVertex.CD ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
+						SquareVertex.AB ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
+						SquareVertex.AB ) );
+				}
+				else
+				{
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
+						SquareVertex.AB ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
+						SquareVertex.CD ) );
+				}
+
+				break;
+
+			case SquareConfiguration.BC:
+				if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) < 0f )
+				{
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
+						SquareVertex.C ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB,
+						SquareVertex.AC ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
+						SquareVertex.BD ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
+						SquareVertex.BD ) );
+				}
+				else
+				{
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
+						SquareVertex.BD ) );
+					FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
+						SquareVertex.AC ) );
+				}
+
+				break;
+
+
+			case SquareConfiguration.ABC:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
+					SquareVertex.B ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
+					SquareVertex.BD ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
+					SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.ABD:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
+					SquareVertex.B ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
+					SquareVertex.D ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC,
+					SquareVertex.CD ) );
+				break;
+
+			case SquareConfiguration.ACD:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
+					SquareVertex.D ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
+					SquareVertex.AB ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
+					SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.BCD:
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
+					SquareVertex.D ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
+					SquareVertex.C ) );
+				FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB,
+					SquareVertex.AC ) );
+				break;
+
+
+			case SquareConfiguration.ABCD:
+				SolidBlocks.Add( new SolidBlock( x, y, x + 1, y + 1 ) );
+				break;
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
+
+	private static void AddCut( List<CutFace> target, SquareConfiguration config, int x, int y, int aRaw, int bRaw, int cRaw, int dRaw )
+	{
+		switch ( config )
+		{
+			case SquareConfiguration.None:
+				break;
+
+			case SquareConfiguration.A:
+				target.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.B:
+				target.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.C:
+				target.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AC ) );
+				break;
+
+			case SquareConfiguration.D:
+				target.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.CD ) );
+				break;
+
+
+			case SquareConfiguration.AB:
+				target.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.AC:
+				target.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.CD:
+				target.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AC ) );
+				break;
+
+			case SquareConfiguration.BD:
+				target.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.CD ) );
+				break;
+
+
+			case SquareConfiguration.AD:
+				if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) > 0f )
+				{
+					target.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.CD ) );
+					target.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AB ) );
+				}
+				else
+				{
+					target.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.AB ) );
+					target.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.CD ) );
+				}
+
+				break;
+
+			case SquareConfiguration.BC:
+				if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) < 0f )
+				{
+					target.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.AC ) );
+					target.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.BD ) );
+				}
+				else
+				{
+					target.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.BD ) );
+					target.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AC ) );
+				}
+
+				break;
+
+			case SquareConfiguration.ABC:
+				target.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.BD ) );
+				break;
+
+			case SquareConfiguration.ABD:
+				target.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.CD ) );
+				break;
+
+			case SquareConfiguration.ACD:
+				target.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AB ) );
+				break;
+
+			case SquareConfiguration.BCD:
+				target.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.AC ) );
+				break;
+
+			case SquareConfiguration.ABCD:
+				break;
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
+
 	public void Write( Sdf2DArrayData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
 		SolidBlocks.Clear();
 		FrontBackTriangles.Clear();
 		CutFaces.Clear();
+		NeighborCutFaces.Clear();
 
 		var quality = layer.Quality;
 		var size = quality.ChunkResolution;
@@ -316,9 +571,14 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		var bias = layer.EdgeStyle == EdgeStyle.Sharp ? 0f : layer.EdgeRadius;
 		var biasSampleSpace = (int) (bias * 128f / layer.Quality.MaxDistance);
 
-		for ( var y = 0; y < size; ++y )
-			for ( int x = 0, index = data.BaseIndex + y * data.RowStride; x < size; ++x, ++index )
+		for ( var y = -1; y <= size; ++y )
+		{
+			var yInBounds = y >= 0 && y < size; 
+
+			for ( int x = -1, index = data.BaseIndex + y * data.RowStride - 1; x <= size; ++x, ++index )
 			{
+				var xInBounds = x >= 0 && x < size;
+
 				var aRaw = data.Samples[index] + biasSampleSpace;
 				var bRaw = data.Samples[index + 1] + biasSampleSpace;
 				var cRaw = data.Samples[index + data.RowStride] + biasSampleSpace;
@@ -331,171 +591,17 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 				var config = a | b | c | d;
 
-				switch ( config )
+				if ( yInBounds && xInBounds )
 				{
-					case SquareConfiguration.None:
-						break;
-
-					case SquareConfiguration.A:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
-							SquareVertex.AB ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.AB ) );
-						break;
-
-					case SquareConfiguration.B:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
-							SquareVertex.BD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.BD ) );
-						break;
-
-					case SquareConfiguration.C:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
-							SquareVertex.AC ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AC ) );
-						break;
-
-					case SquareConfiguration.D:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
-							SquareVertex.CD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.CD ) );
-						break;
-
-
-					case SquareConfiguration.AB:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
-							SquareVertex.B ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AC,
-							SquareVertex.BD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.BD ) );
-						break;
-
-					case SquareConfiguration.AC:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
-							SquareVertex.AB ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
-							SquareVertex.AB ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AB ) );
-						break;
-
-					case SquareConfiguration.CD:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.D,
-							SquareVertex.AC ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
-							SquareVertex.AC ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AC ) );
-						break;
-
-					case SquareConfiguration.BD:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
-							SquareVertex.D ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AB,
-							SquareVertex.CD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.CD ) );
-						break;
-
-
-					case SquareConfiguration.AD:
-						if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) > 0f )
-						{
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
-								SquareVertex.D ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC,
-								SquareVertex.CD ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
-								SquareVertex.AB ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
-								SquareVertex.AB ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.CD ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AB ) );
-						}
-						else
-						{
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
-								SquareVertex.AB ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
-								SquareVertex.CD ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.AB ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.CD ) );
-						}
-
-						break;
-
-					case SquareConfiguration.BC:
-						if ( GetAdSubBc( aRaw, bRaw, cRaw, dRaw ) < 0f )
-						{
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
-								SquareVertex.C ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB,
-								SquareVertex.AC ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
-								SquareVertex.BD ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
-								SquareVertex.BD ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.AC ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.BD ) );
-						}
-						else
-						{
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
-								SquareVertex.BD ) );
-							FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
-								SquareVertex.AC ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.BD ) );
-							CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.AC ) );
-						}
-
-						break;
-
-
-					case SquareConfiguration.ABC:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
-							SquareVertex.B ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
-							SquareVertex.BD ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.CD,
-							SquareVertex.BD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.CD, SquareVertex.BD ) );
-						break;
-
-					case SquareConfiguration.ABD:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
-							SquareVertex.B ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.AC,
-							SquareVertex.D ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.AC,
-							SquareVertex.CD ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AC, SquareVertex.CD ) );
-						break;
-
-					case SquareConfiguration.ACD:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.C,
-							SquareVertex.D ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.A, SquareVertex.D,
-							SquareVertex.AB ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.D, SquareVertex.BD,
-							SquareVertex.AB ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.BD, SquareVertex.AB ) );
-						break;
-
-					case SquareConfiguration.BCD:
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.C,
-							SquareVertex.D ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.B, SquareVertex.AB,
-							SquareVertex.C ) );
-						FrontBackTriangles.Add( new FrontBackTriangle( x, y, SquareVertex.C, SquareVertex.AB,
-							SquareVertex.AC ) );
-						CutFaces.Add( new CutFace( x, y, SquareVertex.AB, SquareVertex.AC ) );
-						break;
-
-
-					case SquareConfiguration.ABCD:
-						SolidBlocks.Add( new SolidBlock( x, y, x + 1, y + 1 ) );
-						break;
-
-					default:
-						throw new NotImplementedException();
+					AddFrontBack( config, x, y, aRaw, bRaw, cRaw, dRaw );
+					AddCut( CutFaces, config, x, y, aRaw, bRaw, cRaw, dRaw );
+				}
+				else
+				{
+					AddCut( NeighborCutFaces, config, x, y, aRaw, bRaw, cRaw, dRaw );
 				}
 			}
+		}
 
 		ReduceSolidBlocks( SolidBlocks );
 
@@ -548,7 +654,15 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 				Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1 );
 			}
 
-			foreach ( var cutFace in CutFaces ) Cut.AddQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+			foreach ( var cutFace in CutFaces )
+			{
+				Cut.AddQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+			}
+
+			foreach ( var cutFace in NeighborCutFaces )
+			{
+				Cut.AddNeighborQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+			}
 		}
 	}
 
