@@ -80,6 +80,12 @@ public class Sdf2DLayer : SdfResource<Sdf2DLayer>
 	[HideIf( nameof(EdgeStyle), EdgeStyle.Sharp )]
 	public float EdgeRadius { get; set; } = 2f;
 
+	/// <summary>
+	/// How many faces to use for rounded connecting edges between front / back faces and the cut face.
+	/// </summary>
+	[ShowIf( nameof( EdgeStyle ), EdgeStyle.Round )]
+	public int EdgeFaces { get; set; } = 3;
+
 	internal override WorldQuality GetQualityFromPreset( WorldQualityPreset preset )
 	{
 		switch ( preset )

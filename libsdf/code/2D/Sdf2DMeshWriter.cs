@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Sandbox.Sdf;
 
@@ -112,11 +113,11 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			return (frontIndex, backIndex);
 		}
 
-		public void AddFrontBackTriangle( Sdf2DArrayData data, float biasSampleSpace, float unitSize, FrontBackTriangle triangle )
+		public void AddFrontBackTriangle( Sdf2DArrayData data, float unitSize, FrontBackTriangle triangle )
 		{
-			var (front0, back0) = AddVertex( data, biasSampleSpace, unitSize, triangle.V0 );
-			var (front1, back1) = AddVertex( data, biasSampleSpace, unitSize, triangle.V1 );
-			var (front2, back2) = AddVertex( data, biasSampleSpace, unitSize, triangle.V2 );
+			var (front0, back0) = AddVertex( data, 0f, unitSize, triangle.V0 );
+			var (front1, back1) = AddVertex( data, 0f, unitSize, triangle.V1 );
+			var (front2, back2) = AddVertex( data, 0f, unitSize, triangle.V2 );
 
 			Indices.Add( front0 );
 			Indices.Add( front2 );
@@ -127,10 +128,10 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			Indices.Add( back2 );
 		}
 
-		public void AddCutFace( Sdf2DArrayData data, float biasSampleSpace, float unitSize, CutFace face )
+		public void AddCutFace( Sdf2DArrayData data, float unitSize, CutFace face )
 		{
-			var (front0, back0) = AddVertex( data, biasSampleSpace, unitSize, face.V0 );
-			var (front1, back1) = AddVertex( data, biasSampleSpace, unitSize, face.V1 );
+			var (front0, back0) = AddVertex( data, 0f, unitSize, face.V0 );
+			var (front1, back1) = AddVertex( data, 0f, unitSize, face.V1 );
 
 			Indices.Add( front0 );
 			Indices.Add( front1 );
@@ -190,7 +191,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		private const float SmoothNormalThreshold = 33f;
 		private static readonly float SmoothNormalDotTheshold = MathF.Cos( SmoothNormalThreshold * MathF.PI / 180f );
 
-		private record struct VertexInfo( int FrontIndex, int BackIndex, Vector3 Normal, float V );
+		private record struct VertexInfo( int IndexOffset, Vector3 Normal, float V );
 
 		private Dictionary<VertexKey, VertexInfo> Map { get; } = new();
 
@@ -198,8 +199,117 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		public Vector3 FrontOffset { get; set; }
 		public Vector3 BackOffset { get; set; }
+		public EdgeStyle EdgeStyle { get; set; }
+		public float EdgeRadius { get; set; }
+		public int CutVertexCount { get; set; }
 
-		private (int FrontIndex, int BackIndex) AddVertices( Vector3 pos, Vector3 normal, float unitSize, float uvScale,
+		private void UpdateVertices( VertexInfo info, Vector3 otherNormal, Vector3 pos, float unitSize, float uvScale, bool smooth )
+		{
+			var tangent = new Vector3( 0f, 0f, 1f );
+			var width = FrontOffset.z - BackOffset.z;
+			var centerPos = pos * unitSize;
+
+			var normal = (info.Normal + otherNormal).Normal;
+
+			switch ( EdgeStyle )
+			{
+				case EdgeStyle.Sharp:
+				{
+					Vertices[info.IndexOffset + 0] = new Vertex(
+						centerPos + FrontOffset,
+						smooth ? normal : info.Normal, tangent,
+						new Vector2( 0f, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 1] = new Vertex(
+						centerPos + BackOffset,
+						smooth ? normal : info.Normal, tangent,
+						new Vector2( width, info.V ) * uvScale );
+					break;
+				}
+
+				case EdgeStyle.Bevel:
+				{
+					var innerLength = EdgeRadius * 2f / (info.Normal + otherNormal).Length;
+					var innerCenter = centerPos + normal * innerLength;
+					var frontNormal = ((smooth ? normal : info.Normal) + new Vector3( 0f, 0f, 1f )).Normal;
+					var backNormal = frontNormal.WithZ( -frontNormal.z );
+					var innerFrontOffset = FrontOffset.WithZ( FrontOffset.z - EdgeRadius );
+					var innerBackOffset = BackOffset.WithZ( BackOffset.z + EdgeRadius );
+					var frontPos = centerPos + FrontOffset;
+					var backPos = centerPos + BackOffset;
+					var innerFrontPos = innerCenter + innerFrontOffset;
+					var innerBackPos = innerCenter + innerBackOffset;
+					var frontTangent = (innerFrontPos - frontPos).Normal;
+					var backTangent = (backPos - innerBackPos).Normal;
+
+					Vertices[info.IndexOffset + 0] = new Vertex(
+						frontPos, frontNormal, frontTangent,
+						new Vector2( 0f, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 1] = new Vertex(
+						innerFrontPos, frontNormal, frontTangent,
+						new Vector2( EdgeRadius, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 2] = new Vertex(
+						innerFrontPos, smooth ? normal : info.Normal, tangent,
+						new Vector2( EdgeRadius, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 3] = new Vertex(
+						innerBackPos, smooth ? normal : info.Normal, tangent,
+						new Vector2( width - EdgeRadius, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 4] = new Vertex(
+						innerBackPos, backNormal, backTangent,
+						new Vector2( width - EdgeRadius, info.V ) * uvScale );
+
+					Vertices[info.IndexOffset + 5] = new Vertex(
+						backPos, backNormal, backTangent,
+						new Vector2( width, info.V ) * uvScale );
+					break;
+				}
+
+				case EdgeStyle.Round:
+				{
+					var innerLength = EdgeRadius * 2f / (info.Normal + otherNormal).Length;
+					var innerFrontOffset = FrontOffset.WithZ( FrontOffset.z - EdgeRadius );
+					var innerBackOffset = BackOffset.WithZ( BackOffset.z + EdgeRadius );
+					var frontCenter = centerPos + innerFrontOffset;
+					var backCenter = centerPos + innerBackOffset;
+
+					var vertexCount = CutVertexCount;
+					var halfVertexCount = CutVertexCount / 2;
+					var frontAdd = new Vector3( 0f, 0f, EdgeRadius );
+					var backAdd = new Vector3( 0f, 0f, -EdgeRadius );
+					var innerAdd = normal * innerLength;
+
+					for ( var i = 0; i < halfVertexCount; ++i )
+					{
+						var angle = 0.5f * MathF.PI * i / (halfVertexCount - 1f);
+						var cos = MathF.Cos( angle );
+						var sin = MathF.Sin( angle );
+
+						Vertices[info.IndexOffset + i] = new Vertex(
+							frontCenter + cos * frontAdd + sin * innerAdd,
+							(cos * frontAdd + sin * innerAdd).Normal,
+							(cos * innerAdd + sin * backAdd).Normal,
+							new Vector2( angle * EdgeRadius, info.V ) * uvScale );
+
+						Vertices[info.IndexOffset + vertexCount - i - 1] = new Vertex(
+							backCenter + cos * backAdd + sin * innerAdd,
+							(cos * backAdd + sin * innerAdd).Normal,
+							(cos * -innerAdd + sin * backAdd).Normal,
+							new Vector2( width + (MathF.PI - angle - 2f) * EdgeRadius, info.V ) * uvScale );
+					}
+
+					break;
+				}
+
+				default:
+					throw new NotImplementedException();
+			}
+		}
+
+		private int AddVertices( Vector3 pos, Vector3 normal, float unitSize, float uvScale,
 			VertexKey key )
 		{
 			var wasInMap = false;
@@ -208,42 +318,43 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 				? new Vector3( -MathF.Sign( normal.y ), 0f, 0f )
 				: new Vector3( 0f, MathF.Sign( normal.x ), 0f );
 
+			// Tex coord, we'll only merge vertices with similar values
 			var v = Vector3.Dot( pos, binormal ) * unitSize;
+
+			var smooth = false;
+			var otherNormal = normal;
 
 			if ( Map.TryGetValue( key, out var info ) )
 			{
-				if ( Vector3.Dot( info.Normal, normal ) >= SmoothNormalDotTheshold )
-				{
-					normal = (info.Normal + normal).Normal;
+				smooth = Vector3.Dot( info.Normal, normal ) >= SmoothNormalDotTheshold;
+				otherNormal = info.Normal;
 
-					Vertices[info.FrontIndex] = Vertices[info.FrontIndex] with { Normal = normal };
-					Vertices[info.BackIndex] = Vertices[info.BackIndex] with { Normal = normal };
+				UpdateVertices( info, normal, pos, unitSize, uvScale, smooth );
 
-					if ( MathF.Abs( v - info.V ) <= 1f ) return (info.FrontIndex, info.BackIndex);
-				}
+				if ( smooth && MathF.Abs( v - info.V ) <= 1f ) return info.IndexOffset;
 
 				wasInMap = true;
 			}
 
-			var frontIndex = Vertices.Count;
-			var backIndex = frontIndex + 1;
-			var tangent = new Vector3( 0f, 0f, 1f );
+			var indexOffset = Vertices.Count;
 
-			var width = BackOffset.z - FrontOffset.z;
+			for ( var i = 0; i < CutVertexCount; ++i )
+			{
+				Vertices.Add( default );
+			}
 
-			Vertices.Add( new Vertex(
-				pos * unitSize + FrontOffset,
-				normal, tangent,
-				new Vector2( 0f, v ) * uvScale ) );
+			info = new VertexInfo( indexOffset, normal, v );
 
-			Vertices.Add( new Vertex(
-				pos * unitSize + BackOffset,
-				normal, tangent,
-				new Vector2( width, v ) * uvScale ) );
+			if ( wasInMap )
+			{
+				UpdateVertices( info, otherNormal, pos, unitSize, uvScale, smooth );
+			}
+			else
+			{
+				Map[key] = info;
+			}
 
-			if ( !wasInMap ) Map[key] = new VertexInfo( frontIndex, backIndex, normal, v );
-
-			return (frontIndex, backIndex);
+			return indexOffset;
 		}
 
 		public void AddQuad( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, CutFace face )
@@ -253,16 +364,58 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 			var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
 
-			var (aFrontIndex, aBackIndex) = AddVertices( aPos, normal, unitSize, uvScale, face.V0 );
-			var (bFrontIndex, bBackIndex) = AddVertices( bPos, normal, unitSize, uvScale, face.V1 );
+			var aIndexOffset = AddVertices( aPos, normal, unitSize, uvScale, face.V0 );
+			var bIndexOffset = AddVertices( bPos, normal, unitSize, uvScale, face.V1 );
 
-			Indices.Add( aFrontIndex );
-			Indices.Add( bFrontIndex );
-			Indices.Add( aBackIndex );
+			switch ( EdgeStyle )
+			{
+				case EdgeStyle.Sharp:
+				{
+					Indices.Add( aIndexOffset + 0 );
+					Indices.Add( bIndexOffset + 0 );
+					Indices.Add( aIndexOffset + 1 );
 
-			Indices.Add( bFrontIndex );
-			Indices.Add( bBackIndex );
-			Indices.Add( aBackIndex );
+					Indices.Add( aIndexOffset + 1 );
+					Indices.Add( bIndexOffset + 0 );
+					Indices.Add( bIndexOffset + 1 );
+
+					break;
+				}
+
+				case EdgeStyle.Bevel:
+				{
+					for ( var i = 0; i < 6; i += 2 )
+					{
+						Indices.Add( aIndexOffset + i + 0 );
+						Indices.Add( bIndexOffset + i + 0 );
+						Indices.Add( aIndexOffset + i + 1 );
+
+						Indices.Add( aIndexOffset + i + 1 );
+						Indices.Add( bIndexOffset + i + 0 );
+						Indices.Add( bIndexOffset + i + 1 );
+					}
+
+					break;
+				}
+
+				case EdgeStyle.Round:
+				{
+					var vertexCount = CutVertexCount;
+
+					for ( var i = 0; i < vertexCount - 1; ++i )
+					{
+						Indices.Add( aIndexOffset + i + 0 );
+						Indices.Add( bIndexOffset + i + 0 );
+						Indices.Add( aIndexOffset + i + 1 );
+
+						Indices.Add( aIndexOffset + i + 1 );
+						Indices.Add( bIndexOffset + i + 0 );
+						Indices.Add( bIndexOffset + i + 1 );
+					}
+
+					break;
+				}
+			}
 		}
 
 		public void AddNeighborQuad( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, CutFace face )
@@ -558,7 +711,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		}
 	}
 
-	public void Write( Sdf2DArrayData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
+	public void WriteRenderMesh( Sdf2DArrayData data, Sdf2DLayer layer )
 	{
 		SolidBlocks.Clear();
 		FrontBackTriangles.Clear();
@@ -605,7 +758,6 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		ReduceSolidBlocks( SolidBlocks );
 
-		Collision.ClearMap();
 		Front.ClearMap();
 		Back.ClearMap();
 		Cut.ClearMap();
@@ -616,54 +768,101 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		var uvScale = 1f / layer.TexCoordSize;
 
 		Front.Normal = new Vector3( 0f, 0f, 1f );
-		Front.Offset = Cut.FrontOffset = Collision.FrontOffset = Front.Normal * (depth * 0.5f + offset);
+		Front.Offset = Cut.FrontOffset = Front.Normal * (depth * 0.5f + offset);
 		Back.Normal = new Vector3( 0f, 0f, -1f );
-		Back.Offset = Cut.BackOffset = Collision.BackOffset = Back.Normal * (depth * 0.5f - offset);
+		Back.Offset = Cut.BackOffset = Back.Normal * (depth * 0.5f - offset);
 
-		if ( collisionMesh )
+		Cut.EdgeStyle = layer.EdgeStyle;
+		Cut.EdgeRadius = layer.EdgeRadius;
+		Cut.CutVertexCount = layer.EdgeStyle switch
 		{
-			foreach ( var triangle in FrontBackTriangles ) Collision.AddFrontBackTriangle( data, biasSampleSpace, unitSize, triangle );
+			EdgeStyle.Sharp => 2,
+			EdgeStyle.Bevel => 6,
+			EdgeStyle.Round => 2 + layer.EdgeFaces * 2,
+			_ => throw new NotImplementedException()
+		};
 
-			foreach ( var block in SolidBlocks )
-			{
-				var (tri0, tri1) = block.Triangles;
-
-				Collision.AddFrontBackTriangle( data, biasSampleSpace, unitSize, tri0 );
-				Collision.AddFrontBackTriangle( data, biasSampleSpace, unitSize, tri1 );
-			}
-
-			foreach ( var cutFace in CutFaces ) Collision.AddCutFace( data, biasSampleSpace, unitSize, cutFace );
+		foreach ( var triangle in FrontBackTriangles )
+		{
+			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle.Flipped );
+			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle );
 		}
 
-		if ( renderMesh )
+		foreach ( var block in SolidBlocks )
 		{
-			foreach ( var triangle in FrontBackTriangles )
+			var (tri0, tri1) = block.Triangles;
+
+			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0.Flipped );
+			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1.Flipped );
+
+			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0 );
+			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1 );
+		}
+
+		foreach ( var cutFace in CutFaces )
+		{
+			Cut.AddQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+		}
+
+		foreach ( var cutFace in NeighborCutFaces )
+		{
+			Cut.AddNeighborQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+		}
+	}
+
+	public void WriteCollisionMesh( Sdf2DArrayData data, Sdf2DLayer layer )
+	{
+		SolidBlocks.Clear();
+		FrontBackTriangles.Clear();
+		CutFaces.Clear();
+		NeighborCutFaces.Clear();
+
+		var quality = layer.Quality;
+		var size = quality.ChunkResolution;
+
+		for ( var y = 0; y < size; ++y )
+		{
+			for ( int x = 0, index = data.BaseIndex + y * data.RowStride; x < size; ++x, ++index )
 			{
-				Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle.Flipped );
-				Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle );
-			}
+				var aRaw = data.Samples[index];
+				var bRaw = data.Samples[index + 1];
+				var cRaw = data.Samples[index + data.RowStride];
+				var dRaw = data.Samples[index + data.RowStride + 1];
 
-			foreach ( var block in SolidBlocks )
-			{
-				var (tri0, tri1) = block.Triangles;
+				var a = aRaw < 128 ? SquareConfiguration.A : 0;
+				var b = bRaw < 128 ? SquareConfiguration.B : 0;
+				var c = cRaw < 128 ? SquareConfiguration.C : 0;
+				var d = dRaw < 128 ? SquareConfiguration.D : 0;
 
-				Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0.Flipped );
-				Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1.Flipped );
+				var config = a | b | c | d;
 
-				Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0 );
-				Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1 );
-			}
-
-			foreach ( var cutFace in CutFaces )
-			{
-				Cut.AddQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
-			}
-
-			foreach ( var cutFace in NeighborCutFaces )
-			{
-				Cut.AddNeighborQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+				AddFrontBack( config, x, y, aRaw, bRaw, cRaw, dRaw );
+				AddCut( CutFaces, config, x, y, aRaw, bRaw, cRaw, dRaw );
 			}
 		}
+
+		ReduceSolidBlocks( SolidBlocks );
+
+		Collision.ClearMap();
+
+		var depth = layer.Depth;
+		var offset = layer.Offset;
+		var unitSize = quality.UnitSize;
+
+		Collision.FrontOffset = new Vector3( 0f, 0f, depth * 0.5f + offset );
+		Collision.BackOffset = new Vector3( 0f, 0f, depth * -0.5f + offset );
+
+		foreach ( var triangle in FrontBackTriangles ) Collision.AddFrontBackTriangle( data, unitSize, triangle );
+
+		foreach ( var block in SolidBlocks )
+		{
+			var (tri0, tri1) = block.Triangles;
+
+			Collision.AddFrontBackTriangle( data, unitSize, tri0 );
+			Collision.AddFrontBackTriangle( data, unitSize, tri1 );
+		}
+
+		foreach ( var cutFace in CutFaces ) Collision.AddCutFace( data, unitSize, cutFace );
 	}
 
 	private static void ReduceSolidBlocks( List<SolidBlock> blocks )
