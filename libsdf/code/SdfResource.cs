@@ -112,4 +112,15 @@ public abstract class SdfResource<T> : GameResource
 	};
 
 	internal abstract WorldQuality GetQualityFromPreset( WorldQualityPreset preset );
+
+	[HideInEditor]
+	[JsonIgnore]
+	internal int ChangeCount { get; private set; }
+
+	protected override void PostReload()
+	{
+		base.PostReload();
+
+		++ChangeCount;
+	}
 }

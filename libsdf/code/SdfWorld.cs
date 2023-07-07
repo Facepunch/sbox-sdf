@@ -165,6 +165,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private class Layer
 	{
+		public int LastChangeCount { get; set; }
 		public Dictionary<TChunkKey, TChunk> Chunks { get; } = new();
 		public HashSet<TChunk> NeedsMeshUpdate { get; } = new();
 		public Task UpdateMeshTask { get; set; } = System.Threading.Tasks.Task.CompletedTask;
@@ -203,8 +204,18 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		ProcessUpdatedChunkQueue();
 
-		foreach ( var layer in Layers.Values )
+		foreach ( var (resource, layer) in Layers )
 		{
+			if ( resource.ChangeCount != layer.LastChangeCount )
+			{
+				layer.LastChangeCount = resource.ChangeCount;
+
+				foreach ( var chunk in layer.Chunks.Values.ToArray() )
+				{
+					layer.NeedsMeshUpdate.Add( chunk );
+				}
+			}
+
 			if ( layer.NeedsMeshUpdate.Count > 0 && layer.UpdateMeshTask.IsCompleted )
 			{
 				DispatchUpdateMesh( layer );
