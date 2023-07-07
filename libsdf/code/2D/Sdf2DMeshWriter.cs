@@ -229,7 +229,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 				case EdgeStyle.Bevel:
 				{
-					var innerLength = EdgeRadius * 2f / (info.Normal + otherNormal).Length;
+					var innerLength = EdgeRadius * 2f / Math.Max( 0.75f, (info.Normal + otherNormal).Length );
 					var innerCenter = centerPos + normal * innerLength;
 					var frontNormal = ((smooth ? normal : info.Normal) + new Vector3( 0f, 0f, 1f )).Normal;
 					var backNormal = frontNormal.WithZ( -frontNormal.z );
@@ -270,7 +270,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 				case EdgeStyle.Round:
 				{
-					var innerLength = EdgeRadius * 2f / (info.Normal + otherNormal).Length;
+					var innerLength = EdgeRadius * 2f / Math.Max( 0.75f, (info.Normal + otherNormal).Length );
 					var innerFrontOffset = FrontOffset.WithZ( FrontOffset.z - EdgeRadius );
 					var innerBackOffset = BackOffset.WithZ( BackOffset.z + EdgeRadius );
 					var frontCenter = centerPos + innerFrontOffset;
