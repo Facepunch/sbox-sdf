@@ -16,7 +16,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		public abstract void ClearMap();
 
-		internal static Vector3 GetVertexPos( in Sdf2DArrayData data, float biasSampleSpace, VertexKey key )
+		internal static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
 		{
 			switch ( key.Vertex )
 			{
@@ -25,16 +25,16 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 				case NormalizedVertex.AB:
 					{
-						var a = data[key.X, key.Y] + biasSampleSpace - 127.5f;
-						var b = data[key.X + 1, key.Y] + biasSampleSpace - 127.5f;
+						var a = data[key.X, key.Y] - 127.5f;
+						var b = data[key.X + 1, key.Y] - 127.5f;
 						var t = a / (a - b);
 						return new Vector3( key.X + t, key.Y );
 					}
 
 				case NormalizedVertex.AC:
 					{
-						var a = data[key.X, key.Y] + biasSampleSpace - 127.5f;
-						var c = data[key.X, key.Y + 1] + biasSampleSpace - 127.5f;
+						var a = data[key.X, key.Y] - 127.5f;
+						var c = data[key.X, key.Y + 1] - 127.5f;
 						var t = a / (a - c);
 						return new Vector3( key.X, key.Y + t );
 					}
@@ -100,7 +100,7 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		{
 			if ( Map.TryGetValue( key, out var indices ) ) return indices;
 
-			var pos = GetVertexPos( data, biasSampleSpace, key ) * unitSize;
+			var pos = GetVertexPos( data, key ) * unitSize;
 
 			var frontIndex = Vertices.Count;
 			var backIndex = frontIndex + 1;
@@ -157,11 +157,11 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			Map.Clear();
 		}
 
-		private int AddVertex( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, VertexKey key )
+		private int AddVertex( Sdf2DArrayData data, float unitSize, float uvScale, VertexKey key )
 		{
 			if ( Map.TryGetValue( key, out var index ) ) return index;
 
-			var pos = GetVertexPos( data, biasSampleSpace, key );
+			var pos = GetVertexPos( data, key );
 
 			index = Vertices.Count;
 
@@ -176,11 +176,11 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			return index;
 		}
 
-		public void AddTriangle( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, FrontBackTriangle triangle )
+		public void AddTriangle( Sdf2DArrayData data, float unitSize, float uvScale, FrontBackTriangle triangle )
 		{
-			Indices.Add( AddVertex( data, biasSampleSpace, unitSize, uvScale, triangle.V0 ) );
-			Indices.Add( AddVertex( data, biasSampleSpace, unitSize, uvScale, triangle.V1 ) );
-			Indices.Add( AddVertex( data, biasSampleSpace, unitSize, uvScale, triangle.V2 ) );
+			Indices.Add( AddVertex( data, unitSize, uvScale, triangle.V0 ) );
+			Indices.Add( AddVertex( data, unitSize, uvScale, triangle.V1 ) );
+			Indices.Add( AddVertex( data, unitSize, uvScale, triangle.V2 ) );
 		}
 	}
 
@@ -357,10 +357,10 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			return indexOffset;
 		}
 
-		public void AddQuad( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, CutFace face )
+		public void AddQuad( Sdf2DArrayData data, float unitSize, float uvScale, CutFace face )
 		{
-			var aPos = GetVertexPos( data, biasSampleSpace, face.V0 );
-			var bPos = GetVertexPos( data, biasSampleSpace, face.V1 );
+			var aPos = GetVertexPos( data, face.V0 );
+			var bPos = GetVertexPos( data, face.V1 );
 
 			var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
 
@@ -418,10 +418,10 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			}
 		}
 
-		public void AddNeighborQuad( Sdf2DArrayData data, float biasSampleSpace, float unitSize, float uvScale, CutFace face )
+		public void AddNeighborQuad( Sdf2DArrayData data, float unitSize, float uvScale, CutFace face )
 		{
-			var aPos = GetVertexPos( data, biasSampleSpace, face.V0 );
-			var bPos = GetVertexPos( data, biasSampleSpace, face.V1 );
+			var aPos = GetVertexPos( data, face.V0 );
+			var bPos = GetVertexPos( data, face.V1 );
 
 			var normal = Vector3.Cross( aPos - bPos, new Vector3( 0f, 0f, 1f ) ).Normal;
 
@@ -721,9 +721,6 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		var quality = layer.Quality;
 		var size = quality.ChunkResolution;
 
-		var bias = layer.EdgeStyle == EdgeStyle.Sharp ? 0f : layer.EdgeRadius;
-		var biasSampleSpace = (int) (bias * 128f / layer.Quality.MaxDistance);
-
 		for ( var y = -1; y <= size; ++y )
 		{
 			var yInBounds = y >= 0 && y < size; 
@@ -732,10 +729,10 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 			{
 				var xInBounds = x >= 0 && x < size;
 
-				var aRaw = data.Samples[index] + biasSampleSpace;
-				var bRaw = data.Samples[index + 1] + biasSampleSpace;
-				var cRaw = data.Samples[index + data.RowStride] + biasSampleSpace;
-				var dRaw = data.Samples[index + data.RowStride + 1] + biasSampleSpace;
+				var aRaw = data.Samples[index];
+				var bRaw = data.Samples[index + 1];
+				var cRaw = data.Samples[index + data.RowStride];
+				var dRaw = data.Samples[index + data.RowStride + 1];
 
 				var a = aRaw < 128 ? SquareConfiguration.A : 0;
 				var b = bRaw < 128 ? SquareConfiguration.B : 0;
@@ -784,29 +781,29 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 
 		foreach ( var triangle in FrontBackTriangles )
 		{
-			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle.Flipped );
-			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, triangle );
+			Front.AddTriangle( data, unitSize, uvScale, triangle.Flipped );
+			Back.AddTriangle( data, unitSize, uvScale, triangle );
 		}
 
 		foreach ( var block in SolidBlocks )
 		{
 			var (tri0, tri1) = block.Triangles;
 
-			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0.Flipped );
-			Front.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1.Flipped );
+			Front.AddTriangle( data, unitSize, uvScale, tri0.Flipped );
+			Front.AddTriangle( data, unitSize, uvScale, tri1.Flipped );
 
-			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri0 );
-			Back.AddTriangle( data, biasSampleSpace, unitSize, uvScale, tri1 );
+			Back.AddTriangle( data, unitSize, uvScale, tri0 );
+			Back.AddTriangle( data, unitSize, uvScale, tri1 );
 		}
 
 		foreach ( var cutFace in CutFaces )
 		{
-			Cut.AddQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+			Cut.AddQuad( data, unitSize, uvScale, cutFace );
 		}
 
 		foreach ( var cutFace in NeighborCutFaces )
 		{
-			Cut.AddNeighborQuad( data, biasSampleSpace, unitSize, uvScale, cutFace );
+			Cut.AddNeighborQuad( data, unitSize, uvScale, cutFace );
 		}
 	}
 
