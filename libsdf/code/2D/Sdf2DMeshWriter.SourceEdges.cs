@@ -117,7 +117,7 @@ namespace Sandbox.Sdf
 		private HashSet<SourceEdge> RemainingSourceEdges { get; } = new();
 
 		private List<Vector2> SourceVertices { get; } = new();
-		private List<(int FirstIndex, int Count)> EdgeLoops { get; } = new();
+		private List<(int FirstIndex, int Count, bool Solid)> EdgeLoops { get; } = new();
 
 		private static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
 		{
@@ -227,14 +227,33 @@ namespace Sandbox.Sdf
 					continue;
 				}
 
-				EdgeLoops.Add( (firstIndex, count) );
+				// Find winding
+
+				var area = 0f;
+
+				v0 = SourceVertices[firstIndex];
+				v1 = SourceVertices[firstIndex + 1];
+				v01 = v1 - v0;
+
+				for ( var i = 2; i < count; ++i )
+				{
+					var v2 = SourceVertices[firstIndex + i];
+					var v12 = v2 - v1;
+
+					area += v01.y * v12.x - v01.x * v12.y;
+
+					v1 = v2;
+					v01 = v1 - v0;
+				}
+
+				EdgeLoops.Add( (firstIndex, count, area > 0f) );
 
 				for ( var i = 0; i < count; ++i )
 				{
 					var a = DebugOffset + SourceVertices[firstIndex + i] * DebugScale;
 					var b = DebugOffset + SourceVertices[firstIndex + (i + 1) % count] * DebugScale;
 
-					DebugOverlay.Line( a, b, 10f, false );
+					DebugOverlay.Line( a, b, area > 0f ? Color.Green : Color.Red, 10f, false );
 				}
 			}
 		}
