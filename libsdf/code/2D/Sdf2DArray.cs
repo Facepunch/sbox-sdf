@@ -3,9 +3,20 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
-internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int RowStride )
+internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int Size, int RowStride )
 {
-	public byte this[int x, int y] => Samples[BaseIndex + x + y * RowStride];
+	public byte this[int x, int y]
+	{
+		get
+		{
+			if ( x < -1 || x > Size || y < -1 || y > Size )
+			{
+				return byte.MaxValue;
+			}
+
+			return Samples[BaseIndex + x + y * RowStride];
+		}
+	}
 }
 
 /// <summary>
@@ -135,7 +146,9 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 		Array.Copy( Samples, writer.Samples, Samples.Length );
 
-		var data = new Sdf2DArrayData( writer.Samples, Margin * ArraySize + Margin, ArraySize );
+		var resolution = layer.Quality.ChunkResolution;
+
+		var data = new Sdf2DArrayData( writer.Samples, Margin * ArraySize + Margin, resolution, ArraySize );
 
 		if ( renderMesh )
 		{

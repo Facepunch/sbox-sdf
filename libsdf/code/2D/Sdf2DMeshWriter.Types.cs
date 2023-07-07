@@ -58,19 +58,9 @@ partial class Sdf2DMeshWriter
 		CD
 	}
 
-	private record struct FrontBackTriangle( VertexKey V0, VertexKey V1, VertexKey V2 )
+	private record struct SourceEdge( VertexKey V0, VertexKey V1 )
 	{
-		public FrontBackTriangle( int x, int y, SquareVertex V0, SquareVertex V1, SquareVertex V2 )
-			: this( VertexKey.Normalize( x, y, V0 ), VertexKey.Normalize( x, y, V1 ), VertexKey.Normalize( x, y, V2 ) )
-		{
-		}
-
-		public FrontBackTriangle Flipped => new( V0, V2, V1 );
-	}
-
-	private record struct CutFace( VertexKey V0, VertexKey V1 )
-	{
-		public CutFace( int x, int y, SquareVertex V0, SquareVertex V1 )
+		public SourceEdge( int x, int y, SquareVertex V0, SquareVertex V1 )
 			: this( VertexKey.Normalize( x, y, V0 ), VertexKey.Normalize( x, y, V1 ) )
 		{
 		}
@@ -111,25 +101,6 @@ partial class Sdf2DMeshWriter
 
 				default:
 					throw new NotImplementedException();
-			}
-		}
-	}
-	
-	private readonly record struct SolidBlock( int MinX, int MinY, int MaxX, int MaxY )
-	{
-		public (FrontBackTriangle Tri0, FrontBackTriangle Tri1) Triangles
-		{
-			get
-			{
-				var a = new VertexKey( MinX, MinY, NormalizedVertex.A );
-				var b = new VertexKey( MaxX, MinY, NormalizedVertex.A );
-				var c = new VertexKey( MinX, MaxY, NormalizedVertex.A );
-				var d = new VertexKey( MaxX, MaxY, NormalizedVertex.A );
-
-				var tri0 = new FrontBackTriangle( a, c, b );
-				var tri1 = new FrontBackTriangle( c, d, b );
-
-				return (tri0, tri1);
 			}
 		}
 	}
