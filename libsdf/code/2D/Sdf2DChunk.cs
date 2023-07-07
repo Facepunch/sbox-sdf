@@ -18,22 +18,29 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		}
 	}
 
-	private TranslatedSdf2D<T> ToLocal<T>( in T sdf )
+	private ExpandedSdf2D<TranslatedSdf2D<T>> ToLocal<T>( in T sdf, bool add )
 		where T : ISdf2D
 	{
-		return sdf.Translate( new Vector2( Key.X, Key.Y ) * -Resource.Quality.ChunkSize );
+		var edgeRadius = Resource.EdgeStyle == EdgeStyle.Sharp ? 0f : Resource.EdgeRadius;
+
+		if ( add )
+		{
+			edgeRadius *= -1f;
+		}
+
+		return sdf.Translate( new Vector2( Key.X, Key.Y ) * -Resource.Quality.ChunkSize ).Expand( edgeRadius );
 	}
 
 	/// <inheritdoc />
 	protected override Task<bool> OnAddAsync<T>( T sdf )
 	{
-		return Data.AddAsync( ToLocal( sdf ) );
+		return Data.AddAsync( ToLocal( sdf, true ) );
 	}
 
 	/// <inheritdoc />
 	protected override Task<bool> OnSubtractAsync<T>( T sdf )
 	{
-		return Data.SubtractAsync( ToLocal( sdf ) );
+		return Data.SubtractAsync( ToLocal( sdf, false ) );
 	}
 
 	/// <inheritdoc />
