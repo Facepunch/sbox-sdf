@@ -116,8 +116,10 @@ namespace Sandbox.Sdf
 		private Dictionary<VertexKey, (SourceEdge NextEdge, Vector2 Position)> VertexMap { get; } = new();
 		private HashSet<SourceEdge> RemainingSourceEdges { get; } = new();
 
+		private record struct EdgeLoop( int FirstIndex, int Count, float Area, Vector2 Min, Vector2 Max );
+
 		private List<Vector2> SourceVertices { get; } = new();
-		private List<(int FirstIndex, int Count, bool Solid)> EdgeLoops { get; } = new();
+		private List<EdgeLoop> EdgeLoops { get; } = new();
 
 		private static Vector3 GetVertexPos( in Sdf2DArrayData data, VertexKey key )
 		{
@@ -145,6 +147,53 @@ namespace Sandbox.Sdf
 				default:
 					throw new NotImplementedException();
 			}
+		}
+
+		private bool Contains( EdgeLoop loop, Vector2 pos )
+		{
+			if ( pos.x < loop.Min.x || pos.x > loop.Max.x )
+			{
+				return loop.Area < 0f;
+			}
+
+			if ( pos.y < loop.Min.y || pos.y > loop.Max.y )
+			{
+				return loop.Area < 0f;
+			}
+
+			var v0 = SourceVertices[loop.FirstIndex + loop.Count - 1] - pos;
+			Vector2 v1;
+
+			var intersections = 0;
+
+			for ( var i = 0; i < loop.Count; ++i, v0 = v1 )
+			{
+				v1 = SourceVertices[loop.FirstIndex + i] - pos;
+
+				if ( v0.y >= 0f == v1.y >= 0f )
+				{
+					continue;
+				}
+
+				if ( v0.x >= 0f && v1.x >= 0f )
+				{
+					continue;
+				}
+
+				var t = -v0.y / (v1.y - v0.y);
+
+				if ( t >= 0f && t < 1f )
+				{
+					++intersections;
+				}
+			}
+
+			return (intersections & 1) == 1 == loop.Area > 0f;
+		}
+
+		private bool Contains( EdgeLoop posLoop, EdgeLoop negLoop )
+		{
+			return posLoop.Area >= -negLoop.Area && Contains( posLoop, SourceVertices[negLoop.FirstIndex] );
 		}
 
 		private void FindEdgeLoops( in Sdf2DArrayData data )
@@ -235,6 +284,9 @@ namespace Sandbox.Sdf
 				v1 = SourceVertices[firstIndex + 1];
 				v01 = v1 - v0;
 
+				var min = Vector2.Min( v0, v1 );
+				var max = Vector2.Max( v0, v1 );
+
 				for ( var i = 2; i < count; ++i )
 				{
 					var v2 = SourceVertices[firstIndex + i];
@@ -242,11 +294,21 @@ namespace Sandbox.Sdf
 
 					area += v01.y * v12.x - v01.x * v12.y;
 
+					min = Vector2.Min( min, v2 );
+					max = Vector2.Max( max, v2 );
+
 					v1 = v2;
 					v01 = v1 - v0;
 				}
 
-				EdgeLoops.Add( (firstIndex, count, area > 0f) );
+				if ( area == 0f )
+				{
+					// Degenerate edge loop
+					SourceVertices.RemoveRange( firstIndex, count );
+					continue;
+				}
+
+				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area * 0.5f, min, max ) );
 
 				for ( var i = 0; i < count; ++i )
 				{
@@ -254,6 +316,38 @@ namespace Sandbox.Sdf
 					var b = DebugOffset + SourceVertices[firstIndex + (i + 1) % count] * DebugScale;
 
 					DebugOverlay.Line( a, b, area > 0f ? Color.Green : Color.Red, 10f, false );
+				}
+			}
+
+			if ( EdgeLoops.Count == 0 )
+			{
+				return;
+			}
+
+			// Sort by area: largest negative first, largest positive last
+
+			EdgeLoops.Sort( ( a, b ) => a.Area.CompareTo( b.Area ) );
+
+			// Put negative loops after the positive loops that contain them
+
+			while ( EdgeLoops[0].Area < 0 )
+			{
+				var negLoop = EdgeLoops[0];
+				EdgeLoops.RemoveAt( 0 );
+
+				// Find containing positive loop
+
+				for ( var i = 0; i < EdgeLoops.Count; ++i )
+				{
+					var posLoop = EdgeLoops[i];
+
+					if ( !Contains( posLoop, negLoop ) )
+					{
+						continue;
+					}
+
+					EdgeLoops.Insert( i + 1, negLoop );
+					break;
 				}
 			}
 		}
