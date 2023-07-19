@@ -175,7 +175,33 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 	{
 		public void AddFaces( PolygonMeshBuilder builder, Vector3 offset, Vector3 scale, float texCoordSize )
 		{
+			var uvScale = 1f / texCoordSize;
 
+			var indexOffset = Vertices.Count;
+			var normalScale = new Vector3( 1f, 1f, scale.z < 0f ? -1f : 1f );
+
+			for ( var i = 0; i < builder.Vertices.Count; ++i )
+			{
+				var pos = builder.Vertices[i];
+				var normal = builder.Normals[i] * normalScale;
+
+				Vertices.Add( new Vertex( offset + pos * scale, normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * scale * uvScale )  );
+			}
+
+			if ( scale.z >= 0f )
+			{
+				foreach ( var index in builder.Indices )
+				{
+					Indices.Add( indexOffset + index );
+				}
+			}
+			else
+			{
+				for ( var i = builder.Indices.Count - 1; i >= 0; --i )
+				{
+					Indices.Add( indexOffset + builder.Indices[i] );
+				}
+			}
 		}
 	}
 
@@ -336,6 +362,8 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			++count;
 		}
 
+		index += count;
+
 		return true;
 	}
 
@@ -369,11 +397,11 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		if ( layer.FrontFaceMaterial == null && layer.BackFaceMaterial == null ) return;
 
-		return;
-
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
 		polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
+
+		var bevelScale = layer.EdgeRadius / scale;
 
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
@@ -387,7 +415,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					break;
 
 				case EdgeStyle.Bevel:
-					polyMeshBuilder.Bevel( layer.EdgeRadius, layer.EdgeRadius, false );
+					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius, false );
 					// polyMeshBuilder.Close( false );
 					break;
 
@@ -398,7 +426,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 						var cos = MathF.Cos( theta );
 						var sin = MathF.Sin( theta );
 
-						polyMeshBuilder.Bevel( 1f - cos, sin, true );
+						polyMeshBuilder.Bevel( (1f - cos) * bevelScale, sin * layer.EdgeRadius, true );
 					}
 
 					// polyMeshBuilder.Close( true );
@@ -416,7 +444,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			if ( layer.BackFaceMaterial != null )
 			{
 				_backMeshWriter.AddFaces( polyMeshBuilder,
-					new Vector3( 0f, 0f, layer.Depth - 0.5f + layer.Offset ),
+					new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset ),
 					new Vector3( scale, scale, -1f ),
 					layer.TexCoordSize );
 			}
