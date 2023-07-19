@@ -324,6 +324,8 @@ namespace Sandbox.Sdf
 				return;
 			}
 
+			DebugOverlay.Box( DebugOffset - new Vector2( 0.5f, 0.5f ) * DebugScale, DebugOffset + new Vector2( data.Size - 0.5f, data.Size - 0.5f ) * DebugScale, Color.White, 10f, false );
+
 			// Sort by area: largest negative first, largest positive last
 
 			EdgeLoops.Sort( ( a, b ) => a.Area.CompareTo( b.Area ) );

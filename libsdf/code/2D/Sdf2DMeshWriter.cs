@@ -57,6 +57,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			}
 		}
 
+		public void Clip( in WorldQuality quality )
+		{
+			var halfUnitSize = quality.UnitSize * 0.5f;
+
+			Clip( -halfUnitSize, -halfUnitSize, quality.ChunkSize - halfUnitSize, quality.ChunkSize - halfUnitSize );
+		}
+
 		public void Clip( float xMin, float yMin, float xMax, float yMax )
 		{
 			Clip( new Vector3( 1f, 0f, 0f ), xMin );
@@ -178,14 +185,14 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var uvScale = 1f / texCoordSize;
 
 			var indexOffset = Vertices.Count;
-			var normalScale = new Vector3( 1f, 1f, scale.z < 0f ? -1f : 1f );
+			var normalScale = new Vector3( 1f / scale.x, 1f / scale.y, 1f / scale.z );
 
 			for ( var i = 0; i < builder.Vertices.Count; ++i )
 			{
-				var pos = builder.Vertices[i];
+				var pos = builder.Vertices[i] * scale;
 				var normal = builder.Normals[i] * normalScale;
 
-				Vertices.Add( new Vertex( offset + pos * scale, normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * scale * uvScale )  );
+				Vertices.Add( new Vertex( offset + pos, normal.Normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * uvScale )  );
 			}
 
 			if ( scale.z >= 0f )
@@ -392,7 +399,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				new Vector3( scale, scale, layer.Depth ),
 				layer.TexCoordSize, maxSmoothAngle );
 
-			_cutMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
+			_cutMeshWriter.Clip( quality );
 		}
 
 		if ( layer.FrontFaceMaterial == null && layer.BackFaceMaterial == null ) return;
@@ -420,13 +427,22 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					break;
 
 				case EdgeStyle.Round:
+					var prevWidth = 0f;
+					var prevHeight = 0f;
+
 					for ( var i = 0; i < layer.EdgeFaces; ++i )
 					{
-						var theta = MathF.PI * (i + 1f) / layer.EdgeFaces;
+						var theta = MathF.PI * 0.5f * (i + 1f) / layer.EdgeFaces;
 						var cos = MathF.Cos( theta );
 						var sin = MathF.Sin( theta );
 
-						polyMeshBuilder.Bevel( (1f - cos) * bevelScale, sin * layer.EdgeRadius, true );
+						var width = 1f - cos;
+						var height = sin;
+
+						polyMeshBuilder.Bevel( (width - prevWidth) * bevelScale, (height - prevHeight) * layer.EdgeRadius, true );
+
+						prevWidth = width;
+						prevHeight = height;
 					}
 
 					// polyMeshBuilder.Close( true );
@@ -450,8 +466,8 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			}
 		}
 
-		_frontMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
-		_backMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
+		_frontMeshWriter.Clip( quality );
+		_backMeshWriter.Clip( quality );
 	}
 
 	private void WriteCollisionMesh( Sdf2DLayer layer )
