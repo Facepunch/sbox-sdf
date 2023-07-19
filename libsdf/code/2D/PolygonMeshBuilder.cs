@@ -5,7 +5,7 @@ namespace Sandbox.Sdf;
 
 public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 {
-	private static Vector2 Rotate90( Vector2 v )
+	public static Vector2 Rotate90( Vector2 v )
 	{
 		return new Vector2( v.y, -v.x );
 	}
