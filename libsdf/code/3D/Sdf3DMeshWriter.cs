@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
 
-internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>, IMeshWriter
+internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 {
 	private ConcurrentQueue<Triangle> Triangles { get; } = new ConcurrentQueue<Triangle>();
 	private Dictionary<VertexKey, int> VertexMap { get; } = new Dictionary<VertexKey, int>();
@@ -19,7 +19,7 @@ internal partial class Sdf3DMeshWriter : SdfMeshWriter<Sdf3DMeshWriter>, IMeshWr
 
 	public byte[] Samples { get; set; }
 
-	public override void Clear()
+	public override void Reset()
 	{
 		Triangles.Clear();
 		VertexMap.Clear();

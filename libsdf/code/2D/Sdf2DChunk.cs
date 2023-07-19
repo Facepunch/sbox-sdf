@@ -47,50 +47,45 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 			return;
 		}
 
-		var writer = Sdf2DMeshWriter.Rent();
+		using var writer = Sdf2DMeshWriter.Rent();
 
-		try
+		await GameTask.WorkerThread();
+
+		writer.DebugOffset = LocalPosition;
+		writer.DebugScale = Data.Quality.UnitSize;
+
+		Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
+
+		var renderTask = Task.CompletedTask;
+		var collisionTask = Task.CompletedTask;
+
+		if ( enableRenderMesh )
 		{
-			await GameTask.WorkerThread();
+			renderTask = UpdateRenderMeshesAsync(
+				new MeshDescription( writer.FrontWriter, Resource.FrontFaceMaterial ),
+				new MeshDescription( writer.BackWriter, Resource.BackFaceMaterial ),
+				new MeshDescription( writer.CutWriter, Resource.CutFaceMaterial ) );
+		}
 
-			writer.DebugOffset = LocalPosition;
-			writer.DebugScale = Data.Quality.UnitSize;
+		if ( enableCollisionMesh )
+		{
+			var offset = new Vector3( Key.X, Key.Y ) * Resource.Quality.ChunkSize;
 
-			Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
-
-			var renderTask = Task.CompletedTask;
-			var collisionTask = Task.CompletedTask;
-
-			if ( enableRenderMesh )
+			collisionTask = GameTask.RunInThreadAsync( async () =>
 			{
-				renderTask = UpdateRenderMeshesAsync(
-					new MeshDescription( writer.FrontWriter, Resource.FrontFaceMaterial ),
-					new MeshDescription( writer.BackWriter, Resource.BackFaceMaterial ),
-					new MeshDescription( writer.CutWriter, Resource.CutFaceMaterial ) );
-			}
+				// ReSharper disable AccessToDisposedClosure
+				var vertices = writer.CollisionMesh.Vertices;
 
-			if ( enableCollisionMesh )
-			{
-				var offset = new Vector3( Key.X, Key.Y ) * Resource.Quality.ChunkSize;
-
-				collisionTask = GameTask.RunInThreadAsync( async () =>
+				for ( var i = 0; i < vertices.Count; ++i )
 				{
-					var vertices = writer.CollisionMesh.Vertices;
+					vertices[i] += offset;
+				}
 
-					for ( var i = 0; i < vertices.Count; ++i )
-					{
-						vertices[i] += offset;
-					}
-
-					await UpdateCollisionMeshAsync( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
-				} );
-			}
-
-			await GameTask.WhenAll( renderTask, collisionTask );
+				await UpdateCollisionMeshAsync( writer.CollisionMesh.Vertices, writer.CollisionMesh.Indices );
+				// ReSharper restore AccessToDisposedClosure
+			} );
 		}
-		finally
-		{
-			writer.Return();
-		}
+
+		await GameTask.WhenAll( renderTask, collisionTask );
 	}
 }

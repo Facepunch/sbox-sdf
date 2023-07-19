@@ -11,8 +11,8 @@ public interface IMeshWriter
 
 public record struct MeshDescription( IMeshWriter Writer, Material Material );
 
-internal abstract class SdfMeshWriter<T>
-	where T : SdfMeshWriter<T>, new()
+public abstract class Pooled<T> : IDisposable
+	where T : Pooled<T>, new()
 {
 #pragma warning disable SB3000
 	private const int MaxPoolCount = 64;
@@ -29,7 +29,7 @@ internal abstract class SdfMeshWriter<T>
 			Pool.RemoveAt( Pool.Count - 1 );
 
 			writer._isInPool = false;
-			writer.Clear();
+			writer.Reset();
 
 			return writer;
 		}
@@ -41,7 +41,7 @@ internal abstract class SdfMeshWriter<T>
 		{
 			if ( _isInPool ) throw new InvalidOperationException( "Already returned." );
 
-			Clear();
+			Reset();
 
 			_isInPool = true;
 
@@ -51,5 +51,10 @@ internal abstract class SdfMeshWriter<T>
 
 	private bool _isInPool;
 
-	public abstract void Clear();
+	public abstract void Reset();
+
+	public void Dispose()
+	{
+		Return();
+	}
 }

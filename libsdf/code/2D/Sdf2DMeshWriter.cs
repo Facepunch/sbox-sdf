@@ -1,40 +1,80 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace Sandbox.Sdf;
 
-partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
+partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 {
 	private List<SourceEdge> SourceEdges { get; } = new();
 
-	private class EmptyMeshWriter : IMeshWriter
+	private class FrontBackMeshWriter : IMeshWriter
 	{
-		public static EmptyMeshWriter Instance { get; } = new EmptyMeshWriter();
+		public bool IsEmpty { get; set; }
 
-		public bool IsEmpty => true;
+		public void Clear()
+		{
+			throw new NotImplementedException();
+		}
+
+		public void AddFaces( PolygonMeshBuilder builder, Vector3 offset, Vector3 scale )
+		{
+			throw new NotImplementedException();
+		}
 
 		public void ApplyTo( Mesh mesh )
 		{
-
+			throw new NotImplementedException();
 		}
 	}
 
-	public IMeshWriter FrontWriter => EmptyMeshWriter.Instance;
-	public IMeshWriter BackWriter => EmptyMeshWriter.Instance;
-	public IMeshWriter CutWriter => EmptyMeshWriter.Instance;
+	private class CutMeshWriter : IMeshWriter
+	{
+		public bool IsEmpty { get; set; }
+
+		public void Clear()
+		{
+			throw new NotImplementedException();
+		}
+
+		public void AddFaces( IReadOnlyList<Vector2> vertices, IReadOnlyList<EdgeLoop> edgeLoops, Vector3 offset, Vector3 scale )
+		{
+			throw new NotImplementedException();
+		}
+
+		public void ApplyTo( Mesh mesh )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	private readonly FrontBackMeshWriter _frontMeshWriter = new();
+	private readonly FrontBackMeshWriter _backMeshWriter = new();
+	private readonly CutMeshWriter _cutMeshWriter = new();
+
+	public IMeshWriter FrontWriter => _frontMeshWriter;
+	public IMeshWriter BackWriter => _backMeshWriter;
+	public IMeshWriter CutWriter => _cutMeshWriter;
+
+	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh { get; } = (new List<Vector3>(), new List<int>());
 
 	public byte[] Samples { get; set; }
 
-	public override void Clear()
+	public override void Reset()
 	{
 		SourceEdges.Clear();
+
+		_frontMeshWriter.Clear();
+		_backMeshWriter.Clear();
+		_cutMeshWriter.Clear();
+
+		CollisionMesh.Vertices.Clear();
+		CollisionMesh.Indices.Clear();
 	}
 
 	public Vector2 DebugOffset { get; set; }
 	public float DebugScale { get; set; } = 1f;
 
-	public void WriteRenderMesh( Sdf2DArrayData data, Sdf2DLayer layer )
+	public void Write( Sdf2DArrayData data, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
 		SourceEdges.Clear();
 
@@ -57,12 +97,103 @@ partial class Sdf2DMeshWriter : SdfMeshWriter<Sdf2DMeshWriter>
 		}
 
 		FindEdgeLoops( data );
+
+		if ( renderMesh )
+		{
+			WriteRenderMesh( layer );
+		}
+
+		if ( collisionMesh )
+		{
+			WriteCollisionMesh( layer );
+		}
 	}
 
-	public void WriteCollisionMesh( Sdf2DArrayData data, Sdf2DLayer layer )
+	private void InitPolyMeshBuilder( PolygonMeshBuilder builder )
 	{
-
+		foreach ( var edgeLoop in EdgeLoops )
+		{
+			builder.AddEdgeLoop( SourceVertices, edgeLoop.FirstIndex, edgeLoop.Count );
+		}
 	}
 
-	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh { get; } = (new List<Vector3>(), new List<int>());
+	private void ClipPolyMeshBuilder( PolygonMeshBuilder builder, Sdf2DLayer layer )
+	{
+		builder.Clip( new Vector3( 1f, 0f, 0f ), 0f );
+		builder.Clip( new Vector3( 0f, 1f, 0f ), 0f );
+		builder.Clip( new Vector3( -1f, 0f, 0f ), -layer.ChunkResolution );
+		builder.Clip( new Vector3( 0f, -1f, 0f ), -layer.ChunkResolution );
+	}
+
+	private void WriteRenderMesh( Sdf2DLayer layer )
+	{
+		var quality = layer.Quality;
+		var scale = quality.UnitSize;
+
+		_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
+			new Vector3( 0f, 0f, layer.Offset ),
+			new Vector3( scale, scale, layer.Depth ) );
+
+		if ( layer.FrontFaceMaterial != null || layer.BackFaceMaterial != null )
+		{
+			using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+			InitPolyMeshBuilder( polyMeshBuilder );
+
+			switch ( layer.EdgeStyle )
+			{
+				case EdgeStyle.Sharp:
+					polyMeshBuilder.Close( false );
+					break;
+
+				case EdgeStyle.Bevel:
+					polyMeshBuilder.Bevel( layer.EdgeRadius, layer.EdgeRadius, false );
+					polyMeshBuilder.Close( false );
+					break;
+
+				case EdgeStyle.Round:
+					for ( var i = 0; i < layer.EdgeFaces; ++i )
+					{
+						var theta = MathF.PI * (i + 1f) / layer.EdgeFaces;
+						var cos = MathF.Cos( theta );
+						var sin = MathF.Sin( theta );
+
+						polyMeshBuilder.Bevel( 1f - cos, sin, true );
+					}
+
+					polyMeshBuilder.Close( true );
+					break;
+			}
+
+			ClipPolyMeshBuilder( polyMeshBuilder, layer );
+
+			if ( layer.FrontFaceMaterial != null )
+			{
+				_frontMeshWriter.AddFaces( polyMeshBuilder,
+					new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
+					new Vector3( scale, scale, 1f ) );
+			}
+
+			if ( layer.BackFaceMaterial != null )
+			{
+				_backMeshWriter.AddFaces( polyMeshBuilder,
+					new Vector3( 0f, 0f, layer.Depth - 0.5f + layer.Offset ),
+					new Vector3( scale, scale, -1f ) );
+			}
+		}
+	}
+
+	private void WriteCollisionMesh( Sdf2DLayer layer )
+	{
+		var quality = layer.Quality;
+		var scale = quality.UnitSize;
+
+		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+		InitPolyMeshBuilder( polyMeshBuilder );
+
+		polyMeshBuilder.Close( false );
+
+		ClipPolyMeshBuilder( polyMeshBuilder, layer );
+	}
 }

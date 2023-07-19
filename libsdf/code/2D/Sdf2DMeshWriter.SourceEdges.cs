@@ -227,7 +227,7 @@ namespace Sandbox.Sdf
 
 				while ( next.V1 != first.V0 )
 				{
-					(next, Vector3 pos) = VertexMap[next.V1];
+					(next, Vector2 pos) = VertexMap[next.V1];
 
 					RemainingSourceEdges.Remove( next );
 					SourceVertices.Add( pos );

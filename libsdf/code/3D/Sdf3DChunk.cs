@@ -47,42 +47,37 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 			return;
 		}
 
-		var writer = Sdf3DMeshWriter.Rent();
+		using var writer = Sdf3DMeshWriter.Rent();
 
-		try
+		await Data.WriteToAsync( writer, Resource );
+
+		var renderTask = Task.CompletedTask;
+		var collisionTask = Task.CompletedTask;
+
+		if ( enableRenderMesh )
 		{
-			await Data.WriteToAsync( writer, Resource );
+			renderTask = UpdateRenderMeshesAsync( new MeshDescription( writer, Resource.Material ) );
+		}
 
-			var renderTask = Task.CompletedTask;
-			var collisionTask = Task.CompletedTask;
+		if ( enableCollisionMesh )
+		{
+			var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
 
-			if ( enableRenderMesh )
+			collisionTask = GameTask.RunInThreadAsync( async () =>
 			{
-				renderTask = UpdateRenderMeshesAsync( new MeshDescription( writer, Resource.Material ) );
-			}
+				// ReSharper disable AccessToDisposedClosure
+				var vertices = writer.VertexPositions;
 
-			if ( enableCollisionMesh )
-			{
-				var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
-
-				collisionTask = GameTask.RunInThreadAsync( async () =>
+				for ( var i = 0; i < vertices.Count; ++i )
 				{
-					var vertices = writer.VertexPositions;
+					vertices[i] += offset;
+				}
 
-					for ( var i = 0; i < vertices.Count; ++i )
-					{
-						vertices[i] += offset;
-					}
-
-					await UpdateCollisionMeshAsync( writer.VertexPositions, writer.Indices );
-				} );
-			}
-
-			await GameTask.WhenAll( renderTask, collisionTask );
+				await UpdateCollisionMeshAsync( writer.VertexPositions, writer.Indices );
+				// ReSharper restore AccessToDisposedClosure
+			} );
 		}
-		finally
-		{
-			writer.Return();
-		}
+
+		await GameTask.WhenAll( renderTask, collisionTask );
 	}
 }
