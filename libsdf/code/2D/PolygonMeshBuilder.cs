@@ -3,229 +3,225 @@ using System.Collections.Generic;
 
 namespace Sandbox.Csg
 {
-    public partial class PolygonMeshBuilder
-    {
-        private static Vector2 Rotate90( Vector2 v )
-        {
-            return new Vector2( v.y, -v.x );
-        }
+	public partial class PolygonMeshBuilder
+	{
+		private static Vector2 Rotate90( Vector2 v )
+		{
+			return new Vector2( v.y, -v.x );
+		}
 
-        private int _nextEdgeIndex;
-        private Edge[] _allEdges = new Edge[64];
-        private readonly List<int> _activeEdges = new List<int>();
+		private int _nextEdgeIndex;
+		private Edge[] _allEdges = new Edge[64];
+		private readonly List<int> _activeEdges = new List<int>();
 
-        private readonly List<Vector3> _vertices = new List<Vector3>();
-        private readonly List<Vector3> _normals = new List<Vector3>();
-        private readonly List<int> _indices = new List<int>();
+		private readonly List<Vector3> _vertices = new List<Vector3>();
+		private readonly List<Vector3> _normals = new List<Vector3>();
+		private readonly List<int> _indices = new List<int>();
 
-        private float _prevDistance;
-        private float _nextDistance;
+		private float _prevDistance;
+		private float _nextDistance;
 
-        private float _invDistance;
+		private float _invDistance;
 
-        private float _prevPrevHeight;
-        private float _prevHeight;
-        private float _nextHeight;
+		private float _prevPrevHeight;
+		private float _prevHeight;
+		private float _nextHeight;
 
-        private float _prevPrevAngle;
-        private float _prevAngle;
-        private float _nextAngle;
+		private float _prevPrevAngle;
+		private float _prevAngle;
+		private float _nextAngle;
 
-        private float _minSmoothNormalDot;
+		private float _minSmoothNormalDot;
 
-        public int ActiveEdgeCount => _activeEdges.Count;
-        public bool IsClosed => _activeEdges.Count == 0;
+		public int ActiveEdgeCount => _activeEdges.Count;
+		public bool IsClosed => _activeEdges.Count == 0;
 
-        public float MaxSmoothAngle = 0f;
+		public float MaxSmoothAngle = 0f;
 
-        public void Clear()
-        {
-            _nextEdgeIndex = 0;
-            _activeEdges.Clear();
+		public IReadOnlyList<Vector3> Vertices => _vertices;
+		public IReadOnlyList<Vector3> Normals => _normals;
+		public IReadOnlyList<int> Indices => _indices;
 
-            _vertices.Clear();
-            _normals.Clear();
-            _indices.Clear();
+		public void Clear()
+		{
+			_nextEdgeIndex = 0;
+			_activeEdges.Clear();
 
-            _prevPrevHeight = 0f;
-            _prevHeight = 0f;
+			_vertices.Clear();
+			_normals.Clear();
+			_indices.Clear();
 
-            _prevPrevAngle = 0f;
-            _prevAngle = 0f;
-            _nextAngle = 0f;
-        }
+			_prevPrevHeight = 0f;
+			_prevHeight = 0f;
 
-        private static int NextPowerOfTwo( int value )
-        {
-	        var po2 = 1;
-	        while ( po2 < value )
-	        {
-		        po2 <<= 1;
-	        }
+			_prevPrevAngle = 0f;
+			_prevAngle = 0f;
+			_nextAngle = 0f;
+		}
 
-	        return po2;
-        }
+		private static int NextPowerOfTwo( int value )
+		{
+			var po2 = 1;
+			while ( po2 < value )
+			{
+				po2 <<= 1;
+			}
 
-        private void EnsureCapacity( int toAdd )
-        {
-            if ( _nextEdgeIndex + toAdd > _allEdges.Length )
-            {
-                Array.Resize( ref _allEdges, NextPowerOfTwo( _nextEdgeIndex + toAdd ) );
-            }
-        }
+			return po2;
+		}
 
-        private int AddEdge( Vector2 origin, Vector2 tangent, float distance )
-        {
-            var edge = new Edge( _nextEdgeIndex++, origin, tangent, distance );
-            _allEdges[edge.Index] = edge;
-            return edge.Index;
-        }
+		private void EnsureCapacity( int toAdd )
+		{
+			if ( _nextEdgeIndex + toAdd > _allEdges.Length )
+			{
+				Array.Resize( ref _allEdges, NextPowerOfTwo( _nextEdgeIndex + toAdd ) );
+			}
+		}
 
-        public void AddEdgeLoop( IReadOnlyList<Vector2> vertices, int offset, int count )
-        {
-            var firstIndex = _nextEdgeIndex;
+		private int AddEdge( Vector2 origin, Vector2 tangent, float distance )
+		{
+			var edge = new Edge( _nextEdgeIndex++, origin, tangent, distance );
+			_allEdges[edge.Index] = edge;
+			return edge.Index;
+		}
 
-            EnsureCapacity( count );
+		public void AddEdgeLoop( IReadOnlyList<Vector2> vertices, int offset, int count )
+		{
+			var firstIndex = _nextEdgeIndex;
 
-            var prevVertex = vertices[offset + count - 1];
-            for ( var i = 0; i < count; ++i )
-            {
-                var nextVertex = vertices[offset + i];
+			EnsureCapacity( count );
 
-                _activeEdges.Add( AddEdge( prevVertex, (nextVertex - prevVertex).Normal, 0f ) );
+			var prevVertex = vertices[offset + count - 1];
+			for ( var i = 0; i < count; ++i )
+			{
+				var nextVertex = vertices[offset + i];
 
-                prevVertex = nextVertex;
-            }
+				_activeEdges.Add( AddEdge( prevVertex, (nextVertex - prevVertex).Normal, 0f ) );
 
-            var prevIndex = count - 1;
-            for ( var i = 0; i < count; ++i )
-            {
-                ref var prevEdge = ref _allEdges[firstIndex + prevIndex];
-                ref var nextEdge = ref _allEdges[firstIndex + i];
-                ConnectEdges( ref prevEdge, ref nextEdge );
-                prevIndex = i;
-            }
-        }
+				prevVertex = nextVertex;
+			}
 
-        private static float LerpRadians( float a, float b, float t )
-        {
-	        var delta = b - a;
-	        delta -= MathF.Floor( delta * (0.5f / MathF.PI) ) * MathF.PI * 2f;
+			var prevIndex = count - 1;
+			for ( var i = 0; i < count; ++i )
+			{
+				ref var prevEdge = ref _allEdges[firstIndex + prevIndex];
+				ref var nextEdge = ref _allEdges[firstIndex + i];
+				ConnectEdges( ref prevEdge, ref nextEdge );
+				prevIndex = i;
+			}
+		}
 
-	        if ( delta > MathF.PI )
+		private static float LerpRadians( float a, float b, float t )
+		{
+			var delta = b - a;
+			delta -= MathF.Floor( delta * (0.5f / MathF.PI) ) * MathF.PI * 2f;
+
+			if ( delta > MathF.PI )
 			{
 				delta -= MathF.PI * 2f;
 			}
 
-            return a + delta * Math.Clamp( t, 0f, 1f );
-        }
+			return a + delta * Math.Clamp( t, 0f, 1f );
+		}
 
-        private (int Prev, int Next) AddVertices( ref Edge edge, bool forceMaxDistance = false )
-        {
-            if ( edge.Vertices.Prev > -1 )
-            {
-                return edge.Vertices;
-            }
+		private (int Prev, int Next) AddVertices( ref Edge edge, bool forceMaxDistance = false )
+		{
+			if ( edge.Vertices.Prev > -1 )
+			{
+				return edge.Vertices;
+			}
 
-            var index = _vertices.Count;
-            var prevNormal = -_allEdges[edge.PrevEdge].Normal;
-            var nextNormal = -edge.Normal;
+			var index = _vertices.Count;
+			var prevNormal = -_allEdges[edge.PrevEdge].Normal;
+			var nextNormal = -edge.Normal;
 
-            var t = forceMaxDistance ? 1f : (edge.Distance - _prevDistance) * _invDistance;
-            var height = _prevHeight + t * (_nextHeight - _prevHeight);
+			var t = forceMaxDistance ? 1f : (edge.Distance - _prevDistance) * _invDistance;
+			var height = _prevHeight + t * (_nextHeight - _prevHeight);
 
-            var pos = new Vector3( edge.Origin.x, edge.Origin.y, height );
+			var pos = new Vector3( edge.Origin.x, edge.Origin.y, height );
 
-            if ( MathF.Abs( _nextDistance - _prevDistance ) <= 0.001f )
-            {
-                _vertices.Add( pos );
-                _normals.Add( new Vector3( 0f, 0f, 1f ) );
+			if ( MathF.Abs( _nextDistance - _prevDistance ) <= 0.001f )
+			{
+				_vertices.Add( pos );
+				_normals.Add( new Vector3( 0f, 0f, 1f ) );
 
-                edge.Vertices = (index, index);
-            }
-            else
-            {
-                var angle = LerpRadians( _prevAngle, _nextAngle, t );
-                var cos = MathF.Cos( angle );
-                var sin = MathF.Sin( angle );
+				edge.Vertices = (index, index);
+			}
+			else
+			{
+				var angle = LerpRadians( _prevAngle, _nextAngle, t );
+				var cos = MathF.Cos( angle );
+				var sin = MathF.Sin( angle );
 
-                if ( Vector2.Dot( prevNormal, nextNormal ) >= _minSmoothNormalDot )
-                {
-                    var normal = new Vector3( (prevNormal.x + nextNormal.x) * cos, (prevNormal.y + nextNormal.y) * cos, sin * 2f ).Normal;
+				if ( Vector2.Dot( prevNormal, nextNormal ) >= _minSmoothNormalDot )
+				{
+					var normal = new Vector3( (prevNormal.x + nextNormal.x) * cos, (prevNormal.y + nextNormal.y) * cos, sin * 2f ).Normal;
 
-                    _vertices.Add( pos );
-                    _normals.Add( normal );
+					_vertices.Add( pos );
+					_normals.Add( normal );
 
-                    edge.Vertices = (index, index);
-                }
-                else
-                {
-                    var normal0 = new Vector3( prevNormal.x * cos, prevNormal.y * cos, sin ).Normal;
-                    var normal1 = new Vector3( nextNormal.x * cos, nextNormal.y * cos, sin ).Normal;
+					edge.Vertices = (index, index);
+				}
+				else
+				{
+					var normal0 = new Vector3( prevNormal.x * cos, prevNormal.y * cos, sin ).Normal;
+					var normal1 = new Vector3( nextNormal.x * cos, nextNormal.y * cos, sin ).Normal;
 
-                    _vertices.Add( pos );
-                    _normals.Add( normal0 );
+					_vertices.Add( pos );
+					_normals.Add( normal0 );
 
-                    _vertices.Add( pos );
-                    _normals.Add( normal1 );
+					_vertices.Add( pos );
+					_normals.Add( normal1 );
 
-                    edge.Vertices = (index, index + 1);
-                }
-            }
+					edge.Vertices = (index, index + 1);
+				}
+			}
 
-            return edge.Vertices;
-        }
+			return edge.Vertices;
+		}
 
-        private void BlendNormals( float minHeight, float maxHeight, float minAngle, float maxAngle )
-        {
-            var invRange = minHeight < maxHeight ? 1f / (maxHeight - minHeight) : float.PositiveInfinity;
+		private void BlendNormals( float minHeight, float maxHeight, float minAngle, float maxAngle )
+		{
+			var invRange = minHeight < maxHeight ? 1f / (maxHeight - minHeight) : float.PositiveInfinity;
 
-            var sinMax = MathF.Sin( maxAngle );
-            var cosMax = MathF.Cos( maxAngle );
+			var sinMax = MathF.Sin( maxAngle );
+			var cosMax = MathF.Cos( maxAngle );
 
-            for ( var i = 0; i < _vertices.Count; ++i )
-            {
-                var pos = _vertices[i];
+			for ( var i = 0; i < _vertices.Count; ++i )
+			{
+				var pos = _vertices[i];
 
-                if ( pos.z < minHeight )
-                {
-                    continue;
-                }
+				if ( pos.z < minHeight )
+				{
+					continue;
+				}
 
-                if ( pos.z >= maxHeight )
-                {
-                    _normals[i] = RotateNormal( _normals[i], sinMax, cosMax );
-                    continue;
-                }
+				if ( pos.z >= maxHeight )
+				{
+					_normals[i] = RotateNormal( _normals[i], sinMax, cosMax );
+					continue;
+				}
 
-                var t = Math.Clamp( (pos.z - minHeight) * invRange, 0f, 1f );
-                var angle = LerpRadians( minAngle, maxAngle, t );
+				var t = Math.Clamp( (pos.z - minHeight) * invRange, 0f, 1f );
+				var angle = LerpRadians( minAngle, maxAngle, t );
 
-                var sin = MathF.Sin( angle );
-                var cos = MathF.Cos( angle );
+				var sin = MathF.Sin( angle );
+				var cos = MathF.Cos( angle );
 
-                _normals[i] = RotateNormal( _normals[i], sin, cos );
-            }
-        }
+				_normals[i] = RotateNormal( _normals[i], sin, cos );
+			}
+		}
 
-        private void AddTriangle( int a, int b, int c )
-        {
-            _indices.Add( a );
-            _indices.Add( b );
-            _indices.Add( c );
-        }
+		private void AddTriangle( int a, int b, int c )
+		{
+			_indices.Add( a );
+			_indices.Add( b );
+			_indices.Add( c );
+		}
 
-        public void Close( bool smooth )
-        {
-            Bevel( float.PositiveInfinity, 0f, smooth );
-        }
-
-        public void WriteTriangles( Mesh mesh )
-        {
-            //mesh.Clear();
-            //mesh.SetVertices( _vertices );
-            //mesh.SetNormals( _normals );
-            //mesh.SetIndices( _indices, MeshTopology.Triangles, 0 );
-        }
-    }
+		public void Close( bool smooth )
+		{
+			Bevel( float.PositiveInfinity, 0f, smooth );
+		}
+	}
 }

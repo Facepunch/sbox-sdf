@@ -1,69 +1,69 @@
 
 namespace Sandbox.Csg
 {
-    partial class PolygonMeshBuilder
-    {
-        private struct Edge
-        {
-            public int Index { get; }
+	partial class PolygonMeshBuilder
+	{
+		private struct Edge
+		{
+			public int Index { get; }
 
-            public Vector2 Origin { get; }
-            public Vector2 Tangent { get; }
-            public Vector2 Normal { get; }
+			public Vector2 Origin { get; }
+			public Vector2 Tangent { get; }
+			public Vector2 Normal { get; }
 
-            public Vector2 Velocity { get; set; }
+			public Vector2 Velocity { get; set; }
 
-            public int PrevEdge { get; set; }
-            public int NextEdge { get; set; }
+			public int PrevEdge { get; set; }
+			public int NextEdge { get; set; }
 
-            public float Distance { get; set; }
-            public float MaxDistance { get; set; }
+			public float Distance { get; set; }
+			public float MaxDistance { get; set; }
 
-            public (int Prev, int Next) Vertices { get; set; }
+			public (int Prev, int Next) Vertices { get; set; }
 
-            public Edge( int index, Vector2 origin, Vector2 tangent, float distance )
-            {
-                Index = index;
+			public Edge( int index, Vector2 origin, Vector2 tangent, float distance )
+			{
+				Index = index;
 
-                Origin = origin;
-                Tangent = tangent;
-                Normal = Rotate90( tangent );
+				Origin = origin;
+				Tangent = tangent;
+				Normal = Rotate90( tangent );
 
-                Velocity = Vector2.Zero;
+				Velocity = Vector2.Zero;
 
-                PrevEdge = -1;
-                NextEdge = -1;
+				PrevEdge = -1;
+				NextEdge = -1;
 
-                Vertices = (-1, -1);
+				Vertices = (-1, -1);
 
-                Distance = distance;
-                MaxDistance = float.PositiveInfinity;
-            }
+				Distance = distance;
+				MaxDistance = float.PositiveInfinity;
+			}
 
-            public readonly Vector2 Project( float distance )
-            {
-                return Origin + Velocity * (distance - Distance);
-            }
+			public readonly Vector2 Project( float distance )
+			{
+				return Origin + Velocity * (distance - Distance);
+			}
 
-            public override string ToString()
-            {
-                return $"{(char) ('A' + Index)}";
-            }
+			public override string ToString()
+			{
+				return $"{(char) ('A' + Index)}";
+			}
 
-            public bool Equals( Edge other )
-            {
-                return Index == other.Index;
-            }
+			public bool Equals( Edge other )
+			{
+				return Index == other.Index;
+			}
 
-            public override bool Equals( object obj )
-            {
-                return obj is Edge other && Equals( other );
-            }
+			public override bool Equals( object obj )
+			{
+				return obj is Edge other && Equals( other );
+			}
 
-            public override int GetHashCode()
-            {
-                return Index;
-            }
-        }
-    }
+			public override int GetHashCode()
+			{
+				return Index;
+			}
+		}
+	}
 }
