@@ -115,5 +115,16 @@ partial class Sdf2DMeshWriter
 			new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32 ),
 			new( VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2 )
 		};
+
+		public static Vertex Lerp( in Vertex a, in Vertex b, float t )
+		{
+			// TODO: this won't be exact for normal / tangent
+
+			return new Vertex(
+				Vector3.Lerp( a.Position, b.Position, t ),
+				Vector3.Lerp( a.Normal, b.Normal, t ).Normal,
+				Vector3.Lerp( a.Tangent, b.Tangent, t ).Normal,
+				Vector2.Lerp( a.TexCoord, b.TexCoord, t ) );
+		}
 	}
 }

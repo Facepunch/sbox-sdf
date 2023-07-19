@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Sandbox.Diagnostics;
 
 namespace Sandbox.Sdf;
 
@@ -55,6 +56,119 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				mesh.CreateIndexBuffer( Indices.Count, Indices );
 			}
 		}
+
+		public void Clip( float xMin, float yMin, float xMax, float yMax )
+		{
+			Clip( new Vector3( 1f, 0f, 0f ), xMin );
+			Clip( new Vector3( -1f, 0f, 0f ), -xMax );
+
+			Clip( new Vector3( 0f, 1f, 0f ), yMin );
+			Clip( new Vector3( 0f, -1f, 0f ), -yMax );
+		}
+
+		private Dictionary<(int Pos, int Neg), int> ClippedEdges { get; } = new();
+
+		private int ClipEdge( Vector3 normal, float distance, int posIndex, int negIndex )
+		{
+			if ( ClippedEdges.TryGetValue( (posIndex, negIndex), out var index ) )
+			{
+				return index;
+			}
+
+			var a = Vertices[posIndex];
+			var b = Vertices[negIndex];
+
+			var x = Vector3.Dot( a.Position, normal ) - distance;
+			var y = Vector3.Dot( b.Position, normal ) - distance;
+
+			var t = x - y <= 0.0001f ? 0.5f : x / (x - y);
+
+			index = Vertices.Count;
+			Vertices.Add( Vertex.Lerp( a, b, t ) );
+
+			ClippedEdges.Add( (posIndex, negIndex), index );
+
+			return index;
+		}
+
+		private void ClipOne( Vector3 normal, float distance, int negIndex, int posAIndex, int posBIndex )
+		{
+			var clipAIndex = ClipEdge( normal, distance, posAIndex, negIndex );
+			var clipBIndex = ClipEdge( normal, distance, posBIndex, negIndex );
+
+			Indices.Add( clipAIndex );
+			Indices.Add( posAIndex );
+			Indices.Add( posBIndex );
+
+			Indices.Add( clipAIndex );
+			Indices.Add( posBIndex );
+			Indices.Add( clipBIndex );
+		}
+
+		private void ClipTwo( Vector3 normal, float distance, int posIndex, int negAIndex, int negBIndex )
+		{
+			var clipAIndex = ClipEdge( normal, distance, posIndex, negAIndex );
+			var clipBIndex = ClipEdge( normal, distance, posIndex, negBIndex );
+
+			Indices.Add( posIndex );
+			Indices.Add( clipAIndex );
+			Indices.Add( clipBIndex );
+		}
+
+		public void Clip( Vector3 normal, float distance )
+		{
+			const float epsilon = 0.001f;
+
+			ClippedEdges.Clear();
+
+			var indexCount = Indices.Count;
+
+			for ( var i = 0; i < indexCount; i += 3 )
+			{
+				var ai = Indices[i + 0];
+				var bi = Indices[i + 1];
+				var ci = Indices[i + 2];
+
+				var a = Vertices[ai];
+				var b = Vertices[bi];
+				var c = Vertices[ci];
+
+				var aNeg = Vector3.Dot( normal, a.Position ) - distance < -epsilon;
+				var bNeg = Vector3.Dot( normal, b.Position ) - distance < -epsilon;
+				var cNeg = Vector3.Dot( normal, c.Position ) - distance < -epsilon;
+
+				switch (aNeg, bNeg, cNeg)
+				{
+					case (false, false, false):
+						Indices.Add( ai );
+						Indices.Add( bi );
+						Indices.Add( ci );
+						break;
+
+					case (true, false, false):
+						ClipOne( normal, distance, ai, bi, ci );
+						break;
+					case (false, true, false):
+						ClipOne( normal, distance, bi, ci, ai );
+						break;
+					case (false, false, true):
+						ClipOne( normal, distance, ci, ai, bi );
+						break;
+
+					case (false, true, true):
+						ClipTwo( normal, distance, ai, bi, ci );
+						break;
+					case (true, false, true):
+						ClipTwo( normal, distance, bi, ci, ai );
+						break;
+					case (true, true, false):
+						ClipTwo( normal, distance, ci, ai, bi );
+						break;
+				}
+			}
+
+			Indices.RemoveRange( 0, indexCount );
+		}
 	}
 
 	private class FrontBackMeshWriter : MeshWriter
@@ -85,13 +199,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var prev = vertices[edgeLoop.FirstIndex + edgeLoop.Count - 2];
 				var curr = vertices[edgeLoop.FirstIndex + edgeLoop.Count - 1];
 
-				var prevNormal = PolygonMeshBuilder.Rotate90( curr - prev ).Normal;
+				var prevNormal = PolygonMeshBuilder.Rotate90( prev - curr ).Normal;
 				var currIndex = edgeLoop.Count - 1;
 
 				for ( var i = 0; i < edgeLoop.Count; i++ )
 				{
 					var next = vertices[edgeLoop.FirstIndex + i];
-					var nextNormal = PolygonMeshBuilder.Rotate90( next - curr ).Normal;
+					var nextNormal = PolygonMeshBuilder.Rotate90( curr - next ).Normal;
 
 					var index = Vertices.Count;
 					var frontPos = offset + new Vector3( curr.x, curr.y, 0.5f ) * scale;
@@ -204,20 +318,36 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private void InitPolyMeshBuilder( PolygonMeshBuilder builder )
+	private bool NextPolygon( ref int index, out int offset, out int count )
 	{
-		foreach ( var edgeLoop in EdgeLoops )
+		if ( index >= EdgeLoops.Count )
 		{
-			builder.AddEdgeLoop( SourceVertices, edgeLoop.FirstIndex, edgeLoop.Count );
+			offset = count = default;
+			return false;
 		}
+
+		offset = index;
+		count = 1;
+
+		Assert.True( EdgeLoops[offset].Area > 0f );
+
+		while ( offset + count < EdgeLoops.Count && EdgeLoops[offset + count].Area < 0f )
+		{
+			++count;
+		}
+
+		return true;
 	}
 
-	private void ClipPolyMeshBuilder( PolygonMeshBuilder builder, Sdf2DLayer layer )
+	private void InitPolyMeshBuilder( PolygonMeshBuilder builder, int offset, int count )
 	{
-		builder.Clip( new Vector3( 1f, 0f, 0f ), 0f );
-		builder.Clip( new Vector3( 0f, 1f, 0f ), 0f );
-		builder.Clip( new Vector3( -1f, 0f, 0f ), -layer.ChunkResolution );
-		builder.Clip( new Vector3( 0f, -1f, 0f ), -layer.ChunkResolution );
+		builder.Clear();
+
+		for ( var i = 0; i < count; ++i )
+		{
+			var edgeLoop = EdgeLoops[offset + i];
+			builder.AddEdgeLoop( SourceVertices, edgeLoop.FirstIndex, edgeLoop.Count );
+		}
 	}
 
 	private void WriteRenderMesh( Sdf2DLayer layer )
@@ -227,10 +357,15 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		const float maxSmoothAngle = 33f;
 
-		_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
-			new Vector3( 0f, 0f, layer.Offset ),
-			new Vector3( scale, scale, layer.Depth ),
-			layer.TexCoordSize, maxSmoothAngle );
+		if ( layer.CutFaceMaterial != null )
+		{
+			_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
+				new Vector3( 0f, 0f, layer.Offset ),
+				new Vector3( scale, scale, layer.Depth ),
+				layer.TexCoordSize, maxSmoothAngle );
+
+			_cutMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
+		}
 
 		if ( layer.FrontFaceMaterial == null && layer.BackFaceMaterial == null ) return;
 
@@ -240,50 +375,55 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
 
-		InitPolyMeshBuilder( polyMeshBuilder );
-
-		switch ( layer.EdgeStyle )
+		var index = 0;
+		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
-			case EdgeStyle.Sharp:
-				polyMeshBuilder.Close( false );
-				break;
+			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-			case EdgeStyle.Bevel:
-				polyMeshBuilder.Bevel( layer.EdgeRadius, layer.EdgeRadius, false );
-				polyMeshBuilder.Close( false );
-				break;
+			switch ( layer.EdgeStyle )
+			{
+				case EdgeStyle.Sharp:
+					// polyMeshBuilder.Close( false );
+					break;
 
-			case EdgeStyle.Round:
-				for ( var i = 0; i < layer.EdgeFaces; ++i )
-				{
-					var theta = MathF.PI * (i + 1f) / layer.EdgeFaces;
-					var cos = MathF.Cos( theta );
-					var sin = MathF.Sin( theta );
+				case EdgeStyle.Bevel:
+					polyMeshBuilder.Bevel( layer.EdgeRadius, layer.EdgeRadius, false );
+					// polyMeshBuilder.Close( false );
+					break;
 
-					polyMeshBuilder.Bevel( 1f - cos, sin, true );
-				}
+				case EdgeStyle.Round:
+					for ( var i = 0; i < layer.EdgeFaces; ++i )
+					{
+						var theta = MathF.PI * (i + 1f) / layer.EdgeFaces;
+						var cos = MathF.Cos( theta );
+						var sin = MathF.Sin( theta );
 
-				polyMeshBuilder.Close( true );
-				break;
+						polyMeshBuilder.Bevel( 1f - cos, sin, true );
+					}
+
+					// polyMeshBuilder.Close( true );
+					break;
+			}
+
+			if ( layer.FrontFaceMaterial != null )
+			{
+				_frontMeshWriter.AddFaces( polyMeshBuilder,
+					new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
+					new Vector3( scale, scale, 1f ),
+					layer.TexCoordSize );
+			}
+
+			if ( layer.BackFaceMaterial != null )
+			{
+				_backMeshWriter.AddFaces( polyMeshBuilder,
+					new Vector3( 0f, 0f, layer.Depth - 0.5f + layer.Offset ),
+					new Vector3( scale, scale, -1f ),
+					layer.TexCoordSize );
+			}
 		}
 
-		ClipPolyMeshBuilder( polyMeshBuilder, layer );
-
-		if ( layer.FrontFaceMaterial != null )
-		{
-			_frontMeshWriter.AddFaces( polyMeshBuilder,
-				new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
-				new Vector3( scale, scale, 1f ),
-				layer.TexCoordSize );
-		}
-
-		if ( layer.BackFaceMaterial != null )
-		{
-			_backMeshWriter.AddFaces( polyMeshBuilder,
-				new Vector3( 0f, 0f, layer.Depth - 0.5f + layer.Offset ),
-				new Vector3( scale, scale, -1f ),
-				layer.TexCoordSize);
-		}
+		_frontMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
+		_backMeshWriter.Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
 	}
 
 	private void WriteCollisionMesh( Sdf2DLayer layer )
@@ -295,10 +435,14 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-		InitPolyMeshBuilder( polyMeshBuilder );
+		polyMeshBuilder.MaxSmoothAngle = 180f;
 
-		polyMeshBuilder.Close( false );
+		var index = 0;
+		while ( NextPolygon( ref index, out var offset, out var count ) )
+		{
+			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-		ClipPolyMeshBuilder( polyMeshBuilder, layer );
+			// polyMeshBuilder.Close( true );
+		}
 	}
 }
