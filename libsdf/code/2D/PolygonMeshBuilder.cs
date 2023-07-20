@@ -46,6 +46,11 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		_normals.Clear();
 		_indices.Clear();
 
+		_prevDistance = 0f;
+		_nextDistance = 0f;
+
+		_invDistance = 0f;
+
 		_prevPrevHeight = 0f;
 		_prevHeight = 0f;
 		_nextHeight = 0f;
@@ -53,6 +58,8 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		_prevPrevAngle = 0f;
 		_prevAngle = 0f;
 		_nextAngle = 0f;
+
+		_minSmoothNormalDot = 0f;
 	}
 
 	public override void Reset()
@@ -60,6 +67,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		Clear();
 
 		MaxSmoothAngle = 0f;
+		Debug = false;
 	}
 
 	private static int NextPowerOfTwo( int value )
@@ -257,5 +265,27 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 	public void Close( bool smooth )
 	{
 		Bevel( float.PositiveInfinity, 0f, smooth );
+	}
+
+	public void Round( int faces, float width, float height, bool smooth )
+	{
+		var prevWidth = 0f;
+		var prevHeight = 0f;
+
+		for ( var i = 0; i < faces; ++i )
+		{
+			var theta = MathF.PI * 0.5f * (i + 1f) / faces;
+			var cos = MathF.Cos( theta );
+			var sin = MathF.Sin( theta );
+
+			var nextWidth = 1f - cos;
+			var nextHeight = sin;
+
+			Bevel( (nextWidth - prevWidth) * width,
+				(nextHeight - prevHeight) * height, true );
+
+			prevWidth = nextWidth;
+			prevHeight = nextHeight;
+		}
 	}
 }

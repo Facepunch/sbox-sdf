@@ -387,6 +387,26 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
+	private void PrintEdgeLoops( int offset, int count )
+	{
+		var writer = new StringWriter();
+
+		for ( var i = 0; i < count; ++i )
+		{
+			var edgeLoop = EdgeLoops[offset + i];
+
+			for ( var j = 0; j < edgeLoop.Count; ++j )
+			{
+				var vertex = SourceVertices[edgeLoop.FirstIndex + j];
+				writer.Write( $"({vertex.x:R}, {vertex.y:R})," );
+			}
+
+			writer.WriteLine();
+		}
+
+		Log.Info( writer );
+	}
+
 	private void WriteRenderMesh( Sdf2DLayer layer )
 	{
 		var quality = layer.Quality;
@@ -406,17 +426,15 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		if ( layer.FrontFaceMaterial == null && layer.BackFaceMaterial == null ) return;
 
-		//using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+		polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
 
 		var bevelScale = layer.EdgeRadius / scale;
 
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
-			var polyMeshBuilder = new PolygonMeshBuilder();
-
-			polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
-
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
 			switch ( layer.EdgeStyle )
@@ -431,25 +449,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					break;
 
 				case EdgeStyle.Round:
-					var prevWidth = 0f;
-					var prevHeight = 0f;
-
-					for ( var i = 0; i < layer.EdgeFaces; ++i )
-					{
-						var theta = MathF.PI * 0.5f * (i + 1f) / layer.EdgeFaces;
-						var cos = MathF.Cos( theta );
-						var sin = MathF.Sin( theta );
-
-						var width = 1f - cos;
-						var height = sin;
-
-						polyMeshBuilder.Bevel( (width - prevWidth) * bevelScale,
-							(height - prevHeight) * layer.EdgeRadius, true );
-
-						prevWidth = width;
-						prevHeight = height;
-					}
-					
+					polyMeshBuilder.Round( layer.EdgeFaces, bevelScale, layer.EdgeRadius, true );
 					polyMeshBuilder.Close( true );
 					break;
 			}

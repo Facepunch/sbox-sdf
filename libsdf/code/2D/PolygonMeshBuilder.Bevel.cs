@@ -13,6 +13,8 @@ partial class PolygonMeshBuilder
 	[ThreadStatic]
 	private static List<int> Bevel_ActiveEdgeList;
 
+	public bool Debug { get; set; }
+
 	public void Bevel( float width, float height, bool smooth )
 	{
 		if ( width < 0f )
@@ -131,6 +133,11 @@ partial class PolygonMeshBuilder
 					splittingEdge = edge.Index;
 				}
 
+				if ( Debug )
+				{
+					Log.Info( $"{iterations}: {_activeEdges.Count}, {bestDist:R}, ({splittingEdge}, {splitEdge}, {closedEdge})" );
+				}
+
 				if ( splittingEdge != null )
 				{
 					EnsureCapacity( 2 );
@@ -230,9 +237,9 @@ partial class PolygonMeshBuilder
 				break;
 			}
 
-			if ( iterations == maxIterations )
+			if ( _activeEdges.Count > 0 && iterations == maxIterations )
 			{
-				throw new Exception( "Exploded!" );
+				throw new Exception( $"Exploded after {iterations} with {_activeEdges.Count} active edges!" );
 			}
 		}
 
