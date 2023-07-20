@@ -48,6 +48,6 @@ internal static class Helpers
 
 	public static float GetEpsilon( Vector2 a, Vector2 b, float frac = 0.0001f )
 	{
-		return Math.Max( GetEpsilon( a ), GetEpsilon( b ) );
+		return Math.Max( GetEpsilon( a, frac ), GetEpsilon( b, frac ) );
 	}
 }

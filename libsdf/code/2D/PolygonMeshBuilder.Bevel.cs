@@ -93,9 +93,11 @@ partial class PolygonMeshBuilder
 
 					if ( edge.MaxDistance >= bestDist ) continue;
 
+					var next = _allEdges[index];
+
 					bestDist = edge.MaxDistance;
 					closedEdge = edge.Index;
-					bestClosePos = edge.Project( edge.MaxDistance );
+					bestClosePos = (edge.Project( edge.MaxDistance ) + next.Project( edge.MaxDistance )) * 0.5f;
 
 					splitEdge = splittingEdge = null;
 				}
@@ -305,13 +307,13 @@ partial class PolygonMeshBuilder
 		var nextOrigin = nextEdge.Project( baseDistance );
 
 		var posDist = Vector2.Dot( nextOrigin - thisOrigin, edge.Tangent );
-		var epsilon = Helpers.GetEpsilon( thisOrigin, nextOrigin );
 
 		var dPrev = Vector2.Dot( edge.Velocity, edge.Tangent );
 		var dNext = Vector2.Dot( nextEdge.Velocity, edge.Tangent );
 
 		if ( dPrev - dNext <= 0.001f )
 		{
+			var epsilon = Helpers.GetEpsilon( thisOrigin, nextOrigin );
 			edge.MaxDistance = posDist <= epsilon ? baseDistance : float.PositiveInfinity;
 		}
 		else

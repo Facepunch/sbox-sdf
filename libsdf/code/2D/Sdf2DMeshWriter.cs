@@ -222,6 +222,11 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			var minSmoothNormalDot = MathF.Cos( maxSmoothAngle * MathF.PI / 180f );
 
+			static float GetV( Vector2 pos, Vector2 normal )
+			{
+				return Math.Abs( normal.y ) > Math.Abs( normal.x ) ? pos.x : pos.y;
+			}
+
 			foreach ( var edgeLoop in edgeLoops )
 			{
 				IndexMap.Clear();
@@ -242,28 +247,34 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					var next = vertices[edgeLoop.FirstIndex + i];
 					var nextNormal = Helpers.NormalizeSafe( Helpers.Rotate90( curr - next ) );
 
+					var prevV = GetV( curr * (Vector2) scale, prevNormal ) / texCoordSize;
+					var nextV = GetV( curr * (Vector2) scale, nextNormal ) / texCoordSize;
+
 					var index = Vertices.Count;
 					var frontPos = offset + new Vector3( curr.x, curr.y, 0.5f ) * scale;
 					var backPos = offset + new Vector3( curr.x, curr.y, -0.5f ) * scale;
 
-					if ( Vector2.Dot( prevNormal, nextNormal ) >= minSmoothNormalDot )
+					var frontU = 0f;
+					var backU = scale.z / texCoordSize;
+
+					if ( Vector2.Dot( prevNormal, nextNormal ) >= minSmoothNormalDot && Math.Abs( prevV - nextV ) <= 0.001f )
 					{
 						IndexMap.Add( currIndex, (index, index) );
 
 						var normal = Helpers.NormalizeSafe(prevNormal + nextNormal);
 
-						Vertices.Add( new Vertex( frontPos, normal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
-						Vertices.Add( new Vertex( backPos, normal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
+						Vertices.Add( new Vertex( frontPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, prevV ) ) );
+						Vertices.Add( new Vertex( backPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, prevV ) ) );
 					}
 					else
 					{
 						IndexMap.Add( currIndex, (index, index + 2) );
 
-						Vertices.Add( new Vertex( frontPos, prevNormal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
-						Vertices.Add( new Vertex( backPos, prevNormal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
+						Vertices.Add( new Vertex( frontPos, prevNormal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, prevV ) ) );
+						Vertices.Add( new Vertex( backPos, prevNormal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, prevV ) ) );
 
-						Vertices.Add( new Vertex( frontPos, nextNormal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
-						Vertices.Add( new Vertex( backPos, nextNormal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
+						Vertices.Add( new Vertex( frontPos, nextNormal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, nextV ) ) );
+						Vertices.Add( new Vertex( backPos, nextNormal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, nextV ) ) );
 					}
 
 					currIndex = i;
@@ -435,10 +446,8 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
-			var guid = Guid.NewGuid();
-
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
-			Log.Info( $"{DebugOffset}: {PrintEdgeLoops( offset, count )}" );
+			// Log.Info( $"{DebugOffset}: {PrintEdgeLoops( offset, count )}" );
 
 			switch ( layer.EdgeStyle )
 			{
