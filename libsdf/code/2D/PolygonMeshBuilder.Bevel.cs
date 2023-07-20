@@ -1,15 +1,27 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
 
 partial class PolygonMeshBuilder
 {
+	private HashSet<(int A, int B)> PossibleCuts { get; } = new();
+
+	[ThreadStatic]
+	private static List<(int A, int B)> Bevel_PossibleCutList;
+
+	[ThreadStatic]
+	private static List<int> Bevel_ActiveEdgeList;
+
 	public void Bevel( float width, float height, bool smooth )
 	{
 		if ( width < 0f )
 		{
 			throw new ArgumentOutOfRangeException( nameof(width) );
 		}
+
+		var cutList = Bevel_PossibleCutList ??= new List<(int A, int B)>();
+		var edgeList = Bevel_ActiveEdgeList ??= new List<int>();
 
 		_nextDistance = _prevDistance + width;
 		_nextHeight = _prevHeight + height;
@@ -39,17 +51,31 @@ partial class PolygonMeshBuilder
 			BlendNormals( _prevPrevHeight, _prevHeight, _prevPrevAngle, _prevAngle );
 		}
 
+		PossibleCuts.Clear();
+
 		foreach ( var index in _activeEdges )
 		{
 			ref var edge = ref _allEdges[index];
 			UpdateMaxDistance( ref edge, _allEdges[edge.NextEdge] );
+
+			if ( Vector2.Dot( edge.Tangent, edge.Velocity ) <= 0.001f )
+			{
+				foreach ( var otherIndex in _activeEdges )
+				{
+					if ( otherIndex != index )
+					{
+						PossibleCuts.Add( (index, otherIndex) );
+					}
+				}
+			}
 		}
 
 		if ( MathF.Abs( _nextDistance ) > 0.001f )
 		{
 			var maxIterations = _activeEdges.Count * _activeEdges.Count;
 
-			for ( var i = 0; i < maxIterations && _activeEdges.Count > 0; ++i )
+			int iterations;
+			for ( iterations = 0; iterations < maxIterations && _activeEdges.Count > 0; ++iterations )
 			{
 				int? closedEdge = null;
 				int? splitEdge = null;
@@ -64,31 +90,45 @@ partial class PolygonMeshBuilder
 				{
 					var edge = _allEdges[index];
 
-					if ( edge.MaxDistance < bestDist )
-					{
-						bestDist = edge.MaxDistance;
-						closedEdge = edge.Index;
-						bestClosePos = edge.Project( edge.MaxDistance );
+					if ( edge.MaxDistance >= bestDist ) continue;
 
-						splitEdge = splittingEdge = null;
+					bestDist = edge.MaxDistance;
+					closedEdge = edge.Index;
+					bestClosePos = edge.Project( edge.MaxDistance );
+
+					splitEdge = splittingEdge = null;
+				}
+
+				cutList.Clear();
+				cutList.AddRange( PossibleCuts );
+
+				foreach ( var (index, otherIndex) in cutList )
+				{
+					if ( !_activeEdges.Contains( index ) || !_activeEdges.Contains( otherIndex ) )
+					{
+						PossibleCuts.Remove( (index, otherIndex) );
+						continue;
 					}
 
-					// TODO: can probably reduce how many other edges to test
+					var edge = _allEdges[index];
+					var other = _allEdges[otherIndex];
 
-					foreach ( var otherIndex in _activeEdges )
+					var splitDist = CalculateSplitDistance( edge, other, _allEdges[other.NextEdge], out var splitPos );
+
+					if ( float.IsPositiveInfinity( splitDist ) )
 					{
-						var other = _allEdges[otherIndex];
-						var splitDist = CalculateSplitDistance( edge, other, _allEdges[other.NextEdge], out var splitPos );
-
-						if ( splitDist >= bestDist ) continue;
-
-						bestDist = splitDist;
-						bestSplitPos = splitPos;
-
-						closedEdge = null;
-						splitEdge = other.Index;
-						splittingEdge = edge.Index;
+						PossibleCuts.Remove( (index, otherIndex) );
+						continue;
 					}
+
+					if ( splitDist >= bestDist ) continue;
+
+					bestDist = splitDist;
+					bestSplitPos = splitPos;
+
+					closedEdge = null;
+					splitEdge = other.Index;
+					splittingEdge = edge.Index;
 				}
 
 				if ( splittingEdge != null )
@@ -133,6 +173,9 @@ partial class PolygonMeshBuilder
 					AddTriangle( ai, bi.Next, fi );
 					AddTriangle( ci, bi.Prev, di.Prev );
 					AddTriangle( di.Next, ei.Next, gi );
+
+					AddAllPossibleCuts( b.Index );
+					AddAllPossibleCuts( e.Index );
 
 					continue;
 				}
@@ -179,19 +222,29 @@ partial class PolygonMeshBuilder
 					AddTriangle( bi.Next, fi, ci.Prev );
 					AddTriangle( ci.Next, di.Next, ei.Prev );
 
+					AddAllPossibleCuts( d.Index );
+
 					continue;
 				}
 
 				break;
 			}
+
+			if ( iterations == maxIterations )
+			{
+				throw new Exception( "Exploded!" );
+			}
 		}
 
 		EnsureCapacity( _activeEdges.Count );
 
-		for ( var i = 0; i < _activeEdges.Count; ++i )
-		{
-			var index = _activeEdges[i];
+		edgeList.Clear();
+		edgeList.AddRange( _activeEdges );
 
+		_activeEdges.Clear();
+
+		foreach ( var index in edgeList )
+		{
 			ref var b = ref _allEdges[index];
 			ref var a = ref _allEdges[b.PrevEdge];
 			ref var c = ref _allEdges[b.NextEdge];
@@ -209,7 +262,7 @@ partial class PolygonMeshBuilder
 			AddTriangle( ai.Next, di.Prev, bi.Prev );
 			AddTriangle( bi.Next, di.Next, ci.Prev );
 
-			_activeEdges[i] = d.Index;
+			_activeEdges.Add( d.Index );
 		}
 
 		_prevDistance = _nextDistance;
@@ -219,28 +272,16 @@ partial class PolygonMeshBuilder
 		_prevAngle = _nextAngle;
 	}
 
-	private static Vector3 RotateNormal( Vector3 oldNormal, float sin, float cos )
+	private void AddAllPossibleCuts( int index )
 	{
-		var normal2d = new Vector2( oldNormal.x, oldNormal.y );
-
-		if ( normal2d.LengthSquared <= 0.000001f )
+		foreach ( var otherIndex in _activeEdges )
 		{
-			return oldNormal;
+			if ( otherIndex != index )
+			{
+				PossibleCuts.Add( (index, otherIndex) );
+				PossibleCuts.Add( (otherIndex, index) );
+			}
 		}
-
-		normal2d = normal2d.Normal;
-
-		return new Vector3( normal2d.x * cos, normal2d.y * cos, sin ).Normal;
-	}
-
-	private static float GetEpsilon( Vector2 vec, float frac = 0.0001f )
-	{
-		return Math.Max( Math.Abs( vec.x ), Math.Abs( vec.y ) ) * frac;
-	}
-
-	private static float GetEpsilon( Vector2 a, Vector2 b, float frac = 0.0001f )
-	{
-		return Math.Max( GetEpsilon( a ), GetEpsilon( b ) );
 	}
 
 	private static void UpdateMaxDistance( ref Edge edge, in Edge nextEdge )
@@ -256,7 +297,7 @@ partial class PolygonMeshBuilder
 		var nextOrigin = nextEdge.Project( baseDistance );
 
 		var posDist = Vector2.Dot( nextOrigin - thisOrigin, edge.Tangent );
-		var epsilon = GetEpsilon( thisOrigin, nextOrigin );
+		var epsilon = Helpers.GetEpsilon( thisOrigin, nextOrigin );
 
 		var dPrev = Vector2.Dot( edge.Velocity, edge.Tangent );
 		var dNext = Vector2.Dot( nextEdge.Velocity, edge.Tangent );
@@ -300,7 +341,7 @@ partial class PolygonMeshBuilder
 
 		var dv = Vector2.Dot( other.Velocity - edge.Velocity, other.Normal );
 
-		if ( dv <= GetEpsilon( edge.Velocity, other.Velocity ) )
+		if ( dv <= Helpers.GetEpsilon( edge.Velocity, other.Velocity ) )
 		{
 			return float.PositiveInfinity;
 		}
@@ -311,7 +352,7 @@ partial class PolygonMeshBuilder
 
 		var dx = Vector2.Dot( thisOrigin - edgeOrigin, other.Normal );
 
-		if ( dx <= -GetEpsilon( thisOrigin, edgeOrigin ) )
+		if ( dx <= -Helpers.GetEpsilon( thisOrigin, edgeOrigin ) )
 		{
 			return float.PositiveInfinity;
 		}
@@ -319,6 +360,11 @@ partial class PolygonMeshBuilder
 		var t = dx / dv;
 
 		if ( t < 0f )
+		{
+			return float.PositiveInfinity;
+		}
+
+		if ( baseDistance + t >= edge.MaxDistance || baseDistance + t >= other.MaxDistance )
 		{
 			return float.PositiveInfinity;
 		}
@@ -331,7 +377,7 @@ partial class PolygonMeshBuilder
 		var dPrev = Vector2.Dot( splitPos - prevPos, other.Tangent );
 		var dNext = Vector2.Dot( splitPos - nextPos, other.Tangent );
 
-		var epsilon = GetEpsilon( prevPos, nextPos );
+		var epsilon = Helpers.GetEpsilon( prevPos, nextPos );
 
 		if ( dPrev <= epsilon || dNext >= -epsilon )
 		{

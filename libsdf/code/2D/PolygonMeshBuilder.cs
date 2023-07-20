@@ -5,14 +5,9 @@ namespace Sandbox.Sdf;
 
 public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 {
-	public static Vector2 Rotate90( Vector2 v )
-	{
-		return new Vector2( v.y, -v.x );
-	}
-
 	private int _nextEdgeIndex;
 	private Edge[] _allEdges = new Edge[64];
-	private readonly List<int> _activeEdges = new List<int>();
+	private readonly HashSet<int> _activeEdges = new HashSet<int>();
 
 	private readonly List<Vector3> _vertices = new List<Vector3>();
 	private readonly List<Vector3> _normals = new List<Vector3>();
@@ -53,6 +48,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 		_prevPrevHeight = 0f;
 		_prevHeight = 0f;
+		_nextHeight = 0f;
 
 		_prevPrevAngle = 0f;
 		_prevAngle = 0f;
@@ -103,7 +99,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		{
 			var nextVertex = vertices[offset + i];
 
-			_activeEdges.Add( AddEdge( prevVertex, (nextVertex - prevVertex).Normal, _prevDistance ) );
+			_activeEdges.Add( AddEdge( prevVertex, Helpers.NormalizeSafe( nextVertex - prevVertex), _prevDistance ) );
 
 			prevVertex = nextVertex;
 		}
@@ -133,7 +129,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 			var prev = vertices[i];
 			var next = vertices[j];
 
-			var index = AddEdge( prev, (next - prev).Normal, _prevDistance );
+			var index = AddEdge( prev, Helpers.NormalizeSafe( next - prev ), _prevDistance );
 
 			_activeEdges.Add( index );
 			AddEdges_VertexMap.Add( i, index );
@@ -237,7 +233,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 			if ( pos.z >= maxHeight )
 			{
-				_normals[i] = RotateNormal( _normals[i], sinMax, cosMax );
+				_normals[i] = Helpers.RotateNormal( _normals[i], sinMax, cosMax );
 				continue;
 			}
 
@@ -247,7 +243,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 			var sin = MathF.Sin( angle );
 			var cos = MathF.Cos( angle );
 
-			_normals[i] = RotateNormal( _normals[i], sin, cos );
+			_normals[i] = Helpers.RotateNormal( _normals[i], sin, cos );
 		}
 	}
 

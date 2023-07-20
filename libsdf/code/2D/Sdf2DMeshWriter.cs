@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using Sandbox.Diagnostics;
 
 namespace Sandbox.Sdf;
@@ -232,13 +234,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var prev = vertices[edgeLoop.FirstIndex + edgeLoop.Count - 2];
 				var curr = vertices[edgeLoop.FirstIndex + edgeLoop.Count - 1];
 
-				var prevNormal = PolygonMeshBuilder.Rotate90( prev - curr ).Normal;
+				var prevNormal = Helpers.NormalizeSafe( Helpers.Rotate90( prev - curr ) );
 				var currIndex = edgeLoop.Count - 1;
 
 				for ( var i = 0; i < edgeLoop.Count; i++ )
 				{
 					var next = vertices[edgeLoop.FirstIndex + i];
-					var nextNormal = PolygonMeshBuilder.Rotate90( curr - next ).Normal;
+					var nextNormal = Helpers.NormalizeSafe( Helpers.Rotate90( curr - next ) );
 
 					var index = Vertices.Count;
 					var frontPos = offset + new Vector3( curr.x, curr.y, 0.5f ) * scale;
@@ -248,7 +250,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					{
 						IndexMap.Add( currIndex, (index, index) );
 
-						var normal = (prevNormal + nextNormal).Normal;
+						var normal = Helpers.NormalizeSafe(prevNormal + nextNormal);
 
 						Vertices.Add( new Vertex( frontPos, normal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
 						Vertices.Add( new Vertex( backPos, normal, new Vector3( 0f, 0f, -1f ), Vector2.Zero ) );
@@ -371,7 +373,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		index += count;
 
-		return true;
+		return count > 0;
 	}
 
 	private void InitPolyMeshBuilder( PolygonMeshBuilder builder, int offset, int count )
@@ -404,26 +406,28 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		if ( layer.FrontFaceMaterial == null && layer.BackFaceMaterial == null ) return;
 
-		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
-
-		polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
+		//using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
 		var bevelScale = layer.EdgeRadius / scale;
 
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
+			var polyMeshBuilder = new PolygonMeshBuilder();
+
+			polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
+
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
 			switch ( layer.EdgeStyle )
 			{
 				case EdgeStyle.Sharp:
-					// polyMeshBuilder.Close( false );
+					polyMeshBuilder.Close( false );
 					break;
 
 				case EdgeStyle.Bevel:
 					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius, false );
-					// polyMeshBuilder.Close( false );
+					polyMeshBuilder.Close( false );
 					break;
 
 				case EdgeStyle.Round:
@@ -439,13 +443,14 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 						var width = 1f - cos;
 						var height = sin;
 
-						polyMeshBuilder.Bevel( (width - prevWidth) * bevelScale, (height - prevHeight) * layer.EdgeRadius, true );
+						polyMeshBuilder.Bevel( (width - prevWidth) * bevelScale,
+							(height - prevHeight) * layer.EdgeRadius, true );
 
 						prevWidth = width;
 						prevHeight = height;
 					}
-
-					// polyMeshBuilder.Close( true );
+					
+					polyMeshBuilder.Close( true );
 					break;
 			}
 

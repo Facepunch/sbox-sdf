@@ -246,7 +246,7 @@ namespace Sandbox.Sdf
 
 				var v0 = SourceVertices[firstIndex + count - 1];
 				var v1 = SourceVertices[firstIndex];
-				var v01 = (v1 - v0).Normal;
+				var v01 = Helpers.NormalizeSafe( v1 - v0 );
 
 				for ( var i = 0; i < count; ++i )
 				{
@@ -260,7 +260,7 @@ namespace Sandbox.Sdf
 						--i;
 
 						v1 = v2;
-						v01 = (v1 - v0).Normal;
+						v01 = Helpers.NormalizeSafe( v1 - v0 );
 						continue;
 					}
 

@@ -27,7 +27,7 @@ partial class PolygonMeshBuilder
 
 			Origin = origin;
 			Tangent = tangent;
-			Normal = Rotate90( tangent );
+			Normal = Helpers.Rotate90( tangent );
 
 			Velocity = Vector2.Zero;
 

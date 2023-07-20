@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -54,7 +55,16 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		writer.DebugOffset = LocalPosition;
 		writer.DebugScale = Data.Quality.UnitSize;
 
-		Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
+		try
+		{
+			Data.WriteTo( writer, Resource, enableRenderMesh, enableCollisionMesh );
+		}
+		catch ( Exception e )
+		{
+			Log.Error( e );
+
+			writer.Reset();
+		}
 
 		var renderTask = Task.CompletedTask;
 		var collisionTask = Task.CompletedTask;
