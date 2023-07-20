@@ -60,14 +60,13 @@ partial class PolygonMeshBuilder
 			ref var edge = ref _allEdges[index];
 			UpdateMaxDistance( ref edge, _allEdges[edge.NextEdge] );
 
-			if ( Vector2.Dot( edge.Tangent, edge.Velocity ) <= 0.001f )
+			if ( Vector2.Dot( edge.Tangent, edge.Velocity ) > 0.001f ) continue;
+
+			foreach ( var otherIndex in _activeEdges )
 			{
-				foreach ( var otherIndex in _activeEdges )
+				if ( otherIndex != index )
 				{
-					if ( otherIndex != index )
-					{
-						PossibleCuts.Add( (index, otherIndex) );
-					}
+					PossibleCuts.Add( (index, otherIndex) );
 				}
 			}
 		}
@@ -181,8 +180,10 @@ partial class PolygonMeshBuilder
 					AddTriangle( ci, bi.Prev, di.Prev );
 					AddTriangle( di.Next, ei.Next, gi );
 
-					AddAllPossibleCuts( b.Index );
-					AddAllPossibleCuts( e.Index );
+					AddAllPossibleCuts( b );
+					AddAllPossibleCuts( e );
+					AddAllPossibleCuts( dNext );
+					AddAllPossibleCuts( aNext );
 
 					continue;
 				}
@@ -229,7 +230,8 @@ partial class PolygonMeshBuilder
 					AddTriangle( bi.Next, fi, ci.Prev );
 					AddTriangle( ci.Next, di.Next, ei.Prev );
 
-					AddAllPossibleCuts( d.Index );
+					AddAllPossibleCuts( d );
+					AddAllPossibleCuts( cNext );
 
 					continue;
 				}
@@ -279,15 +281,14 @@ partial class PolygonMeshBuilder
 		_prevAngle = _nextAngle;
 	}
 
-	private void AddAllPossibleCuts( int index )
+	private void AddAllPossibleCuts( in Edge edge )
 	{
 		foreach ( var otherIndex in _activeEdges )
 		{
-			if ( otherIndex != index )
-			{
-				PossibleCuts.Add( (index, otherIndex) );
-				PossibleCuts.Add( (otherIndex, index) );
-			}
+			if ( otherIndex == edge.Index ) continue;
+
+			PossibleCuts.Add( (edge.Index, otherIndex) );
+			PossibleCuts.Add( (otherIndex, edge.Index) );
 		}
 	}
 

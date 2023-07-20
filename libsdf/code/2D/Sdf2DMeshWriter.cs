@@ -387,7 +387,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private void PrintEdgeLoops( int offset, int count )
+	private string PrintEdgeLoops( int offset, int count )
 	{
 		var writer = new StringWriter();
 
@@ -404,7 +404,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			writer.WriteLine();
 		}
 
-		Log.Info( writer );
+		return writer.ToString();
 	}
 
 	private void WriteRenderMesh( Sdf2DLayer layer )
@@ -435,7 +435,10 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
+			var guid = Guid.NewGuid();
+
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
+			Log.Info( $"{DebugOffset}: {PrintEdgeLoops( offset, count )}" );
 
 			switch ( layer.EdgeStyle )
 			{

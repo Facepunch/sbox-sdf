@@ -282,7 +282,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 			var nextHeight = sin;
 
 			Bevel( (nextWidth - prevWidth) * width,
-				(nextHeight - prevHeight) * height, true );
+				(nextHeight - prevHeight) * height, smooth );
 
 			prevWidth = nextWidth;
 			prevHeight = nextHeight;
