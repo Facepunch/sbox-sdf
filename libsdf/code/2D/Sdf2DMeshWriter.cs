@@ -227,6 +227,8 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				return Math.Abs( normal.y ) > Math.Abs( normal.x ) ? pos.x : pos.y;
 			}
 
+			var texCoordScale = texCoordSize == 0f ? 0f : 1f / texCoordSize;
+
 			foreach ( var edgeLoop in edgeLoops )
 			{
 				IndexMap.Clear();
@@ -247,15 +249,15 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					var next = vertices[edgeLoop.FirstIndex + i];
 					var nextNormal = Helpers.NormalizeSafe( Helpers.Rotate90( curr - next ) );
 
-					var prevV = GetV( curr * (Vector2) scale, prevNormal ) / texCoordSize;
-					var nextV = GetV( curr * (Vector2) scale, nextNormal ) / texCoordSize;
+					var prevV = GetV( curr * (Vector2) scale, prevNormal ) * texCoordScale;
+					var nextV = GetV( curr * (Vector2) scale, nextNormal ) * texCoordScale;
 
 					var index = Vertices.Count;
 					var frontPos = offset + new Vector3( curr.x, curr.y, 0.5f ) * scale;
 					var backPos = offset + new Vector3( curr.x, curr.y, -0.5f ) * scale;
 
 					var frontU = 0f;
-					var backU = scale.z / texCoordSize;
+					var backU = scale.z * texCoordScale;
 
 					if ( Vector2.Dot( prevNormal, nextNormal ) >= minSmoothNormalDot && Math.Abs( prevV - nextV ) <= 0.001f )
 					{
@@ -398,9 +400,12 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private string PrintEdgeLoops( int offset, int count )
+	private string PrintEdgeLoops( int offset, int count, out Vector2 pos )
 	{
 		var writer = new StringWriter();
+
+		pos = 0f;
+		var vertexCount = 0;
 
 		for ( var i = 0; i < count; ++i )
 		{
@@ -410,9 +415,18 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			{
 				var vertex = SourceVertices[edgeLoop.FirstIndex + j];
 				writer.Write( $"({vertex.x:R}, {vertex.y:R})," );
+
+				pos += vertex;
 			}
 
+			vertexCount += edgeLoop.Count;
+
 			writer.WriteLine();
+		}
+
+		if ( vertexCount > 0 )
+		{
+			pos /= vertexCount;
 		}
 
 		return writer.ToString();
@@ -423,7 +437,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
 
-		const float maxSmoothAngle = 33f;
+		const float maxSmoothAngle = 180f;
 
 		if ( layer.CutFaceMaterial != null )
 		{
@@ -447,7 +461,9 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
-			// Log.Info( $"{DebugOffset}: {PrintEdgeLoops( offset, count )}" );
+
+			// Log.Info( $"{DebugOffset / 256f}[{index}]: {PrintEdgeLoops( offset, count, out var avgPos )}" );
+			// DebugOverlay.Text( $"{DebugOffset / 256f}[{index}]", DebugOffset + avgPos * DebugScale, duration: 10f, maxDistance: 6000f );
 
 			switch ( layer.EdgeStyle )
 			{
@@ -490,7 +506,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 	private void WriteCollisionMesh( Sdf2DLayer layer )
 	{
 		return;
-
+		
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
 
@@ -503,7 +519,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-			// polyMeshBuilder.Close( true );
+			polyMeshBuilder.Close( true );
 		}
 	}
 }

@@ -93,7 +93,7 @@ partial class PolygonMeshBuilder
 
 					if ( edge.MaxDistance >= bestDist ) continue;
 
-					var next = _allEdges[index];
+					var next = _allEdges[edge.NextEdge];
 
 					bestDist = edge.MaxDistance;
 					closedEdge = edge.Index;
@@ -330,7 +330,7 @@ partial class PolygonMeshBuilder
 		var sum = prev.Normal + next.Normal;
 		var sqrMag = sum.LengthSquared;
 
-		if ( sqrMag < 0.00001f )
+		if ( sqrMag < 0.001f )
 		{
 			next.Velocity = Vector2.Zero;
 		}
