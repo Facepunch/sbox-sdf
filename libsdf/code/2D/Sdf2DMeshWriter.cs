@@ -436,6 +436,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 	{
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
+		var edgeRadius = layer.EdgeStyle == EdgeStyle.Sharp ? 0f : layer.EdgeRadius;
 
 		const float maxSmoothAngle = 180f;
 
@@ -443,7 +444,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
 				new Vector3( 0f, 0f, layer.Offset ),
-				new Vector3( scale, scale, layer.Depth ),
+				new Vector3( scale, scale, layer.Depth - edgeRadius * 2f ),
 				layer.TexCoordSize, maxSmoothAngle );
 
 			_cutMeshWriter.Clip( quality );
@@ -485,7 +486,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			if ( layer.FrontFaceMaterial != null )
 			{
 				_frontMeshWriter.AddFaces( polyMeshBuilder,
-					new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
+					new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset - edgeRadius ),
 					new Vector3( scale, scale, 1f ),
 					layer.TexCoordSize );
 			}
@@ -493,7 +494,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			if ( layer.BackFaceMaterial != null )
 			{
 				_backMeshWriter.AddFaces( polyMeshBuilder,
-					new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset ),
+					new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset + edgeRadius ),
 					new Vector3( scale, scale, -1f ),
 					layer.TexCoordSize );
 			}
