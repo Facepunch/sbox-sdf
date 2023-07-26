@@ -136,11 +136,6 @@ partial class PolygonMeshBuilder
 					splittingEdge = edge.Index;
 				}
 
-				if ( Debug )
-				{
-					Log.Info( $"{iterations}: {_activeEdges.Count}, {bestDist:R}, ({splittingEdge}, {splitEdge}, {closedEdge})" );
-				}
-
 				if ( splittingEdge != null )
 				{
 					EnsureCapacity( 2 );
@@ -245,6 +240,7 @@ partial class PolygonMeshBuilder
 
 			if ( _activeEdges.Count > 0 && iterations == maxIterations )
 			{
+				PrintDebug();
 				throw new Exception( $"Exploded after {iterations} with {_activeEdges.Count} active edges!" );
 			}
 		}
@@ -381,7 +377,7 @@ partial class PolygonMeshBuilder
 
 		var t = dx / dv;
 
-		if ( t < 0f )
+		if ( t < -0.001f )
 		{
 			return float.PositiveInfinity;
 		}
@@ -406,6 +402,6 @@ partial class PolygonMeshBuilder
 			return float.PositiveInfinity;
 		}
 
-		return baseDistance + t;
+		return baseDistance + Math.Max( t, 0f );
 	}
 }
