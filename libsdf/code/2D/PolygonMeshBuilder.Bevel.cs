@@ -276,6 +276,11 @@ partial class PolygonMeshBuilder
 			_activeEdges.Add( d.Index );
 		}
 
+		PostBevel();
+	}
+
+	private void PostBevel()
+	{
 		_prevDistance = _nextDistance;
 		_prevPrevHeight = _prevHeight;
 		_prevHeight = _nextHeight;
@@ -322,10 +327,15 @@ partial class PolygonMeshBuilder
 		}
 	}
 
-	private static void ConnectEdges( ref Edge prev, ref Edge next )
+	private static void SimpleConnectEdges( ref Edge prev, ref Edge next )
 	{
 		prev.NextEdge = next.Index;
 		next.PrevEdge = prev.Index;
+	}
+
+	private static void ConnectEdges( ref Edge prev, ref Edge next )
+	{
+		SimpleConnectEdges( ref prev, ref next );
 
 		var sum = prev.Normal + next.Normal;
 		var sqrMag = sum.LengthSquared;

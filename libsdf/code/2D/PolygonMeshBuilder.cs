@@ -262,11 +262,6 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		_indices.Add( c );
 	}
 
-	public void Close( bool smooth )
-	{
-		Bevel( float.PositiveInfinity, 0f, smooth );
-	}
-
 	public void Round( int faces, float width, float height, bool smooth )
 	{
 		var prevWidth = 0f;
