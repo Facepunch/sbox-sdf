@@ -27,13 +27,8 @@ partial class PolygonMeshBuilder
 
 	private static SweepEvent CategorizeEvent( in Edge prev, in Edge curr, in Edge next )
 	{
-		int index;
-		var prevIndex = Close_EdgeOrder.TryGetValue( prev.Index, out index ) ? index : -1;
-		var currIndex = Close_EdgeOrder[curr.Index];
-		var nextIndex = Close_EdgeOrder.TryGetValue( next.Index, out index ) ? index : -1;
-
-		var prevLeft = prevIndex < currIndex;
-		var nextLeft = nextIndex < currIndex;
+		var prevLeft = Compare( prev.Origin, curr.Origin ) < 0;
+		var nextLeft = Compare( next.Origin, curr.Origin ) < 0;
 
 		var nextBelow = curr.Tangent.y < -prev.Tangent.y;
 
@@ -64,9 +59,6 @@ partial class PolygonMeshBuilder
 
 	[ThreadStatic]
 	private static Dictionary<int, (int Index, bool WasMerge)> Close_Helpers;
-
-	[ThreadStatic]
-	private static Dictionary<int, int> Close_EdgeOrder;
 
 	[ThreadStatic]
 	private static List<SweepEdge> Close_SweepEdges;
@@ -219,17 +211,7 @@ partial class PolygonMeshBuilder
 
 		Close_SortedEdges.AddRange( _activeEdges );
 
-		Close_SortedEdges.Sort( ( a, b ) =>
-			_allEdges[a].Origin.x.CompareTo( _allEdges[b].Origin.x ) );
-
-		Close_EdgeOrder ??= new Dictionary<int, int>();
-		Close_EdgeOrder.Clear();
-
-		var sortedIndex = 0;
-		foreach ( var edgeIndex in Close_SortedEdges )
-		{
-			Close_EdgeOrder[edgeIndex] = sortedIndex++;
-		}
+		Close_SortedEdges.Sort( ( a, b ) => Compare( _allEdges[a].Origin, _allEdges[b].Origin ) );
 
 		Close_Helpers ??= new Dictionary<int, (int Index, bool WasMerge)>();
 		Close_Helpers.Clear();
