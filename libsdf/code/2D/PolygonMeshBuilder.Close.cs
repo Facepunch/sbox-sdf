@@ -8,11 +8,21 @@ partial class PolygonMeshBuilder
 {
 	public void Close( bool smooth )
 	{
-		Close_UpdateExistingVertices( smooth );
-		Close_SplitIntoMonotonicPolygons();
-		Close_Triangulate();
+		WriteDebug( $"Close( {smooth} )" );
 
-		PostBevel();
+		try
+		{
+			Close_UpdateExistingVertices( smooth );
+			Close_SplitIntoMonotonicPolygons();
+			Close_Triangulate();
+
+			PostBevel();
+		}
+		catch ( Exception e )
+		{
+			WriteDebug( e.ToString() );
+			PrintDebug();
+		}
 	}
 
 	private enum SweepEvent
@@ -191,6 +201,13 @@ partial class PolygonMeshBuilder
 		if ( smooth )
 		{
 			BlendNormals( _prevPrevHeight, _prevHeight, _prevPrevAngle, _prevAngle );
+
+			foreach ( var index in _activeEdges )
+			{
+				ref var edge = ref _allEdges[index];
+
+				AddVertices( ref edge, true );
+			}
 		}
 		else
 		{

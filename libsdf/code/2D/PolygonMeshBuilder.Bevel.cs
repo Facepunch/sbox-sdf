@@ -17,6 +17,8 @@ partial class PolygonMeshBuilder
 
 	public void Bevel( float width, float height, bool smooth )
 	{
+		WriteDebug( $"Bevel( {width:R}, {height:R}, {smooth} )" );
+
 		if ( width < 0f )
 		{
 			throw new ArgumentOutOfRangeException( nameof(width) );
