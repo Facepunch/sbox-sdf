@@ -273,8 +273,8 @@ partial class PolygonMeshBuilder
 				case SweepEvent.Lower:
 					{
 						ref var above = ref _allEdges[FindAboveSweepEdge( in edge )];
-						FixUp( ref edge, in above );
-						SetHelper( in above, in edge, false );
+						ref var helper = ref _allEdges[FixUp( ref edge, in above )];
+						SetHelper( in above, in helper, false );
 						break;
 					}
 			}
