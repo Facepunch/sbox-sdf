@@ -517,7 +517,7 @@ partial class PolygonMeshBuilder
 
 		if ( dPrev <= epsilon )
 		{
-			if ( edge.Index > other.Index || edge.NextEdge == other.Index || edge.PrevEdge == other.Index )
+			if ( edge.NextEdge == other.Index || edge.PrevEdge == other.Index )
 			{
 				return float.PositiveInfinity;
 			}
