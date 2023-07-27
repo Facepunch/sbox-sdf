@@ -21,7 +21,9 @@ partial class PolygonMeshBuilder
 
 		public (int Prev, int Next) Vertices { get; set; }
 
-		public Edge( int index, Vector2 origin, Vector2 tangent, float distance )
+		public int Twin { get; }
+
+		public Edge( int index, Vector2 origin, Vector2 tangent, float distance, int twin = -1 )
 		{
 			Index = index;
 
@@ -38,6 +40,8 @@ partial class PolygonMeshBuilder
 
 			Distance = distance;
 			MaxDistance = float.PositiveInfinity;
+
+			Twin = twin;
 		}
 
 		public readonly Vector2 Project( float distance )

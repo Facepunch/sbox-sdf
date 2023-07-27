@@ -70,7 +70,6 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		Clear();
 
 		MaxSmoothAngle = 0f;
-		Debug = false;
 	}
 
 	private static int NextPowerOfTwo( int value )
@@ -92,10 +91,11 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		}
 	}
 
-	private int AddEdge( Vector2 origin, Vector2 tangent, float distance )
+	private int AddEdge( Vector2 origin, Vector2 tangent, float distance, int? twinOffset = null )
 	{
-		var edge = new Edge( _nextEdgeIndex++, origin, tangent, distance );
+		var edge = new Edge( _nextEdgeIndex, origin, tangent, distance, twinOffset != null ? _nextEdgeIndex + twinOffset.Value : -1 );
 		_allEdges[edge.Index] = edge;
+		++_nextEdgeIndex;
 		return edge.Index;
 	}
 
