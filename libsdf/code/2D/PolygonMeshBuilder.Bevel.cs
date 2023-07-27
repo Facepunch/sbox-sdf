@@ -196,14 +196,11 @@ partial class PolygonMeshBuilder
 			ref var edge = ref _allEdges[index];
 			UpdateMaxDistance( ref edge, _allEdges[edge.NextEdge] );
 
-			if ( Vector2.Dot( edge.Tangent, edge.Velocity ) <= 0.001f )
+			foreach ( var otherIndex in _activeEdges )
 			{
-				foreach ( var otherIndex in _activeEdges )
+				if ( otherIndex != index )
 				{
-					if ( otherIndex != index )
-					{
-						PossibleCuts.Add( (index, otherIndex) );
-					}
+					PossibleCuts.Add( (index, otherIndex) );
 				}
 			}
 		}
