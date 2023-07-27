@@ -73,7 +73,7 @@ partial class PolygonMeshBuilder
 					var splitDist = CalculateSplitDistance( edge, other, _allEdges[other.NextEdge],
 						out var splitPos, out var merge );
 
-					if ( float.IsPositiveInfinity( splitDist ) )
+					if ( splitDist - _nextDistance > 0.001f )
 					{
 						PossibleCuts.Remove( (index, otherIndex) );
 						continue;
