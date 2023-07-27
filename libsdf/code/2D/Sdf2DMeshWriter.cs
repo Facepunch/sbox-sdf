@@ -374,6 +374,15 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			return false;
 		}
 
+		// TODO: this seemed to leave some negative polys on their own, so just doing them all now
+
+		offset = index;
+		count = EdgeLoops.Count - index;
+
+		index += count;
+
+		return count > 0;
+
 		offset = index;
 		count = 1;
 
