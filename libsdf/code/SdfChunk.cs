@@ -48,6 +48,14 @@ internal static class Static
 	}
 }
 
+public interface IMeshWriter
+{
+	bool IsEmpty { get; }
+	void ApplyTo( Mesh mesh );
+}
+
+public record struct MeshDescription( IMeshWriter Writer, Material Material );
+
 /// <summary>
 /// Base class for chunks in a <see cref="SdfWorld{TWorld,TChunk,TResource,TChunkKey,TArray,TSdf}"/>.
 /// Each chunk contains an SDF for a sub-region of one specific volume / layer resource.

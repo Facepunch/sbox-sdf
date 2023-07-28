@@ -3,14 +3,6 @@ using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
 
-public interface IMeshWriter
-{
-	bool IsEmpty { get; }
-	void ApplyTo( Mesh mesh );
-}
-
-public record struct MeshDescription( IMeshWriter Writer, Material Material );
-
 public abstract class Pooled<T> : IDisposable
 	where T : Pooled<T>, new()
 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Sandbox.Diagnostics;
+using Sandbox.Polygons;
 
 namespace Sandbox.Sdf;
 
