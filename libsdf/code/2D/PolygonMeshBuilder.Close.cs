@@ -8,21 +8,11 @@ partial class PolygonMeshBuilder
 {
 	public void Close( bool smooth )
 	{
-		WriteDebug( $"Close( {smooth} )" );
+		Close_UpdateExistingVertices( smooth );
+		Close_SplitIntoMonotonicPolygons();
+		Close_Triangulate();
 
-		try
-		{
-			Close_UpdateExistingVertices( smooth );
-			Close_SplitIntoMonotonicPolygons();
-			Close_Triangulate();
-
-			PostBevel();
-		}
-		catch ( Exception e )
-		{
-			WriteDebug( e.ToString() );
-			PrintDebug();
-		}
+		PostBevel();
 	}
 
 	private enum SweepEvent

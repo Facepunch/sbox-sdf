@@ -309,22 +309,12 @@ namespace Sandbox.Sdf
 				}
 
 				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area * 0.5f, min, max ) );
-
-				for ( var i = 0; i < count; ++i )
-				{
-					var a = DebugOffset + SourceVertices[firstIndex + i] * DebugScale;
-					var b = DebugOffset + SourceVertices[firstIndex + (i + 1) % count] * DebugScale;
-
-					DebugOverlay.Line( a, b, area > 0f ? Color.Green : Color.Red, 10f, false );
-				}
 			}
 
 			if ( EdgeLoops.Count == 0 )
 			{
 				return;
 			}
-
-			DebugOverlay.Box( DebugOffset - new Vector2( 0.5f, 0.5f ) * DebugScale, DebugOffset + new Vector2( data.Size - 0.5f, data.Size - 0.5f ) * DebugScale, Color.White, 10f, false );
 
 			// Sort by area: largest negative first, largest positive last
 

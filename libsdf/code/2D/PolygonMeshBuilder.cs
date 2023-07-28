@@ -40,8 +40,6 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 	public void Clear()
 	{
-		ClearDebug();
-
 		_nextEdgeIndex = 0;
 		_activeEdges.Clear();
 
@@ -104,10 +102,6 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		var firstIndex = _nextEdgeIndex;
 
 		EnsureCapacity( count );
-
-		WriteDebug( $"AddEdgeLoop( {string.Join( ", ", Enumerable.Range( offset, count )
-			.Select( i => vertices[i] )
-			.Select( v => $"({v.x:R}, {v.y:R})" ) )} )" );
 
 		var prevVertex = vertices[offset + count - 1];
 		for ( var i = 0; i < count; ++i )
