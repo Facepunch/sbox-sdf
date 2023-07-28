@@ -198,8 +198,6 @@ namespace Sandbox.Sdf
 
 		private void FindEdgeLoops( in Sdf2DArrayData data )
 		{
-			const float collinearThreshold = 0.999877929688f;
-
 			VertexMap.Clear();
 			RemainingSourceEdges.Clear();
 
@@ -235,86 +233,40 @@ namespace Sandbox.Sdf
 					++count;
 				}
 
-				if ( count < 3 )
+				if ( RemoveIfDegenerate( firstIndex, count ) )
 				{
-					// Degenerate edge loop
-					SourceVertices.RemoveRange( firstIndex, count );
 					continue;
 				}
 
-				// Remove collinear vertices
+				RemoveCollinearVertices( firstIndex, ref count );
 
-				var v0 = SourceVertices[firstIndex + count - 1];
-				var v1 = SourceVertices[firstIndex];
-				var v01 = Helpers.NormalizeSafe( v1 - v0 );
-
-				for ( var i = 0; i < count; ++i )
+				if ( RemoveIfDegenerate( firstIndex, count ) )
 				{
-					var v2 = SourceVertices[firstIndex + (i + 1) % count];
-					var v12 = (v2 - v1).Normal;
-
-					if ( Vector3.Dot( v01, v12 ) >= collinearThreshold )
-					{
-						count -= 1;
-						SourceVertices.RemoveAt( firstIndex + i );
-						--i;
-
-						v1 = v2;
-						v01 = Helpers.NormalizeSafe( v1 - v0 );
-						continue;
-					}
-
-					v0 = v1;
-					v1 = v2;
-					v01 = v12;
-				}
-
-				if ( count < 3 )
-				{
-					// Degenerate edge loop
-					SourceVertices.RemoveRange( firstIndex, count );
 					continue;
 				}
 
 				// Find winding
 
-				var area = 0f;
+				var area = CalculateArea( firstIndex, count, out var min, out var max );
 
-				v0 = SourceVertices[firstIndex];
-				v1 = SourceVertices[firstIndex + 1];
-				v01 = v1 - v0;
-
-				var min = Vector2.Min( v0, v1 );
-				var max = Vector2.Max( v0, v1 );
-
-				for ( var i = 2; i < count; ++i )
-				{
-					var v2 = SourceVertices[firstIndex + i];
-					var v12 = v2 - v1;
-
-					area += v01.y * v12.x - v01.x * v12.y;
-
-					min = Vector2.Min( min, v2 );
-					max = Vector2.Max( max, v2 );
-
-					v1 = v2;
-					v01 = v1 - v0;
-				}
-
-				if ( area == 0f )
+				if ( Math.Abs( area ) < 0.00001f )
 				{
 					// Degenerate edge loop
 					SourceVertices.RemoveRange( firstIndex, count );
 					continue;
 				}
 
-				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area * 0.5f, min, max ) );
+				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area, min, max ) );
 			}
 
 			if ( EdgeLoops.Count == 0 )
 			{
 				return;
 			}
+
+			// TODO: The below wasn't working perfectly, so we just treat everything as one possibly disconnected polygon for now
+
+			return;
 
 			// Sort by area: largest negative first, largest positive last
 
@@ -342,6 +294,72 @@ namespace Sandbox.Sdf
 					break;
 				}
 			}
+		}
+
+		private bool RemoveIfDegenerate( int firstIndex, int count )
+		{
+			if ( count >= 3 ) return false;
+
+			SourceVertices.RemoveRange( firstIndex, count );
+			return true;
+		}
+
+		private void RemoveCollinearVertices( int firstIndex, ref int count )
+		{
+			const float collinearThreshold = 0.999877929688f;
+
+			var v0 = SourceVertices[firstIndex + count - 1];
+			var v1 = SourceVertices[firstIndex];
+			var e01 = Helpers.NormalizeSafe( v1 - v0 );
+
+			for ( var i = 0; i < count; ++i )
+			{
+				var v2 = SourceVertices[firstIndex + (i + 1) % count];
+				var e12 = (v2 - v1).Normal;
+
+				if ( Vector3.Dot( e01, e12 ) >= collinearThreshold )
+				{
+					count -= 1;
+					SourceVertices.RemoveAt( firstIndex + i );
+					--i;
+
+					v1 = v2;
+					e01 = Helpers.NormalizeSafe( v1 - v0 );
+					continue;
+				}
+
+				v0 = v1;
+				v1 = v2;
+				e01 = e12;
+			}
+		}
+
+		private float CalculateArea( int firstIndex, int count, out Vector2 min, out Vector2 max )
+		{
+			var v0 = SourceVertices[firstIndex];
+			var v1 = SourceVertices[firstIndex + 1];
+			var e01 = v1 - v0;
+
+			var area = 0f;
+
+			min = Vector2.Min( v0, v1 );
+			max = Vector2.Max( v0, v1 );
+
+			for ( var i = 2; i < count; ++i )
+			{
+				var v2 = SourceVertices[firstIndex + i];
+				var e12 = v2 - v1;
+
+				area += e01.y * e12.x - e01.x * e12.y;
+
+				min = Vector2.Min( min, v2 );
+				max = Vector2.Max( max, v2 );
+
+				v1 = v2;
+				e01 = v1 - v0;
+			}
+
+			return area * 0.5f;
 		}
 	}
 }
