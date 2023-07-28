@@ -10,10 +10,21 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 {
 	private List<SourceEdge> SourceEdges { get; } = new();
 
-	private abstract class MeshWriter : IMeshWriter
+	public interface IVertexHelper<TVertex>
+		where TVertex : unmanaged
 	{
-		protected List<Vertex> Vertices { get; } = new();
-		protected List<int> Indices { get; } = new();
+		Vector3 GetPosition( in TVertex vertex );
+		TVertex Lerp( in TVertex a, in TVertex b, float t );
+	}
+
+	private abstract class MeshWriter<TVertex, THelper> : IMeshWriter
+		where TVertex : unmanaged
+		where THelper : IVertexHelper<TVertex>, new()
+	{
+		private readonly THelper _helper = new();
+
+		public List<TVertex> Vertices { get; } = new();
+		public List<int> Indices { get; } = new();
 
 		public bool IsEmpty => Indices.Count == 0;
 
@@ -87,13 +98,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var a = Vertices[posIndex];
 			var b = Vertices[negIndex];
 
-			var x = Vector3.Dot( a.Position, normal ) - distance;
-			var y = Vector3.Dot( b.Position, normal ) - distance;
+			var x = Vector3.Dot( _helper.GetPosition( a ), normal ) - distance;
+			var y = Vector3.Dot( _helper.GetPosition( b ), normal ) - distance;
 
 			var t = x - y <= 0.0001f ? 0.5f : x / (x - y);
 
 			index = Vertices.Count;
-			Vertices.Add( Vertex.Lerp( a, b, t ) );
+			Vertices.Add( _helper.Lerp( a, b, t ) );
 
 			ClippedEdges.Add( (posIndex, negIndex), index );
 
@@ -138,39 +149,39 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var bi = Indices[i + 1];
 				var ci = Indices[i + 2];
 
-				var a = Vertices[ai];
-				var b = Vertices[bi];
-				var c = Vertices[ci];
+				var a = _helper.GetPosition( Vertices[ai] );
+				var b = _helper.GetPosition( Vertices[bi] );
+				var c = _helper.GetPosition( Vertices[ci] );
 
-				var aNeg = Vector3.Dot( normal, a.Position ) - distance < -epsilon;
-				var bNeg = Vector3.Dot( normal, b.Position ) - distance < -epsilon;
-				var cNeg = Vector3.Dot( normal, c.Position ) - distance < -epsilon;
+				var aNeg = Vector3.Dot( normal, a ) - distance < -epsilon;
+				var bNeg = Vector3.Dot( normal, b ) - distance < -epsilon;
+				var cNeg = Vector3.Dot( normal, c ) - distance < -epsilon;
 
 				switch (aNeg, bNeg, cNeg)
 				{
-					case (false, false, false):
+					case (false, false, false ):
 						Indices.Add( ai );
 						Indices.Add( bi );
 						Indices.Add( ci );
 						break;
 
-					case (true, false, false):
+					case (true, false, false ):
 						ClipOne( normal, distance, ai, bi, ci );
 						break;
-					case (false, true, false):
+					case (false, true, false ):
 						ClipOne( normal, distance, bi, ci, ai );
 						break;
-					case (false, false, true):
+					case (false, false, true ):
 						ClipOne( normal, distance, ci, ai, bi );
 						break;
 
-					case (false, true, true):
+					case (false, true, true ):
 						ClipTwo( normal, distance, ai, bi, ci );
 						break;
-					case (true, false, true):
+					case (true, false, true ):
 						ClipTwo( normal, distance, bi, ci, ai );
 						break;
-					case (true, true, false):
+					case (true, true, false ):
 						ClipTwo( normal, distance, ci, ai, bi );
 						break;
 				}
@@ -180,7 +191,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private class FrontBackMeshWriter : MeshWriter
+	private class FrontBackMeshWriter : MeshWriter<Vertex, VertexHelper>
 	{
 		public void AddFaces( PolygonMeshBuilder builder, Vector3 offset, Vector3 scale, float texCoordSize )
 		{
@@ -194,7 +205,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var pos = builder.Vertices[i] * scale;
 				var normal = builder.Normals[i] * normalScale;
 
-				Vertices.Add( new Vertex( offset + pos, normal.Normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * uvScale )  );
+				Vertices.Add( new Vertex( offset + pos, normal.Normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * uvScale ) );
 			}
 
 			if ( scale.z >= 0f )
@@ -214,7 +225,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private class CutMeshWriter : MeshWriter
+	private class CutMeshWriter : MeshWriter<Vertex, VertexHelper>
 	{
 		private Dictionary<int, (int Prev, int Next)> IndexMap { get; } = new();
 
@@ -263,7 +274,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					{
 						IndexMap.Add( currIndex, (index, index) );
 
-						var normal = Helpers.NormalizeSafe(prevNormal + nextNormal);
+						var normal = Helpers.NormalizeSafe( prevNormal + nextNormal );
 
 						Vertices.Add( new Vertex( frontPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, prevV ) ) );
 						Vertices.Add( new Vertex( backPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, prevV ) ) );
@@ -304,15 +315,93 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
+	private readonly struct CollisionVertexHelper : IVertexHelper<Vector3>
+	{
+		public Vector3 GetPosition( in Vector3 vertex )
+		{
+			return vertex;
+		}
+
+		public Vector3 Lerp( in Vector3 a, in Vector3 b, float t )
+		{
+			return Vector3.Lerp( a, b, t );
+		}
+	}
+
+	private class CollisionMeshWriter : MeshWriter<Vector3, CollisionVertexHelper>
+	{
+		public void AddFaces( PolygonMeshBuilder builder, Vector3 offset, Vector3 scale )
+		{
+			var indexOffset = Vertices.Count;
+
+			foreach ( var v in builder.Vertices )
+			{
+				Vertices.Add( offset + v * scale );
+			}
+
+			if ( scale.z >= 0f )
+			{
+				foreach ( var index in builder.Indices )
+				{
+					Indices.Add( indexOffset + index );
+				}
+			}
+			else
+			{
+				for ( var i = builder.Indices.Count - 1; i >= 0; --i )
+				{
+					Indices.Add( indexOffset + builder.Indices[i] );
+				}
+			}
+		}
+
+		public void AddFaces( IReadOnlyList<Vector2> vertices, IReadOnlyList<EdgeLoop> edgeLoops, Vector3 offset, Vector3 scale )
+		{
+			foreach ( var edgeLoop in edgeLoops )
+			{
+				if ( edgeLoop.Count < 2 )
+				{
+					continue;
+				}
+
+				var prevIndex = Vertices.Count + (edgeLoop.Count - 1) * 2;
+
+				for ( var i = 0; i < edgeLoop.Count; i++ )
+				{
+					var next = vertices[edgeLoop.FirstIndex + i];
+					var frontPos = offset + new Vector3( next.x, next.y, 0.5f ) * scale;
+					var backPos = offset + new Vector3( next.x, next.y, -0.5f ) * scale;
+
+					var nextIndex = Vertices.Count;
+
+					Vertices.Add( frontPos );
+					Vertices.Add( backPos );
+
+					Indices.Add( prevIndex + 0 );
+					Indices.Add( nextIndex + 0 );
+					Indices.Add( prevIndex + 1 );
+
+					Indices.Add( prevIndex + 1 );
+					Indices.Add( nextIndex + 0 );
+					Indices.Add( nextIndex + 1 );
+
+					prevIndex = nextIndex;
+				}
+			}
+		}
+	}
+
 	private readonly FrontBackMeshWriter _frontMeshWriter = new();
 	private readonly FrontBackMeshWriter _backMeshWriter = new();
 	private readonly CutMeshWriter _cutMeshWriter = new();
+	private readonly CollisionMeshWriter _collisionMeshWriter = new();
 
 	public IMeshWriter FrontWriter => _frontMeshWriter;
 	public IMeshWriter BackWriter => _backMeshWriter;
 	public IMeshWriter CutWriter => _cutMeshWriter;
 
-	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh { get; } = (new List<Vector3>(), new List<int>());
+	public (List<Vector3> Vertices, List<int> Indices) CollisionMesh =>
+		(_collisionMeshWriter.Vertices, _collisionMeshWriter.Indices);
 
 	public byte[] Samples { get; set; }
 
@@ -323,9 +412,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		_frontMeshWriter.Clear();
 		_backMeshWriter.Clear();
 		_cutMeshWriter.Clear();
-
-		CollisionMesh.Vertices.Clear();
-		CollisionMesh.Indices.Clear();
+		_collisionMeshWriter.Clear();
 	}
 
 	public Vector2 DebugOffset { get; set; }
@@ -472,9 +559,6 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-			// Log.Info( $"{DebugOffset / 256f}[{index}]: {PrintEdgeLoops( offset, count, out var avgPos )}" );
-			// DebugOverlay.Text( $"{DebugOffset / 256f}[{index}]", DebugOffset + avgPos * DebugScale, duration: 10f, maxDistance: 6000f );
-
 			switch ( layer.EdgeStyle )
 			{
 				case EdgeStyle.Sharp:
@@ -515,10 +599,12 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 	private void WriteCollisionMesh( Sdf2DLayer layer )
 	{
-		return;
-		
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
+
+		_collisionMeshWriter.AddFaces( SourceVertices, EdgeLoops,
+			new Vector3( 0f, 0f, layer.Offset ),
+			new Vector3( scale, scale, layer.Depth ) );
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
@@ -530,6 +616,16 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
 			polyMeshBuilder.Close( true );
+
+			_collisionMeshWriter.AddFaces( polyMeshBuilder,
+				new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
+				new Vector3( scale, scale, 1f ) );
+
+			_collisionMeshWriter.AddFaces( polyMeshBuilder,
+				new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset ),
+				new Vector3( scale, scale, -1f ) );
 		}
+
+		_collisionMeshWriter.Clip( quality );
 	}
 }
