@@ -255,22 +255,12 @@ namespace Sandbox.Sdf
 				}
 
 				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area, min, max ) );
-
-				for ( var i = 0; i < count; ++i )
-				{
-					var a = DebugOffset + SourceVertices[firstIndex + i] * DebugScale;
-					var b = DebugOffset + SourceVertices[firstIndex + (i + 1) % count] * DebugScale;
-
-					DebugOverlay.Line( a, b, area > 0f ? Color.Green : Color.Red, 10f, false );
-				}
 			}
 
 			if ( EdgeLoops.Count == 0 )
 			{
 				return;
 			}
-
-			DebugOverlay.Box( DebugOffset, DebugOffset + new Vector2( data.Size, data.Size ) * DebugScale, Color.White, 10f, false );
 
 			// TODO: The below wasn't working perfectly, so we just treat everything as one possibly disconnected polygon for now
 
