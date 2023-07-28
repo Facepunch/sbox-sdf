@@ -196,7 +196,7 @@ namespace Sandbox.Sdf
 			return posLoop.Area >= -negLoop.Area && Contains( posLoop, SourceVertices[negLoop.FirstIndex] );
 		}
 
-		private void FindEdgeLoops( in Sdf2DArrayData data )
+		private void FindEdgeLoops( in Sdf2DArrayData data, float maxSmoothAngle, float smoothRadius )
 		{
 			VertexMap.Clear();
 			RemainingSourceEdges.Clear();
@@ -238,14 +238,14 @@ namespace Sandbox.Sdf
 					continue;
 				}
 
-				RemoveCollinearVertices( firstIndex, ref count );
+				// RemoveCollinearVertices( firstIndex, ref count );
 
-				if ( RemoveIfDegenerate( firstIndex, count ) )
-				{
-					continue;
-				}
+				// if ( RemoveIfDegenerate( firstIndex, count ) )
+				// {
+				//	continue;
+				// }
 
-				// Find winding
+				// AddSmoothingVertices( firstIndex, ref count, maxSmoothAngle, smoothRadius );
 
 				var area = CalculateArea( firstIndex, count, out var min, out var max );
 
@@ -317,7 +317,7 @@ namespace Sandbox.Sdf
 				var v2 = SourceVertices[firstIndex + (i + 1) % count];
 				var e12 = (v2 - v1).Normal;
 
-				if ( Vector3.Dot( e01, e12 ) >= collinearThreshold )
+				if ( Vector2.Dot( e01, e12 ) >= collinearThreshold )
 				{
 					count -= 1;
 					SourceVertices.RemoveAt( firstIndex + i );
@@ -331,6 +331,62 @@ namespace Sandbox.Sdf
 				v0 = v1;
 				v1 = v2;
 				e01 = e12;
+			}
+		}
+
+		private void AddSmoothingVertices( int firstIndex, ref int count, float maxSmoothAngle, float smoothRadius )
+		{
+			if ( maxSmoothAngle <= 0.0001f || smoothRadius <= 0.0001f )
+			{
+				return;
+			}
+
+			var minSmoothNormalDot = MathF.Cos( maxSmoothAngle * MathF.PI / 180f );
+
+			var v3 = SourceVertices[firstIndex + 1];
+			var v2 = SourceVertices[firstIndex + 0];
+			var v1 = SourceVertices[firstIndex + count - 1];
+
+			var lastVertex = v1;
+
+			var e23 = Helpers.NormalizeSafe( v3 - v2 );
+			var e12 = Helpers.NormalizeSafe( v2 - v1 );
+
+			var nextSmoothed = Vector2.Dot( e12, e23 ) >= minSmoothNormalDot;
+
+			for ( var i = count - 1; i >= 0; --i )
+			{
+				var v0 = i == 0 ? lastVertex : SourceVertices[firstIndex + i - 1];
+				var e01 = Helpers.NormalizeSafe( v1 - v0 );
+
+				var prevSmoothed = Vector2.Dot( e01, e12 ) >= minSmoothNormalDot;
+
+				if ( prevSmoothed || nextSmoothed )
+				{
+					var dist = (v2 - v1).Length;
+
+					if ( dist >= 2.5f * smoothRadius || dist >= 1.5f * smoothRadius && !(prevSmoothed && nextSmoothed) )
+					{
+						if ( nextSmoothed )
+						{
+							SourceVertices.Insert( firstIndex + i + 1, v2 - e12 * dist );
+							count++;
+						}
+
+						if ( prevSmoothed )
+						{
+							SourceVertices.Insert( firstIndex + i + 1, v1 + e12 * dist );
+							count++;
+						}
+					}
+				}
+
+				v2 = v1;
+				v1 = v0;
+
+				e12 = e01;
+
+				nextSmoothed = prevSmoothed;
 			}
 		}
 

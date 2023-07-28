@@ -75,10 +75,15 @@ public class Sdf2DLayer : SdfResource<Sdf2DLayer>
 	public EdgeStyle EdgeStyle { get; set; }
 
 	/// <summary>
+	/// Angles below this will have smooth normals.
+	/// </summary>
+	public float MaxSmoothAngle { get; set; } = 180f;
+
+	/// <summary>
 	/// How wide the connecting edge should be between front / back faces and the cut face.
 	/// </summary>
 	[HideIf( nameof(EdgeStyle), EdgeStyle.Sharp )]
-	public float EdgeRadius { get; set; } = 2f;
+	public float EdgeRadius { get; set; } = 8f;
 
 	/// <summary>
 	/// How many faces to use for rounded connecting edges between front / back faces and the cut face.

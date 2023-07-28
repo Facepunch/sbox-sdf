@@ -440,7 +440,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			}
 		}
 
-		FindEdgeLoops( data );
+		FindEdgeLoops( data, layer.MaxSmoothAngle, 0.25f );
 
 		if ( renderMesh )
 		{
@@ -534,14 +534,12 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var scale = quality.UnitSize;
 		var edgeRadius = layer.EdgeStyle == EdgeStyle.Sharp ? 0f : layer.EdgeRadius;
 
-		const float maxSmoothAngle = 180f;
-
 		if ( layer.CutFaceMaterial != null )
 		{
 			_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
 				new Vector3( 0f, 0f, layer.Offset ),
 				new Vector3( scale, scale, layer.Depth - edgeRadius * 2f ),
-				layer.TexCoordSize, maxSmoothAngle );
+				layer.TexCoordSize, layer.MaxSmoothAngle );
 
 			_cutMeshWriter.Clip( quality );
 		}
@@ -550,7 +548,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-		polyMeshBuilder.MaxSmoothAngle = maxSmoothAngle;
+		polyMeshBuilder.MaxSmoothAngle = layer.MaxSmoothAngle;
 
 		var bevelScale = layer.EdgeRadius / scale;
 
