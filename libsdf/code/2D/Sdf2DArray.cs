@@ -9,7 +9,7 @@ internal record struct Sdf2DArrayData( byte[] Samples, int BaseIndex, int Size, 
 	{
 		get
 		{
-			if ( x < -1 || x > Size || y < -1 || y > Size )
+			if ( x < -1 || x > Size + 1 || y < -1 || y > Size + 1 )
 			{
 				return byte.MaxValue;
 			}

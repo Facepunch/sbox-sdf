@@ -72,9 +72,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		public void Clip( in WorldQuality quality )
 		{
-			var halfUnitSize = quality.UnitSize * 0.5f;
-
-			Clip( -halfUnitSize, -halfUnitSize, quality.ChunkSize - halfUnitSize, quality.ChunkSize - halfUnitSize );
+			Clip( 0f, 0f, quality.ChunkSize, quality.ChunkSize );
 		}
 
 		public void Clip( float xMin, float yMin, float xMax, float yMax )
@@ -427,9 +425,9 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		// Find edges between solid and empty
 
-		for ( var y = -2; y <= size + 1; ++y )
+		for ( var y = -2; y <= size + 2; ++y )
 		{
-			for ( int x = -2; x <= size + 1; ++x )
+			for ( int x = -2; x <= size + 2; ++x )
 			{
 				var aRaw = data[x + 0, y + 0];
 				var bRaw = data[x + 1, y + 0];

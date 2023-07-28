@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sandbox.Sdf
 {
@@ -238,12 +236,12 @@ namespace Sandbox.Sdf
 					continue;
 				}
 
-				// RemoveCollinearVertices( firstIndex, ref count );
+				RemoveCollinearVertices( firstIndex, ref count, data.Size );
 
-				// if ( RemoveIfDegenerate( firstIndex, count ) )
-				// {
-				//	continue;
-				// }
+				if ( RemoveIfDegenerate( firstIndex, count ) )
+				{
+					continue;
+				}
 
 				// AddSmoothingVertices( firstIndex, ref count, maxSmoothAngle, smoothRadius );
 
@@ -257,12 +255,22 @@ namespace Sandbox.Sdf
 				}
 
 				EdgeLoops.Add( new EdgeLoop( firstIndex, count, area, min, max ) );
+
+				for ( var i = 0; i < count; ++i )
+				{
+					var a = DebugOffset + SourceVertices[firstIndex + i] * DebugScale;
+					var b = DebugOffset + SourceVertices[firstIndex + (i + 1) % count] * DebugScale;
+
+					DebugOverlay.Line( a, b, area > 0f ? Color.Green : Color.Red, 10f, false );
+				}
 			}
 
 			if ( EdgeLoops.Count == 0 )
 			{
 				return;
 			}
+
+			DebugOverlay.Box( DebugOffset, DebugOffset + new Vector2( data.Size, data.Size ) * DebugScale, Color.White, 10f, false );
 
 			// TODO: The below wasn't working perfectly, so we just treat everything as one possibly disconnected polygon for now
 
@@ -304,7 +312,13 @@ namespace Sandbox.Sdf
 			return true;
 		}
 
-		private void RemoveCollinearVertices( int firstIndex, ref int count )
+		private static bool IsChunkBoundary( Vector2 pos, int chunkSize )
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			return pos.x == 0f || pos.y == 0f || pos.x == chunkSize || pos.y == chunkSize;
+		}
+
+		private void RemoveCollinearVertices( int firstIndex, ref int count, int chunkSize )
 		{
 			const float collinearThreshold = 0.999877929688f;
 
@@ -317,7 +331,7 @@ namespace Sandbox.Sdf
 				var v2 = SourceVertices[firstIndex + (i + 1) % count];
 				var e12 = (v2 - v1).Normal;
 
-				if ( Vector2.Dot( e01, e12 ) >= collinearThreshold )
+				if ( !IsChunkBoundary( v1, chunkSize ) && Vector2.Dot( e01, e12 ) >= collinearThreshold )
 				{
 					count -= 1;
 					SourceVertices.RemoveAt( firstIndex + i );
