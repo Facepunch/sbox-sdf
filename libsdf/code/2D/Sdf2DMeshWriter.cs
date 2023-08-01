@@ -547,7 +547,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-		polyMeshBuilder.MaxSmoothAngle = layer.MaxSmoothAngle;
+		polyMeshBuilder.MaxSmoothAngle = layer.MaxSmoothAngle * MathF.PI / 180f;
 
 		var bevelScale = layer.EdgeRadius / scale;
 
@@ -559,17 +559,17 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			switch ( layer.EdgeStyle )
 			{
 				case EdgeStyle.Sharp:
-					polyMeshBuilder.Close( false );
+					polyMeshBuilder.Close();
 					break;
 
 				case EdgeStyle.Bevel:
-					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius, false );
-					polyMeshBuilder.Close( false );
+					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius );
+					polyMeshBuilder.Close();
 					break;
 
 				case EdgeStyle.Round:
-					polyMeshBuilder.Round( layer.EdgeFaces, bevelScale, layer.EdgeRadius, true );
-					polyMeshBuilder.Close( true );
+					polyMeshBuilder.Arc( layer.EdgeFaces, bevelScale, layer.EdgeRadius );
+					polyMeshBuilder.Close();
 					break;
 			}
 
@@ -605,14 +605,14 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-		polyMeshBuilder.MaxSmoothAngle = 180f;
+		polyMeshBuilder.MaxSmoothAngle = MathF.PI;
 
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-			polyMeshBuilder.Close( true );
+			polyMeshBuilder.Close();
 
 			_collisionMeshWriter.AddFaces( polyMeshBuilder,
 				new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
