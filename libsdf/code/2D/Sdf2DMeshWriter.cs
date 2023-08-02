@@ -559,17 +559,17 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			switch ( layer.EdgeStyle )
 			{
 				case EdgeStyle.Sharp:
-					polyMeshBuilder.Close();
+					polyMeshBuilder.Fill();
 					break;
 
 				case EdgeStyle.Bevel:
 					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius );
-					polyMeshBuilder.Close();
+					polyMeshBuilder.Fill();
 					break;
 
 				case EdgeStyle.Round:
 					polyMeshBuilder.Arc( layer.EdgeFaces, bevelScale, layer.EdgeRadius );
-					polyMeshBuilder.Close();
+					polyMeshBuilder.Fill();
 					break;
 			}
 
@@ -612,7 +612,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
-			polyMeshBuilder.Close();
+			polyMeshBuilder.Fill();
 
 			_collisionMeshWriter.AddFaces( polyMeshBuilder,
 				new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
