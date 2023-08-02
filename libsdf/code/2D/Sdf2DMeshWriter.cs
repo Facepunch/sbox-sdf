@@ -197,14 +197,14 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var uvScale = 1f / texCoordSize;
 
 			var indexOffset = Vertices.Count;
-			var normalScale = new Vector3( 1f / scale.x, 1f / scale.y, 1f / scale.z );
 
 			for ( var i = 0; i < builder.Vertices.Count; ++i )
 			{
 				var pos = builder.Vertices[i] * scale;
-				var normal = builder.Normals[i] * normalScale;
+				var normal = builder.Normals[i];
+				var tangent = builder.Tangents[i];
 
-				Vertices.Add( new Vertex( offset + pos, normal.Normal, Vector3.Cross( normal, new Vector3( 0f, 1f, 0f ) ).Normal, pos * uvScale ) );
+				Vertices.Add( new Vertex( offset + pos, normal, tangent, pos * uvScale ) );
 			}
 
 			if ( scale.z >= 0f )
@@ -275,18 +275,18 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 						var normal = Helpers.NormalizeSafe( prevNormal + nextNormal );
 
-						Vertices.Add( new Vertex( frontPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, prevV ) ) );
-						Vertices.Add( new Vertex( backPos, normal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, prevV ) ) );
+						Vertices.Add( new Vertex( frontPos, normal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( frontU, prevV ) ) );
+						Vertices.Add( new Vertex( backPos, normal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( backU, prevV ) ) );
 					}
 					else
 					{
 						IndexMap.Add( currIndex, (index, index + 2) );
 
-						Vertices.Add( new Vertex( frontPos, prevNormal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, prevV ) ) );
-						Vertices.Add( new Vertex( backPos, prevNormal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, prevV ) ) );
+						Vertices.Add( new Vertex( frontPos, prevNormal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( frontU, prevV ) ) );
+						Vertices.Add( new Vertex( backPos, prevNormal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( backU, prevV ) ) );
 
-						Vertices.Add( new Vertex( frontPos, nextNormal, new Vector3( 0f, 0f, 1f ), new Vector2( frontU, nextV ) ) );
-						Vertices.Add( new Vertex( backPos, nextNormal, new Vector3( 0f, 0f, 1f ), new Vector2( backU, nextV ) ) );
+						Vertices.Add( new Vertex( frontPos, nextNormal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( frontU, nextV ) ) );
+						Vertices.Add( new Vertex( backPos, nextNormal, new Vector4( 0f, 0f, 1f, 1f ), new Vector2( backU, nextV ) ) );
 					}
 
 					currIndex = i;

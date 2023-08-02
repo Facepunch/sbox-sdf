@@ -106,13 +106,13 @@ partial class Sdf2DMeshWriter
 	}
 
 	[StructLayout( LayoutKind.Sequential )]
-	public record struct Vertex( Vector3 Position, Vector3 Normal, Vector3 Tangent, Vector2 TexCoord )
+	public record struct Vertex( Vector3 Position, Vector3 Normal, Vector4 Tangent, Vector2 TexCoord )
 	{
 		public static VertexAttribute[] Layout { get; } =
 		{
 			new( VertexAttributeType.Position, VertexAttributeFormat.Float32 ),
 			new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 ),
-			new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32 ),
+			new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32, 4 ),
 			new( VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2 )
 		};
 	}
@@ -124,14 +124,30 @@ partial class Sdf2DMeshWriter
 			return vertex.Position;
 		}
 
+		private static Vector3 Slerp( Vector3 a, Vector3 b, float t )
+		{
+			var omega = Vector3.GetAngle( a, b ) * MathF.PI / 180f;
+
+			if ( Math.Abs( omega ) <= 0.001f )
+			{
+				return Vector3.Lerp( a, b, t );
+			}
+
+			return (MathF.Sin( (1f - t) * omega ) * a + MathF.Sin( t * omega ) * b) / MathF.Sin( omega );
+		}
+
 		public Vertex Lerp( in Vertex a, in Vertex b, float t )
 		{
-			// TODO: this won't be exact for normal / tangent
+			var normal = Slerp( a.Normal, b.Normal, t ).Normal;
+			var tangent = Slerp( a.Tangent, b.Tangent, t );
+			var binormal = Vector3.Cross( normal, tangent );
+
+			tangent = Vector3.Cross( binormal, normal ).Normal;
 
 			return new Vertex(
 				Vector3.Lerp( a.Position, b.Position, t ),
-				Vector3.Lerp( a.Normal, b.Normal, t ).Normal,
-				Vector3.Lerp( a.Tangent, b.Tangent, t ).Normal,
+				normal,
+				new Vector4( tangent, 1f ),
 				Vector2.Lerp( a.TexCoord, b.TexCoord, t ) );
 		}
 	}
