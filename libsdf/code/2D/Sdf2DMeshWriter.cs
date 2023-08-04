@@ -568,7 +568,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					break;
 
 				case EdgeStyle.Round:
-					polyMeshBuilder.Arc( layer.EdgeFaces, bevelScale, layer.EdgeRadius );
+					polyMeshBuilder.Arc( bevelScale, layer.EdgeRadius, layer.EdgeFaces );
 					polyMeshBuilder.Fill();
 					break;
 			}
