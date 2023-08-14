@@ -206,7 +206,6 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var tangent = builder.Tangents[i];
 
 				normal.z *= zScale;
-				tangent.z *= zScale;
 
 				Vertices.Add( new Vertex( offset + pos, normal, tangent, pos * uvScale ) );
 			}
@@ -501,8 +500,9 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
 		var edgeRadius = layer.EdgeStyle == EdgeStyle.Sharp ? 0f : layer.EdgeRadius;
+		var allSameMaterial = layer.FrontFaceMaterial == layer.BackFaceMaterial && layer.BackFaceMaterial == layer.CutFaceMaterial;
 
-		if ( layer.CutFaceMaterial != null )
+		if ( !allSameMaterial && layer.CutFaceMaterial != null )
 		{
 			_cutMeshWriter.AddFaces( SourceVertices, EdgeLoops,
 				new Vector3( 0f, 0f, layer.Offset ),
@@ -525,6 +525,11 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
+			if ( allSameMaterial )
+			{
+				polyMeshBuilder.Extrude( (layer.Depth * 0.5f - edgeRadius) / scale );
+			}
+
 			switch ( layer.EdgeStyle )
 			{
 				case EdgeStyle.Sharp:
@@ -540,6 +545,18 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					polyMeshBuilder.Arc( bevelScale, bevelScale, layer.EdgeFaces );
 					polyMeshBuilder.Fill();
 					break;
+			}
+
+			if ( allSameMaterial )
+			{
+				polyMeshBuilder.Mirror();
+
+				_frontMeshWriter.AddFaces( polyMeshBuilder,
+					new Vector3( 0f, 0f, layer.Offset ),
+					new Vector3( scale, scale, scale ),
+					layer.TexCoordSize );
+
+				continue;
 			}
 
 			if ( layer.FrontFaceMaterial != null )
