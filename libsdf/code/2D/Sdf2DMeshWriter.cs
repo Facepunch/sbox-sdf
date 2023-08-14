@@ -357,41 +357,6 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				}
 			}
 		}
-
-		public void AddFaces( IReadOnlyList<Vector2> vertices, IReadOnlyList<EdgeLoop> edgeLoops, Vector3 offset, Vector3 scale )
-		{
-			foreach ( var edgeLoop in edgeLoops )
-			{
-				if ( edgeLoop.Count < 2 )
-				{
-					continue;
-				}
-
-				var prevIndex = Vertices.Count + (edgeLoop.Count - 1) * 2;
-
-				for ( var i = 0; i < edgeLoop.Count; i++ )
-				{
-					var next = vertices[edgeLoop.FirstIndex + i];
-					var frontPos = offset + new Vector3( next.x, next.y, 0.5f ) * scale;
-					var backPos = offset + new Vector3( next.x, next.y, -0.5f ) * scale;
-
-					var nextIndex = Vertices.Count;
-
-					Vertices.Add( frontPos );
-					Vertices.Add( backPos );
-
-					Indices.Add( prevIndex + 0 );
-					Indices.Add( nextIndex + 0 );
-					Indices.Add( prevIndex + 1 );
-
-					Indices.Add( prevIndex + 1 );
-					Indices.Add( nextIndex + 0 );
-					Indices.Add( nextIndex + 1 );
-
-					prevIndex = nextIndex;
-				}
-			}
-		}
 	}
 
 	private readonly FrontBackMeshWriter _frontMeshWriter = new();
@@ -603,10 +568,6 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		var quality = layer.Quality;
 		var scale = quality.UnitSize;
 
-		_collisionMeshWriter.AddFaces( SourceVertices, EdgeLoops,
-			new Vector3( 0f, 0f, layer.Offset ),
-			new Vector3( scale, scale, layer.Depth ) );
-
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
 		polyMeshBuilder.MaxSmoothAngle = MathF.PI;
@@ -616,15 +577,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		{
 			InitPolyMeshBuilder( polyMeshBuilder, offset, count );
 
+			polyMeshBuilder.Extrude( layer.Depth * 0.5f / scale );
 			polyMeshBuilder.Fill();
+			polyMeshBuilder.Mirror();
 
 			_collisionMeshWriter.AddFaces( polyMeshBuilder,
-				new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset ),
-				new Vector3( scale, scale, 1f ) );
-
-			_collisionMeshWriter.AddFaces( polyMeshBuilder,
-				new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset ),
-				new Vector3( scale, scale, -1f ) );
+				new Vector3( 0f, 0f, layer.Offset ),
+				new Vector3( scale, scale, scale ) );
 		}
 
 		_collisionMeshWriter.Clip( quality );
