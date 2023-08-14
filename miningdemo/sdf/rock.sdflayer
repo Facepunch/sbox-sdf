@@ -1,9 +1,19 @@
 {
-  "CollisionTags": "solid",
   "Depth": 64,
   "Offset": 0,
-  "FrontFaceMaterial": "materials/3_rock.vmat",
-  "BackFaceMaterial": null,
-  "CutFaceMaterial": "materials/3_rock.vmat",
-  "Quality": "Medium"
+  "TexCoordSize": 256,
+  "FrontFaceMaterial": "materials/miningdemo/rock_front.vmat",
+  "BackFaceMaterial": "materials/miningdemo/rock_front.vmat",
+  "CutFaceMaterial": "materials/miningdemo/rock_front.vmat",
+  "EdgeStyle": "Round",
+  "MaxSmoothAngle": 180,
+  "EdgeRadius": 8,
+  "EdgeFaces": 3,
+  "IsTextureSourceOnly": false,
+  "CollisionTags": "solid",
+  "QualityLevel": "Medium",
+  "ChunkResolution": 16,
+  "ChunkSize": 256,
+  "MaxDistance": 64,
+  "ReferencedTextures": null
 }
