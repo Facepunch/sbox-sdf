@@ -587,7 +587,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-		polyMeshBuilder.MaxSmoothAngle = MathF.PI;
+		polyMeshBuilder.SkipNormals = true;
 
 		var index = 0;
 		while ( NextPolygon( ref index, out var offset, out var count ) )
