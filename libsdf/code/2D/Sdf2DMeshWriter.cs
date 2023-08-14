@@ -195,6 +195,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		public void AddFaces( PolygonMeshBuilder builder, Vector3 offset, Vector3 scale, float texCoordSize )
 		{
 			var uvScale = 1f / texCoordSize;
+			var zScale = Math.Sign( scale.z );
 
 			var indexOffset = Vertices.Count;
 
@@ -203,6 +204,9 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 				var pos = builder.Vertices[i] * scale;
 				var normal = builder.Normals[i];
 				var tangent = builder.Tangents[i];
+
+				normal.z *= zScale;
+				tangent.z *= zScale;
 
 				Vertices.Add( new Vertex( offset + pos, normal, tangent, pos * uvScale ) );
 			}
@@ -563,12 +567,12 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 					break;
 
 				case EdgeStyle.Bevel:
-					polyMeshBuilder.Bevel( bevelScale, layer.EdgeRadius );
+					polyMeshBuilder.Bevel( bevelScale, bevelScale );
 					polyMeshBuilder.Fill();
 					break;
 
 				case EdgeStyle.Round:
-					polyMeshBuilder.Arc( bevelScale, layer.EdgeRadius, layer.EdgeFaces );
+					polyMeshBuilder.Arc( bevelScale, bevelScale, layer.EdgeFaces );
 					polyMeshBuilder.Fill();
 					break;
 			}
@@ -577,7 +581,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			{
 				_frontMeshWriter.AddFaces( polyMeshBuilder,
 					new Vector3( 0f, 0f, layer.Depth * 0.5f + layer.Offset - edgeRadius ),
-					new Vector3( scale, scale, 1f ),
+					new Vector3( scale, scale, scale ),
 					layer.TexCoordSize );
 			}
 
@@ -585,7 +589,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			{
 				_backMeshWriter.AddFaces( polyMeshBuilder,
 					new Vector3( 0f, 0f, layer.Depth * -0.5f + layer.Offset + edgeRadius ),
-					new Vector3( scale, scale, -1f ),
+					new Vector3( scale, scale, -scale ),
 					layer.TexCoordSize );
 			}
 		}
