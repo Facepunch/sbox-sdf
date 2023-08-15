@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Sandbox.Diagnostics;
 using Sandbox.Polygons;
 
@@ -89,6 +90,8 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 		private int ClipEdge( Vector3 normal, float distance, int posIndex, int negIndex )
 		{
+			const float epsilon = 0.001f;
+
 			if ( ClippedEdges.TryGetValue( (posIndex, negIndex), out var index ) )
 			{
 				return index;
@@ -100,7 +103,19 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var x = Vector3.Dot( _helper.GetPosition( a ), normal ) - distance;
 			var y = Vector3.Dot( _helper.GetPosition( b ), normal ) - distance;
 
-			var t = x - y <= 0.0001f ? 0.5f : x / (x - y);
+			if ( x - y <= epsilon )
+			{
+				ClippedEdges.Add( (posIndex, negIndex), posIndex );
+				return posIndex;
+			}
+
+			var t = x / (x - y);
+
+			if ( t <= epsilon )
+			{
+				ClippedEdges.Add( (posIndex, negIndex), posIndex );
+				return posIndex;
+			}
 
 			index = Vertices.Count;
 			Vertices.Add( _helper.Lerp( a, b, t ) );
@@ -115,13 +130,19 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var clipAIndex = ClipEdge( normal, distance, posAIndex, negIndex );
 			var clipBIndex = ClipEdge( normal, distance, posBIndex, negIndex );
 
-			Indices.Add( clipAIndex );
-			Indices.Add( posAIndex );
-			Indices.Add( posBIndex );
+			if ( clipAIndex != posAIndex )
+			{
+				Indices.Add( clipAIndex );
+				Indices.Add( posAIndex );
+				Indices.Add( posBIndex );
+			}
 
-			Indices.Add( clipAIndex );
-			Indices.Add( posBIndex );
-			Indices.Add( clipBIndex );
+			if ( clipBIndex != posBIndex )
+			{
+				Indices.Add( clipAIndex );
+				Indices.Add( posBIndex );
+				Indices.Add( clipBIndex );
+			}
 		}
 
 		private void ClipTwo( Vector3 normal, float distance, int posIndex, int negAIndex, int negBIndex )
@@ -129,9 +150,12 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			var clipAIndex = ClipEdge( normal, distance, posIndex, negAIndex );
 			var clipBIndex = ClipEdge( normal, distance, posIndex, negBIndex );
 
-			Indices.Add( posIndex );
-			Indices.Add( clipAIndex );
-			Indices.Add( clipBIndex );
+			if ( clipAIndex != posIndex && clipBIndex != posIndex )
+			{
+				Indices.Add( posIndex );
+				Indices.Add( clipAIndex );
+				Indices.Add( clipBIndex );
+			}
 		}
 
 		public void Clip( Vector3 normal, float distance )
@@ -158,29 +182,29 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 				switch (aNeg, bNeg, cNeg)
 				{
-					case (false, false, false ):
+					case (false, false, false):
 						Indices.Add( ai );
 						Indices.Add( bi );
 						Indices.Add( ci );
 						break;
 
-					case (true, false, false ):
+					case (true, false, false):
 						ClipOne( normal, distance, ai, bi, ci );
 						break;
-					case (false, true, false ):
+					case (false, true, false):
 						ClipOne( normal, distance, bi, ci, ai );
 						break;
-					case (false, false, true ):
+					case (false, false, true):
 						ClipOne( normal, distance, ci, ai, bi );
 						break;
 
-					case (false, true, true ):
+					case (false, true, true):
 						ClipTwo( normal, distance, ai, bi, ci );
 						break;
-					case (true, false, true ):
+					case (true, false, true):
 						ClipTwo( normal, distance, bi, ci, ai );
 						break;
-					case (true, true, false ):
+					case (true, true, false):
 						ClipTwo( normal, distance, ci, ai, bi );
 						break;
 				}
