@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Sandbox.Internal;
 using Sandbox.Utility;
 
 namespace Sandbox.Sdf;
@@ -34,7 +35,7 @@ public interface ISdf<T>
 
 		_sTypesRegistered = true;
 
-		foreach ( var (method, _) in TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
+		foreach ( var (method, _) in GlobalGameNamespace.TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
 		{
 			method.Invoke( null );
 		}
@@ -47,14 +48,14 @@ public interface ISdf<T>
 	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
 		where TSdf : T
 	{
-		_sRegisteredTypes.Add( (TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
+		_sRegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
 	}
 
 	public void Write( NetWrite writer )
 	{
 		EnsureTypesRegistered();
 
-		var type = TypeLibrary.GetType( GetType() );
+		var type = GlobalGameNamespace.TypeLibrary.GetType( GetType() );
 		var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
 
 		if ( typeIndex == -1 )
@@ -77,31 +78,17 @@ public interface ISdf<T>
 	}
 }
 
-internal static class ConsoleCommands
+internal interface ISdfWorld : IDisposable, IValid
 {
-	[ConCmd.Server( "sdf_request_missing" )]
-	public static void RequestMissingModifications( int worldIdent, int clearCount, int modificationCount )
-	{
-		var worldEnt = Entity.FindByIndex( worldIdent );
-		var client = ConsoleSystem.Caller;
+	int ClearCount { get; }
+	int ModificationCount { get; }
+	int Dimensions { get; }
 
-		if ( worldEnt is not ISdfWorld world )
-		{
-			return;
-		}
+	void UpdateChunkTransforms();
+	void Tick();
 
-		if ( !client.IsValid )
-		{
-			return;
-		}
-
-		world.RequestMissing( client, clearCount, modificationCount );
-	}
-}
-
-internal interface ISdfWorld
-{
-	void RequestMissing( IClient client, int clearCount, int modificationCount );
+	int Write( NetWrite msg, int prevModifications );
+	bool Read( ref NetRead msg );
 }
 
 
@@ -115,7 +102,7 @@ internal interface ISdfWorld
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ModelEntity, ISdfWorld
+public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ISdfWorld
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -123,7 +110,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TArray : SdfArray<TSdf>, new()
 	where TSdf : ISdf<TSdf>
 {
-	private const int SendModificationsRpcIdent = 269924031;
+	public static implicit operator Entity( SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> world )
+	{
+		return world._impl as Entity;
+	}
 
 	private enum Operator
 	{
@@ -132,31 +122,85 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	}
 
 	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
-	private record struct ClientState( int ClearCount, int ModificationCount, TimeSince LastMessage );
 
 	private List<Modification> Modifications { get; } = new();
-	private Dictionary<IClient, ClientState> ClientStates { get; } = new();
 
 	private ConcurrentQueue<TChunk> UpdatedChunkQueue { get; } = new();
 
+	private readonly ISdfWorldImpl _impl;
+
 	private bool _receivingModifications;
-	private int _clearCount;
-	private Transform _lastTransform;
 
-	private TimeSince _notifiedMissingModifications;
+	public abstract int Dimensions { get; }
 
-	/// <inheritdoc />
-	public override void Spawn()
+	public int ClearCount { get; private set; }
+	public int ModificationCount => Modifications.Count;
+
+	public bool IsValid => _impl.IsValid();
+	public SceneWorld Scene => _impl.Scene;
+
+	public Transform Transform
 	{
-		base.Spawn();
+		get => _impl.Transform;
+		set => _impl.Transform = value;
+	}
 
-		Transmit = TransmitType.Always;
+	public Vector3 Position
+	{
+		get => _impl.Position;
+		set => _impl.Position = value;
+	}
+
+	public Rotation Rotation
+	{
+		get => _impl.Rotation;
+		set => _impl.Rotation = value;
+	}
+
+	public float Scale
+	{
+		get => _impl.Scale;
+		set => _impl.Scale = value;
+	}
+
+	public Vector3 LocalPosition
+	{
+		get => _impl.LocalPosition;
+		set => _impl.LocalPosition = value;
+	}
+
+	public Rotation LocalRotation
+	{
+		get => _impl.LocalRotation;
+		set => _impl.LocalRotation = value;
+	}
+
+	public float LocalScale
+	{
+		get => _impl.LocalScale;
+		set => _impl.LocalScale = value;
+	}
+
+	public EntityTags Tags => _impl.Tags;
+
+	internal SdfWorld( ISdfWorldImpl impl )
+	{
+		_impl = impl;
+	}
+
+	protected SdfWorld( SceneWorld sceneWorld )
+	{
+		_impl = new SdfWorldSceneObject( sceneWorld );
+	}
+
+	protected SdfWorld()
+	{
+		_impl = new SdfWorldEntity( this );
 	}
 
 	internal bool IsDestroying { get; private set; }
 
-	/// <inheritdoc />
-	protected override void OnDestroy()
+	public void Dispose()
 	{
 		IsDestroying = true;
 
@@ -176,31 +220,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
-	[GameEvent.Tick.Server]
-	private void ServerTick()
+	public void UpdateChunkTransforms()
 	{
-		foreach ( var client in Game.Clients )
+		for ( var i = AllChunks.Count - 1; i >= 0; --i )
 		{
-			SendModifications( client );
+			AllChunks[i].UpdateTransform();
 		}
 	}
 
-	[GameEvent.Tick.Client]
-	private void ClientTick()
-	{
-		if ( !_lastTransform.Equals( Transform ) )
-		{
-			_lastTransform = Transform;
-
-			for ( var i = AllChunks.Count - 1; i >= 0; --i )
-			{
-				AllChunks[i].UpdateTransform();
-			}
-		}
-	}
-
-	[GameEvent.Tick]
-	private void Tick()
+	public void Tick()
 	{
 		ProcessUpdatedChunkQueue();
 
@@ -224,70 +252,29 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	}
 
 	private const int MaxModificationsPerMessage = 256;
-	private const float HeartbeatPeriod = 2f;
 
-	private void SendModifications( IClient client )
+	public int Write( NetWrite msg, int prevModifications )
 	{
-		if ( !ClientStates.TryGetValue( client, out var state ) )
-		{
-			state = new ClientState( 0, 0, 0f );
-		}
+		var count = Math.Min( MaxModificationsPerMessage, ModificationCount - prevModifications );
 
-		if ( state.ClearCount != _clearCount )
-		{
-			state = state with { ClearCount = _clearCount, ModificationCount = 0 };
-		}
-		else if ( state.ModificationCount >= Modifications.Count && state.LastMessage < HeartbeatPeriod )
-		{
-			return;
-		}
-
-		state = state with { LastMessage = 0f };
-
-		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
-		var count = Math.Min( MaxModificationsPerMessage, Modifications.Count - state.ModificationCount );
-
-		msg.Write( _clearCount );
-		msg.Write( state.ModificationCount );
+		msg.Write( ClearCount );
+		msg.Write( prevModifications );
 		msg.Write( count );
-		msg.Write( Modifications.Count );
+		msg.Write( ModificationCount );
 
 		for ( var i = 0; i < count; ++i )
 		{
-			var modification = Modifications[state.ModificationCount + i];
+			var modification = Modifications[prevModifications + i];
 
 			msg.Write( modification.Operator );
 			msg.Write( modification.Resource );
 			modification.Sdf.Write( msg );
 		}
 
-		ClientStates[client] = state with { ModificationCount = state.ModificationCount + count };
-
-		msg.SendRpc( To.Single( client ), this );
+		return count;
 	}
 
-	protected override void OnCallRemoteProcedure( int id, NetRead read )
-	{
-		switch ( id )
-		{
-			case SendModificationsRpcIdent:
-				ReceiveModifications( ref read );
-				break;
-
-			default:
-				base.OnCallRemoteProcedure( id, read );
-				break;
-		}
-	}
-
-	private IDisposable AllowClientModifications()
-	{
-		_receivingModifications = true;
-
-		return new DisposeAction( () => _receivingModifications = false );
-	}
-
-	private void ReceiveModifications( ref NetRead msg )
+	public bool Read( ref NetRead msg )
 	{
 		var clearCount = msg.Read<int>();
 		var prevCount = msg.Read<int>();
@@ -296,15 +283,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		using var clientMods = AllowClientModifications();
 
-		if ( clearCount < _clearCount )
+		if ( clearCount < ClearCount )
 		{
 			// Outdated
-			return;
+			return true;
 		}
 
-		if ( clearCount > _clearCount )
+		if ( clearCount > ClearCount )
 		{
-			_clearCount = clearCount;
+			ClearCount = clearCount;
 			_ = ClearAsync();
 
 			Assert.AreEqual( 0, Modifications.Count );
@@ -312,18 +299,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( prevCount != Modifications.Count )
 		{
-			if ( _notifiedMissingModifications >= 0.5f )
-			{
-				_notifiedMissingModifications = 0f;
-				Log.Warning( $"{this} has dropped some modifications! {prevCount} vs {Modifications.Count}" );
-
-				ConsoleCommands.RequestMissingModifications( NetworkIdent, _clearCount, Modifications.Count );
-			}
-
-			return;
+			return false;
 		}
-
-		_notifiedMissingModifications = float.PositiveInfinity;
 
 		for ( var i = 0; i < msgCount; ++i )
 		{
@@ -344,6 +321,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 					break;
 			}
 		}
+
+		return true;
+	}
+
+	private IDisposable AllowClientModifications()
+	{
+		_receivingModifications = true;
+
+		return new DisposeAction( () => _receivingModifications = false );
 	}
 
 	[Obsolete($"Please use {nameof(ClearAsync)}")]
@@ -362,13 +348,13 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			AssertCanModify();
 		}
 
-		await Task.MainThread();
+		await GameTask.MainThread();
 
 		Modifications.Clear();
 
 		if ( Game.IsServer )
 		{
-			++_clearCount;
+			++ClearCount;
 		}
 
 		lock ( this )
@@ -390,7 +376,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			await lastTask;
 		}
 
-		await Task.MainThread();
+		await GameTask.MainThread();
 
 		foreach ( var layer in Layers.Values )
 		{
@@ -541,7 +527,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void AssertCanModify()
 	{
-		Assert.True( IsClientOnly || Game.IsServer || _receivingModifications, 
+		Assert.True( _impl is not Entity { IsClientOnly: false } || Game.IsServer || _receivingModifications, 
 			"Can only modify server-created SDF Worlds on the server." );
 	}
 
@@ -565,15 +551,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	public bool HasPhysics => _impl.HasPhysics;
+
 	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
 	{
-		if ( PhysicsBody == null )
-		{
-			SetupPhysicsFromSphere( PhysicsMotionType.Static, 0f, 1f );
-			PhysicsBody!.ClearShapes();
-		}
-
-		return PhysicsBody.AddMeshShape( vertices, indices );
+		return _impl.AddMeshShape( vertices, indices );
 	}
 
 	/// <summary>
@@ -697,21 +679,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		layer.NeedsMeshUpdate.Clear();
 
-		await Task.WhenAll( tasks );
-	}
-
-	void ISdfWorld.RequestMissing( IClient client, int clearCount, int modificationCount )
-	{
-		if ( !ClientStates.TryGetValue( client, out var state ) )
-		{
-			return;
-		}
-
-		if ( state.ClearCount != clearCount || state.ModificationCount <= modificationCount )
-		{
-			return;
-		}
-
-		ClientStates[client] = state with { ModificationCount = modificationCount };
+		await GameTask.WhenAll( tasks );
 	}
 }

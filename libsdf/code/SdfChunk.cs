@@ -285,6 +285,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="indices">Collision mesh indices</param>
 	protected void UpdateCollisionMesh( List<Vector3> vertices, List<int> indices )
 	{
+		if ( !World.HasPhysics )
+		{
+			return;
+		}
+
 		ThreadSafe.AssertIsMainThread();
 
 		if ( indices.Count == 0 )

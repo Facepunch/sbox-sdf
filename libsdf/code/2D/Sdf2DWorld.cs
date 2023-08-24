@@ -10,6 +10,25 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (int X, int Y), Sdf2DArray, ISdf2D>
 {
+	internal Sdf2DWorld( ISdfWorldImpl impl )
+		: base( impl )
+	{
+
+	}
+
+	public Sdf2DWorld( SceneWorld sceneWorld )
+		: base( sceneWorld )
+	{
+
+	}
+
+	public Sdf2DWorld()
+	{
+
+	}
+
+	public override int Dimensions => 2;
+
 	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
