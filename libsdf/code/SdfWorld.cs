@@ -85,7 +85,7 @@ internal interface ISdfWorld : IDisposable, IValid
 	int Dimensions { get; }
 
 	void UpdateChunkTransforms();
-	void Tick();
+	void Update();
 
 	int Write( NetWrite msg, int prevModifications );
 	bool Read( ref NetRead msg );
@@ -228,7 +228,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	public void Tick()
+	public void Update()
 	{
 		ProcessUpdatedChunkQueue();
 

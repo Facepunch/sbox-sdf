@@ -52,7 +52,7 @@ internal partial class SdfWorldEntity : ModelEntity, ISdfWorldImpl
 	[GameEvent.Tick]
 	private void Tick()
 	{
-		World?.Tick();
+		World?.Update();
 	}
 
 	[GameEvent.Tick.Server]
