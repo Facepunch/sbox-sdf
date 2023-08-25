@@ -16,17 +16,27 @@ public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 
 	}
 
+	/// <summary>
+	/// Create a <see cref="SceneObject"/>-based 2D surface that can be added to and subtracted from.
+	/// This won't use any entities, so is safe for use in menus and editors.
+	/// See <see cref="Sdf2DWorld()"/> for creating networked worlds with collision.
+	/// </summary>
 	public Sdf2DWorld( SceneWorld sceneWorld )
 		: base( sceneWorld )
 	{
 
 	}
 
+	/// <summary>
+	/// Create an <see cref="Entity"/>-based 2D surface that can be added to and subtracted from.
+	/// See <see cref="Sdf2DWorld(SceneWorld)"/> for creating worlds in menus and editors.
+	/// </summary>
 	public Sdf2DWorld()
 	{
 
 	}
 
+	/// <inheritdoc />
 	public override int Dimensions => 2;
 
 	/// <inheritdoc />

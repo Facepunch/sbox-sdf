@@ -15,12 +15,20 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 	}
 
+	/// <summary>
+	/// Create a <see cref="SceneObject"/>-based 3D surface that can be added to and subtracted from.
+	/// This won't use any entities, so is safe for use in menus and editors.
+	/// </summary>
 	public Sdf3DWorld( SceneWorld sceneWorld )
 		: base( sceneWorld )
 	{
 
 	}
 
+	/// <summary>
+	/// Create an <see cref="Entity"/>-based 3D surface that can be added to and subtracted from.
+	/// See <see cref="Sdf3DWorld(SceneWorld)"/> for creating worlds in menus and editors.
+	/// </summary>
 	public Sdf3DWorld()
 	{
 

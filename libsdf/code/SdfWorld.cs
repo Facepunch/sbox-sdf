@@ -131,9 +131,19 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private bool _receivingModifications;
 
+	/// <summary>
+	/// Spacial dimensions. 2 for <see cref="Sdf2DWorld"/>, 3 for <see cref="Sdf3DWorld"/>.
+	/// </summary>
 	public abstract int Dimensions { get; }
 
+	/// <summary>
+	/// How many times this world has been cleared.
+	/// </summary>
 	public int ClearCount { get; private set; }
+
+	/// <summary>
+	/// How many modifications have been applied since the last time this world was cleared.
+	/// </summary>
 	public int ModificationCount => Modifications.Count;
 
 	public bool IsValid => _impl.IsValid();
