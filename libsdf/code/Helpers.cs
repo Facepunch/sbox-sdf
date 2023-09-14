@@ -46,4 +46,12 @@ internal static class Helpers
 	{
 		return Math.Max( GetEpsilon( a, frac ), GetEpsilon( b, frac ) );
 	}
+
+	public static int NextPowerOf2( int value )
+	{
+		var po2 = 1;
+		while ( po2 < value ) po2 <<= 1;
+
+		return po2;
+	}
 }

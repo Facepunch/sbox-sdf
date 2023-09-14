@@ -20,6 +20,22 @@ public record struct Rotation2D( float Cos, float Sin )
 	}
 
 	/// <summary>
+	/// Converts a rotation to its vector representation.
+	/// </summary>
+	public static implicit operator Vector2( Rotation2D rotation )
+	{
+		return new Vector2( rotation.Cos, rotation.Sin );
+	}
+
+	/// <summary>
+	/// Converts a rotation from its vector representation.
+	/// </summary>
+	public static implicit operator Rotation2D( Vector2 vector )
+	{
+		return new Rotation2D( vector.x, vector.y );
+	}
+
+	/// <summary>
 	/// Represents a rotation of 0 degrees.
 	/// </summary>
 	public static Rotation2D Identity { get; } = new( 1f, 0f );
