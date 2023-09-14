@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Sandbox.Sdf;
 
@@ -128,14 +129,14 @@ public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f 
 		}
 	}
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( Min );
 		writer.Write( Max );
 		writer.Write( CornerRadius );
 	}
 
-	public static RectSdf ReadRaw( ref NetRead reader )
+	public static RectSdf ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new RectSdf(
 			reader.Read<Vector2>(),
@@ -157,13 +158,13 @@ public record struct CircleSdf( Vector2 Center, float Radius ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => (pos - Center).Length - Radius;
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( Center );
 		writer.Write( Radius );
 	}
 
-	public static CircleSdf ReadRaw( ref NetRead reader )
+	public static CircleSdf ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new CircleSdf(
 			reader.Read<Vector2>(),
@@ -220,14 +221,14 @@ public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vect
 		}
 	}
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( PointA );
 		writer.Write( PointB );
 		writer.Write( Radius );
 	}
 
-	public static LineSdf ReadRaw( ref NetRead reader )
+	public static LineSdf ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new LineSdf(
 			reader.Read<Vector2>(),
@@ -363,7 +364,7 @@ public readonly struct TextureSdf : ISdf2D
 		}
 	}
 	
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( _texture.ResourcePath );
 		writer.Write( _gradientWidthPixels );
@@ -372,7 +373,7 @@ public readonly struct TextureSdf : ISdf2D
 		writer.Write( _worldOffset );
 	}
 
-	public static TextureSdf ReadRaw( ref NetRead reader )
+	public static TextureSdf ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TextureSdf(
 			Texture.Load( FileSystem.Mounted, reader.ReadString() ),
@@ -415,18 +416,18 @@ public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bou
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer );
+		Sdf.Write( writer, sdfTypes );
 		writer.Write( Transform.Position );
 		writer.Write( Transform.Rotation );
 		writer.Write( Transform.Scale );
 	}
 
-	public static TransformedSdf2D<T> ReadRaw( ref NetRead reader )
+	public static TransformedSdf2D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TransformedSdf2D<T>(
-			(T)ISdf2D.Read( ref reader ),
+			(T)ISdf2D.Read( ref reader, sdfTypes ),
 			new Transform2D(
 				reader.Read<Vector2>(),
 				reader.Read<Rotation2D>(),
@@ -446,16 +447,16 @@ public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos - Offset];
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer );
+		Sdf.Write( writer, sdfTypes );
 		writer.Write( Offset );
 	}
 
-	public static TranslatedSdf2D<T> ReadRaw( ref NetRead reader )
+	public static TranslatedSdf2D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TranslatedSdf2D<T>(
-			(T) ISdf2D.Read( ref reader ),
+			(T) ISdf2D.Read( ref reader, sdfTypes ),
 			reader.Read<Vector2>() );
 	}
 }
@@ -472,16 +473,16 @@ public record struct ExpandedSdf2D<T>( T Sdf, float Margin ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos] - Margin;
 
-	public void WriteRaw( NetWrite writer )
+	public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer );
+		Sdf.Write( writer, sdfTypes );
 		writer.Write( Margin );
 	}
 
-	public static ExpandedSdf2D<T> ReadRaw( ref NetRead reader )
+	public static ExpandedSdf2D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new ExpandedSdf2D<T>(
-			(T) ISdf2D.Read( ref reader ),
+			(T) ISdf2D.Read( ref reader, sdfTypes ),
 			reader.Read<float>() );
 	}
 }

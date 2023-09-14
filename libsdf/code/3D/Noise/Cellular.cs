@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -138,14 +139,14 @@ namespace Sandbox.Sdf.Noise
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
 			writer.Write( Seed );
 			writer.Write( CellSize );
 			writer.Write( DistanceOffset );
 		}
 
-		public static CellularNoiseSdf3D ReadRaw( ref NetRead reader )
+		public static CellularNoiseSdf3D ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
 			return new CellularNoiseSdf3D( reader.Read<int>(), reader.Read<Vector3>(), reader.Read<float>() );
 		}

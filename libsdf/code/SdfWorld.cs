@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Sandbox.Internal;
@@ -16,20 +17,20 @@ public sealed class RegisterSdfTypesAttribute : Attribute
 
 }
 
-public delegate T SdfReader<T>( ref NetRead read ) where T : ISdf<T>;
-public delegate T SdfReader<TBase, T>( ref NetRead read ) where TBase : ISdf<TBase> where T : TBase;
+public delegate T SdfReader<T>( ref NetRead read, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) where T : ISdf<T>;
+public delegate T SdfReader<TBase, T>( ref NetRead read, IReadOnlyDictionary<int, SdfReader<TBase>> sdfTypes ) where TBase : ISdf<TBase> where T : TBase;
 
 public interface ISdf<T>
 	where T : ISdf<T>
 {
 	// ReSharper disable StaticMemberInGenericType
 #pragma warning disable SB3000
-	private static readonly List<(TypeDescription Type, SdfReader<T> Reader)> _sRegisteredTypes = new();
-#pragma warning restore SB3000
+	internal static List<(TypeDescription Type, SdfReader<T> Reader)> RegisteredTypes { get; } = new();
 	private static bool _sTypesRegistered;
 	// ReSharper enable StaticMemberInGenericType
+#pragma warning restore SB3000
 
-	private static void EnsureTypesRegistered()
+	internal static void EnsureTypesRegistered()
 	{
 		if ( _sTypesRegistered ) return;
 
@@ -40,41 +41,46 @@ public interface ISdf<T>
 			method.Invoke( null );
 		}
 
-		_sRegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
+		RegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
 	}
 
-	void WriteRaw( NetWrite writer );
+	void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes );
 
 	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
 		where TSdf : T
 	{
-		_sRegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ), ( ref NetRead read ) => readRaw( ref read )) );
+		RegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ),
+			( ref NetRead read, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) => readRaw( ref read, sdfTypes )) );
 	}
 
-	public void Write( NetWrite writer )
+	public void Write( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		EnsureTypesRegistered();
 
 		var type = GlobalGameNamespace.TypeLibrary.GetType( GetType() );
-		var typeIndex = _sRegisteredTypes.FindIndex( x => x.Type == type );
 
-		if ( typeIndex == -1 )
+		if ( !sdfTypes.TryGetValue( type, out var typeIndex ) )
 		{
-			throw new NotImplementedException( $"Unable to serialize SDF type {type.FullName}" );
+			typeIndex = RegisteredTypes.FindIndex( x => x.Type == type );
+
+			if ( typeIndex == -1 )
+			{
+				throw new NotImplementedException( $"Unable to serialize SDF type {type.FullName}" );
+			}
+
+			sdfTypes[type] = typeIndex;
 		}
 
 		writer.Write( typeIndex );
-		WriteRaw( writer );
+		WriteRaw( writer, sdfTypes );
 	}
 
-	public static T Read( ref NetRead reader )
+	public static T Read( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes )
 	{
-		EnsureTypesRegistered();
-
 		var typeIndex = reader.Read<int>();
-		var sdfReader = _sRegisteredTypes[typeIndex].Reader;
+		var sdfReader = sdfTypes[typeIndex];
 
-		return sdfReader( ref reader );
+		return sdfReader( ref reader, sdfTypes );
 	}
 }
 
@@ -271,7 +277,24 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
+	public void Write( Stream stream )
+	{
+		throw new NotImplementedException();
+	}
+
+	public void Read( Stream stream )
+	{
+		throw new NotImplementedException();
+	}
+
 	private const int MaxModificationsPerMessage = 256;
+
+	// ReSharper disable StaticMemberInGenericType
+#pragma warning disable SB3000
+	private static Dictionary<TypeDescription, int> NetWrite_TypeIndices { get; } = new ();
+	private static Dictionary<int, SdfReader<TSdf>> NetRead_TypeReaders { get; } = new();
+	// ReSharper enable StaticMemberInGenericType
+#pragma warning restore SB3000
 
 	public int Write( NetWrite msg, int prevModifications )
 	{
@@ -282,16 +305,21 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		msg.Write( count );
 		msg.Write( ModificationCount );
 
+		WriteRange( msg, prevModifications, count, NetWrite_TypeIndices );
+
+		return count;
+	}
+
+	private void WriteRange( NetWrite msg, int from, int count, Dictionary<TypeDescription, int> sdfTypes )
+	{
 		for ( var i = 0; i < count; ++i )
 		{
-			var modification = Modifications[prevModifications + i];
+			var modification = Modifications[from + i];
 
 			msg.Write( modification.Operator );
 			msg.Write( modification.Resource );
-			modification.Sdf.Write( msg );
+			modification.Sdf.Write( msg, sdfTypes );
 		}
-
-		return count;
 	}
 
 	public bool Read( ref NetRead msg )
@@ -322,11 +350,28 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return false;
 		}
 
-		for ( var i = 0; i < msgCount; ++i )
+		ISdf<TSdf>.EnsureTypesRegistered();
+
+		NetRead_TypeReaders.Clear();
+
+		var index = 0;
+		foreach ( var (_, reader) in ISdf<TSdf>.RegisteredTypes )
+		{
+			NetRead_TypeReaders[index++] = reader;
+		}
+
+		ReadRange( ref msg, msgCount, NetRead_TypeReaders );
+
+		return true;
+	}
+
+	private void ReadRange( ref NetRead msg, int count, IReadOnlyDictionary<int, SdfReader<TSdf>> sdfTypes )
+	{
+		for ( var i = 0; i < count; ++i )
 		{
 			var op = msg.Read<Operator>();
 			var res = msg.ReadClass<TResource>();
-			var sdf = ISdf<TSdf>.Read( ref msg );
+			var sdf = ISdf<TSdf>.Read( ref msg, sdfTypes );
 
 			var modification = new Modification( sdf, res, op );
 
@@ -341,8 +386,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 					break;
 			}
 		}
-
-		return true;
 	}
 
 	private IDisposable AllowClientModifications()

@@ -172,14 +172,14 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
 			writer.Write( Min );
 			writer.Write( Max );
 			writer.Write( CornerRadius );
 		}
 
-		public static BoxSdf3D ReadRaw( ref NetRead reader )
+		public static BoxSdf3D ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
 			return new BoxSdf3D(
 				reader.Read<Vector3>(),
@@ -201,13 +201,13 @@ namespace Sandbox.Sdf
 		/// <inheritdoc />
 		public float this[Vector3 pos] => (pos - Center).Length - Radius;
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
 			writer.Write( Center );
 			writer.Write( Radius );
 		}
 
-		public static SphereSdf3D ReadRaw( ref NetRead reader )
+		public static SphereSdf3D ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
 			return new SphereSdf3D(
 				reader.Read<Vector3>(),
@@ -265,14 +265,14 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
 			writer.Write( PointA );
 			writer.Write( PointB );
 			writer.Write( Radius );
 		}
 
-		public static CapsuleSdf3D ReadRaw( ref NetRead reader )
+		public static CapsuleSdf3D ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
 			return new CapsuleSdf3D(
 				reader.Read<Vector3>(),
@@ -304,17 +304,17 @@ namespace Sandbox.Sdf
 			return Sdf.SampleRangeAsync( Transform.ToLocal( transform ), output, outputSize );
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
-			Sdf.Write( writer );
+			Sdf.Write( writer, sdfTypes );
 			writer.Write( Transform.Position );
 			writer.Write( Transform.Rotation );
 			writer.Write( Transform.Scale );
 		}
 
-		public static TransformedSdf3D<T> ReadRaw( ref NetRead reader )
+		public static TransformedSdf3D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new TransformedSdf3D<T>( (T) ISdf3D.Read( ref reader ),
+			return new TransformedSdf3D<T>( (T) ISdf3D.Read( ref reader, sdfTypes ),
 				new Transform(
 					reader.Read<Vector3>(),
 					reader.Read<Rotation>(),
@@ -339,15 +339,15 @@ namespace Sandbox.Sdf
 			return Sdf.SampleRangeAsync( new Transform( Offset ).ToLocal( transform ), output, outputSize );
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
-			Sdf.Write( writer );
+			Sdf.Write( writer, sdfTypes );
 			writer.Write( Offset );
 		}
 
-		public static TranslatedSdf3D<T> ReadRaw( ref NetRead reader )
+		public static TranslatedSdf3D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new TranslatedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<Vector3>() );
+			return new TranslatedSdf3D<T>( (T) ISdf3D.Read( ref reader, sdfTypes ), reader.Read<Vector3>() );
 		}
 	}
 
@@ -375,15 +375,15 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
-			Sdf.Write( writer );
+			Sdf.Write( writer, sdfTypes );
 			writer.Write( Margin );
 		}
 
-		public static ExpandedSdf3D<T> ReadRaw( ref NetRead reader )
+		public static ExpandedSdf3D<T> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new ExpandedSdf3D<T>( (T) ISdf3D.Read( ref reader ), reader.Read<float>() );
+			return new ExpandedSdf3D<T>( (T) ISdf3D.Read( ref reader, sdfTypes ), reader.Read<float>() );
 		}
 	}
 
@@ -425,15 +425,15 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
-			Sdf1.Write( writer );
-			Sdf2.Write( writer );
+			Sdf1.Write( writer, sdfTypes );
+			Sdf2.Write( writer, sdfTypes );
 		}
 
-		public static IntersectedSdf3D<T1, T2> ReadRaw( ref NetRead reader )
+		public static IntersectedSdf3D<T1, T2> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new IntersectedSdf3D<T1, T2>( (T1) ISdf3D.Read( ref reader ), (T2) ISdf3D.Read( ref reader ) );
+			return new IntersectedSdf3D<T1, T2>( (T1) ISdf3D.Read( ref reader, sdfTypes ), (T2) ISdf3D.Read( ref reader, sdfTypes ) );
 		}
 	}
 
@@ -475,16 +475,16 @@ namespace Sandbox.Sdf
 			}
 		}
 
-		public void WriteRaw( NetWrite writer )
+		public void WriteRaw( NetWrite writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
-			Sdf.Write( writer );
-			BiasSdf.Write( writer );
+			Sdf.Write( writer, sdfTypes );
+			BiasSdf.Write( writer, sdfTypes );
 			writer.Write( BiasScale );
 		}
 
-		public static BiasedSdf3D<T, TBias> ReadRaw( ref NetRead reader )
+		public static BiasedSdf3D<T, TBias> ReadRaw( ref NetRead reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new BiasedSdf3D<T, TBias>( (T) ISdf3D.Read( ref reader ), (TBias) ISdf3D.Read( ref reader ), reader.Read<float>() );
+			return new BiasedSdf3D<T, TBias>( (T) ISdf3D.Read( ref reader, sdfTypes ), (TBias) ISdf3D.Read( ref reader, sdfTypes ), reader.Read<float>() );
 		}
 	}
 }
