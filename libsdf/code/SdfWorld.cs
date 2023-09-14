@@ -230,6 +230,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
+	private Transform _prevTransform;
+
 	public void UpdateChunkTransforms()
 	{
 		for ( var i = AllChunks.Count - 1; i >= 0; --i )
@@ -240,6 +242,14 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	public void Update()
 	{
+		var transform = Transform;
+
+		if ( !transform.Equals( _prevTransform ) )
+		{
+			_prevTransform = transform;
+			UpdateChunkTransforms();
+		}
+
 		ProcessUpdatedChunkQueue();
 
 		foreach ( var (resource, layer) in Layers )
