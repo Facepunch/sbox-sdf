@@ -103,7 +103,7 @@ internal partial class SdfWorldEntity : ModelEntity, ISdfWorldImpl
 
 		state = state with { LastMessage = 0f };
 
-		var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
+		using var msg = NetWrite.StartRpc( SendModificationsRpcIdent, this );
 		var count = World.Write( msg, state.ModificationCount );
 
 		ClientStates[client] = state with { ModificationCount = state.ModificationCount + count };
