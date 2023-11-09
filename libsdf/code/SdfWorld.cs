@@ -467,21 +467,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			await lastTask;
 		}
 
+		await GameTask.WhenAll( Layers.Values.Select( x => x.UpdateMeshTask ) );
 		await GameTask.MainThread();
-
-		foreach ( var layer in Layers.Values )
-		{
-			await layer.UpdateMeshTask;
-
-			foreach ( var chunk in layer.Chunks.Values )
-			{
-				chunk.Dispose();
-			}
-
-			layer.Chunks.Clear();
-		}
-
-		AllChunks.Clear();
+		await GameTask.WhenAll( Layers.Values.SelectMany( x => x.Chunks.Values ).Select( x => x.ClearAsync( false ) ) );
 	}
 
 	[Obsolete( $"Please use {nameof( ClearAsync )}" )]
