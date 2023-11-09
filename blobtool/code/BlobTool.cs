@@ -19,7 +19,7 @@ namespace Sandbox.Sdf
 		[ConCmd.Admin( "blobs_clear" )]
 		public static void ClearWorld()
 		{
-			SdfWorld?.Delete();
+			SdfWorld?.Dispose();
 			SdfWorld = null;
 		}
 

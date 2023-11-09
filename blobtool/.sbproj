@@ -3,7 +3,7 @@
   "Type": "addon",
   "Org": "facepunch",
   "Ident": "blobtool",
-  "Tags": null,
+  "Tags": "runtime",
   "Schema": 1,
   "HasAssets": true,
   "AssetsPath": "",
