@@ -197,7 +197,7 @@ namespace Sandbox.Sdf
 	public record struct SphereSdf3D( Vector3 Center, float Radius ) : ISdf3D
 	{
 		/// <inheritdoc />
-		public BBox? Bounds => new( Center - Radius, Radius * 2f );
+		public BBox? Bounds => new( Center, Radius * 2f );
 
 		/// <inheritdoc />
 		public float this[Vector3 pos] => (pos - Center).Length - Radius;
