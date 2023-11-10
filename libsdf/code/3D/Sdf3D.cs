@@ -167,9 +167,9 @@ namespace Sandbox.Sdf
 			{
 				var dist3 = Vector3.Max( Min + CornerRadius - pos, pos - Max + CornerRadius );
 
-				return (dist3.x <= 0f || dist3.y <= 0f || dist3.z <= 0f
+				return (dist3.x <= 0f && dist3.y <= 0f && dist3.z <= 0f
 					? Math.Max( dist3.x, Math.Max( dist3.y, dist3.z ) )
-					: dist3.Length) - CornerRadius;
+					: Vector3.Max( dist3, 0f ).Length) - CornerRadius;
 			}
 		}
 
