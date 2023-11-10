@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Drawing;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -77,7 +80,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		return new Texture3DBuilder()
 			.WithFormat( ImageFormat.I8 )
 			.WithSize( ArraySize, ArraySize, ArraySize )
-			.WithData( Samples )
+			.WithData( FrontBuffer )
 			.WithAnonymous( true )
 			.Finish();
 	}
@@ -85,7 +88,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	/// <inheritdoc />
 	protected override void UpdateTexture( Texture texture )
 	{
-		texture.Update3D( Samples );
+		texture.Update3D( FrontBuffer );
 	}
 
 	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max, Transform Transform) GetSampleRange( BBox? bounds )
@@ -107,12 +110,78 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 			min, Rotation.Identity, UnitSize ));
 	}
 
+	private bool AddImpl( float[] samples, (int X, int Y, int Z) min, (int X, int Y, int Z) size )
+	{
+		var max = (X: min.X + size.X, Y: min.Y + size.Y, Z: min.Z + size.Z);
+		var maxDist = Quality.MaxDistance;
+		var changed = false;
+
+		for ( var z = min.Z; z < max.Z; ++z )
+		{
+			for ( var y = min.Y; y < max.Y; ++y )
+			{
+				var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+				var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+
+				for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+				{
+					var sampled = samples[srcIndex];
+
+					if ( sampled >= maxDist ) continue;
+
+					var encoded = Encode( sampled );
+
+					var oldValue = BackBuffer[dstIndex];
+					var newValue = Math.Min( encoded, oldValue );
+					BackBuffer[dstIndex] = newValue;
+
+					changed |= oldValue != newValue;
+				}
+			}
+		}
+
+		return changed;
+	}
+
+	private bool SubtractImpl( float[] samples, (int X, int Y, int Z) min, (int X, int Y, int Z) size )
+	{
+		var max = (X: min.X + size.X, Y: min.Y + size.Y, Z: min.Z + size.Z);
+		var maxDist = Quality.MaxDistance;
+		var changed = false;
+
+		for ( var z = min.Z; z < max.Z; ++z )
+		{
+			for ( var y = min.Y; y < max.Y; ++y )
+			{
+				var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
+				var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+
+				for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
+				{
+					var sampled = samples[srcIndex];
+
+					if ( sampled >= maxDist ) continue;
+
+					var encoded = Encode( sampled );
+
+					var oldValue = BackBuffer[dstIndex];
+					var newValue = Math.Max( (byte) (byte.MaxValue - encoded), oldValue );
+
+					BackBuffer[dstIndex] = newValue;
+
+					changed |= oldValue != newValue;
+				}
+			}
+		}
+
+		return changed;
+	}
+
 	/// <inheritdoc />
 	public override async Task<bool> AddAsync<T>( T sdf )
 	{
 		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
-		var maxDist = Quality.MaxDistance;
 
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
 
@@ -121,33 +190,8 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		try
 		{
 			await sdf.SampleRangeAsync( transform, samples, size );
-
 			await GameTask.WorkerThread();
-
-			for ( var z = min.Z; z < max.Z; ++z )
-			{
-				for ( var y = min.Y; y < max.Y; ++y )
-				{
-					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
-
-					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
-					{
-						var sampled = samples[srcIndex];
-
-						if ( sampled >= maxDist ) continue;
-
-						var encoded = Encode( sampled );
-
-						var oldValue = Samples[dstIndex];
-						var newValue = Math.Min( encoded, oldValue );
-
-						Samples[dstIndex] = newValue;
-
-						changed |= oldValue != newValue;
-					}
-				}
-			}
+			changed |= AddImpl( samples, min, size );
 		}
 		finally
 		{
@@ -156,6 +200,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		if ( changed )
 		{
+			SwapBuffers();
 			MarkChanged();
 		}
 
@@ -167,7 +212,6 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 	{
 		var (min, max, transform) = GetSampleRange( sdf.Bounds );
 		var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
-		var maxDist = Quality.MaxDistance;
 
 		var samples = ArrayPool<float>.Shared.Rent( size.X * size.Y * size.Z );
 
@@ -176,31 +220,50 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 		try
 		{
 			await sdf.SampleRangeAsync( transform, samples, size );
-
 			await GameTask.WorkerThread();
+			changed |= SubtractImpl( samples, min, size );
+		}
+		finally
+		{
+			ArrayPool<float>.Shared.Return( samples );
+		}
 
-			for ( var z = min.Z; z < max.Z; ++z )
+		if ( changed )
+		{
+			SwapBuffers();
+			MarkChanged();
+		}
+
+		return changed;
+	}
+
+	public override async Task<bool> RebuildAsync( IEnumerable<ChunkModification<ISdf3D>> modifications )
+	{
+		Array.Fill( BackBuffer, (byte) 255 );
+
+		var samples = ArrayPool<float>.Shared.Rent( ArraySize * ArraySize * ArraySize );
+
+		var changed = false;
+
+		try
+		{
+			foreach ( var modification in modifications )
 			{
-				for ( var y = min.Y; y < max.Y; ++y )
+				var (min, max, transform) = GetSampleRange( modification.Sdf.Bounds );
+				var size = (X: max.X - min.X, Y: max.Y - min.Y, Z: max.Z - min.Z);
+
+				await modification.Sdf.SampleRangeAsync( transform, samples, size );
+				await GameTask.WorkerThread();
+
+				switch ( modification.Operator )
 				{
-					var srcIndex = (y - min.Y) * size.X + (z - min.Z) * size.X * size.Y;
-					var dstIndex = min.X + y * ArraySize + z * ArraySize * ArraySize;
+					case Operator.Add:
+						changed |= AddImpl( samples, min, size );
+						break;
 
-					for ( var x = min.X; x < max.X; ++x, ++srcIndex, ++dstIndex )
-					{
-						var sampled = samples[srcIndex];
-
-						if ( sampled >= maxDist ) continue;
-
-						var encoded = Encode( sampled );
-
-						var oldValue = Samples[dstIndex];
-						var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
-
-						Samples[dstIndex] = newValue;
-
-						changed |= oldValue != newValue;
-					}
+					case Operator.Subtract:
+						changed |= SubtractImpl( samples, min, size );
+						break;
 				}
 			}
 		}
@@ -211,6 +274,7 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		if ( changed )
 		{
+			SwapBuffers();
 			MarkChanged();
 		}
 
@@ -219,12 +283,12 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume )
 	{
-		if ( writer.Samples == null || writer.Samples.Length < Samples.Length )
+		if ( writer.Samples == null || writer.Samples.Length < FrontBuffer.Length )
 		{
-			writer.Samples = new byte[Samples.Length];
+			writer.Samples = new byte[FrontBuffer.Length];
 		}
 
-		Array.Copy( Samples, writer.Samples, Samples.Length );
+		Array.Copy( FrontBuffer, writer.Samples, FrontBuffer.Length );
 
 		return writer.WriteAsync( new Sdf3DArrayData( writer.Samples, Margin, ArraySize ), volume );
 	}

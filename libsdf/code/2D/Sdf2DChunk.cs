@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,6 +37,11 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	protected override Task<bool> OnSubtractAsync<T>( T sdf )
 	{
 		return Data.SubtractAsync( ToLocal( sdf ) );
+	}
+
+	protected override Task<bool> OnRebuildAsync( IEnumerable<ChunkModification<ISdf2D>> modifications )
+	{
+		return Data.RebuildAsync( modifications.Select( x => x with { Sdf = ToLocal( x.Sdf ) } ) );
 	}
 
 	/// <inheritdoc />

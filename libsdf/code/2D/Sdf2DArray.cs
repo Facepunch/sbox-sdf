@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -38,7 +39,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 		return new Texture2DBuilder()
 			.WithFormat( ImageFormat.I8 )
 			.WithSize( ArraySize, ArraySize )
-			.WithData( Samples )
+			.WithData( FrontBuffer )
 			.WithAnonymous( true )
 			.Finish();
 	}
@@ -46,7 +47,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 	/// <inheritdoc />
 	protected override void UpdateTexture( Texture texture )
 	{
-		texture.Update( Samples );
+		texture.Update( FrontBuffer );
 	}
 
 	private (int MinX, int MinY, int MaxX, int MaxY) GetSampleRange( Rect bounds )
@@ -80,10 +81,10 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 				var encoded = Encode( sampled );
 
-				var oldValue = Samples[index];
+				var oldValue = BackBuffer[index];
 				var newValue = Math.Min( encoded, oldValue );
 
-				Samples[index] = newValue;
+				BackBuffer[index] = newValue;
 
 				changed |= oldValue != newValue;
 			}
@@ -120,10 +121,10 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 				var encoded = Encode( sampled );
 
-				var oldValue = Samples[index];
+				var oldValue = BackBuffer[index];
 				var newValue = Math.Max( (byte)(byte.MaxValue - encoded), oldValue );
 
-				Samples[index] = newValue;
+				BackBuffer[index] = newValue;
 
 				changed |= oldValue != newValue;
 			}
@@ -137,14 +138,19 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 		return changed;
 	}
 
+	public override Task<bool> RebuildAsync( IEnumerable<ChunkModification<ISdf2D>> modifications )
+	{
+		throw new NotImplementedException();
+	}
+
 	internal void WriteTo( Sdf2DMeshWriter writer, Sdf2DLayer layer, bool renderMesh, bool collisionMesh )
 	{
-		if ( writer.Samples == null || writer.Samples.Length < Samples.Length )
+		if ( writer.Samples == null || writer.Samples.Length < FrontBuffer.Length )
 		{
-			writer.Samples = new byte[Samples.Length];
+			writer.Samples = new byte[FrontBuffer.Length];
 		}
 
-		Array.Copy( Samples, writer.Samples, Samples.Length );
+		Array.Copy( FrontBuffer, writer.Samples, FrontBuffer.Length );
 
 		var resolution = layer.Quality.ChunkResolution;
 

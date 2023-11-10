@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -8,6 +9,7 @@ namespace Sandbox.Sdf;
 /// </summary>
 /// <typeparam name="TSdf">Interface for SDFs that can modify the array</typeparam>
 public abstract partial class SdfArray<TSdf>
+	where TSdf : ISdf<TSdf>
 {
 	/// <summary>
 	/// How far outside the chunk boundary should samples be stored.
@@ -29,7 +31,8 @@ public abstract partial class SdfArray<TSdf>
 	/// Actual raw samples, encoded as bytes. A value of 0 is -<see cref="WorldQuality.MaxDistance"/>,
 	/// 255 is +<see cref="WorldQuality.MaxDistance"/>, and 127.5 is on the surface.
 	/// </summary>
-	public byte[] Samples { get; private set; }
+	public byte[] BackBuffer { get; private set; }
+	public byte[] FrontBuffer { get; private set; }
 
 	/// <summary>
 	/// Number of samples stored in one dimension of this array.
@@ -67,6 +70,11 @@ public abstract partial class SdfArray<TSdf>
 	protected SdfArray( int dimensions )
 	{
 		Dimensions = dimensions;
+	}
+
+	protected void SwapBuffers()
+	{
+		Array.Copy( BackBuffer, FrontBuffer, BackBuffer.Length );
 	}
 
 	/// <summary>
@@ -148,6 +156,8 @@ public abstract partial class SdfArray<TSdf>
 	public abstract Task<bool> SubtractAsync<T>( T sdf )
 		where T : TSdf;
 
+	public abstract Task<bool> RebuildAsync( IEnumerable<ChunkModification<TSdf>> modifications );
+
 	internal void Init( WorldQuality quality )
 	{
 		if ( Quality.Equals( quality ) )
@@ -169,7 +179,8 @@ public abstract partial class SdfArray<TSdf>
 			SampleCount *= ArraySize;
 		}
 
-		Samples = new byte[SampleCount];
+		BackBuffer = new byte[SampleCount];
+		FrontBuffer = new byte[SampleCount];
 
 		Clear( false );
 	}
@@ -180,7 +191,8 @@ public abstract partial class SdfArray<TSdf>
 	/// <param name="solid">Solidity to set each sample to.</param>
 	public void Clear( bool solid )
 	{
-		Array.Fill( Samples, solid ? (byte) 0 : (byte) 255 );
+		Array.Fill( BackBuffer, solid ? (byte) 0 : (byte) 255 );
+		SwapBuffers();
 	}
 
 	/// <summary>

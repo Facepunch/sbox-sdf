@@ -1,5 +1,6 @@
 ﻿using Sandbox.Diagnostics;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Sandbox.Internal;
 using Sandbox.Utility;
+using Parallel = Sandbox.Utility.Parallel;
 
 namespace Sandbox.Sdf;
 
@@ -97,6 +99,18 @@ internal interface ISdfWorld : IDisposable, IValid
 	bool Read( ref NetRead msg );
 }
 
+public enum Operator
+{
+	Add,
+	Subtract
+}
+
+public record struct Modification<TResource, TSdf>( TSdf Sdf, TResource Resource, Operator Operator )
+	where TResource : SdfResource<TResource>
+	where TSdf : ISdf<TSdf>;
+
+public record struct ChunkModification<TSdf>( TSdf Sdf, Operator Operator )
+	where TSdf : ISdf<TSdf>;
 
 /// <summary>
 /// Base type for entities representing a set of volumes / layers containing geometry generated from
@@ -121,15 +135,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return world._impl as Entity;
 	}
 
-	private enum Operator
-	{
-		Add,
-		Subtract
-	}
-
-	private record struct Modification( TSdf Sdf, TResource Resource, Operator Operator );
-
-	private List<Modification> Modifications { get; } = new();
+	private List<Modification<TResource, TSdf>> Modifications { get; } = new();
 
 	private ConcurrentQueue<TChunk> UpdatedChunkQueue { get; } = new();
 
@@ -401,7 +407,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 			var sdf = ISdf<TSdf>.Read( reader, sdfTypes );
 
-			var modification = new Modification( sdf, res, op );
+			var modification = new Modification<TResource, TSdf>( sdf, res, op );
 
 			switch ( modification.Operator )
 			{
@@ -487,6 +493,82 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		throw new NotImplementedException();
 	}
 
+	private void AddAffectedChunks( HashSet<(TResource, TChunkKey)> outSet,
+		IEnumerable<Modification<TResource, TSdf>> modifications )
+	{
+		foreach ( var modification in modifications )
+		{
+			var quality = modification.Resource.Quality;
+
+			foreach ( var chunkKey in GetAffectedChunks( modification.Sdf, quality ) )
+			{
+				outSet.Add( (modification.Resource, chunkKey) );
+			}
+		}
+	}
+
+	public async Task SetModificationsAsync(
+		IEnumerable<Modification<TResource, TSdf>> modifications,
+		IEnumerable<Modification<TResource, TSdf>> toRebuild = null )
+	{
+		Assert.True( _impl is SdfWorldSceneObject, "Can only call SetModificationsAsync on worlds using scene objects." );
+
+		var chunksToRebuild = new HashSet<(TResource Resource, TChunkKey ChunkKey)>();
+
+		AddAffectedChunks( chunksToRebuild, toRebuild ?? Modifications );
+
+		Modifications.Clear();
+		Modifications.AddRange( modifications );
+
+		if ( toRebuild == null )
+		{
+			AddAffectedChunks( chunksToRebuild, Modifications );
+		}
+
+		var count = Modifications.Count;
+		var resources = Modifications.Select( x => x.Resource )
+			.Distinct()
+			.ToArray();
+
+		await GameTask.MainThread();
+
+		foreach ( var resource in resources )
+		{
+			EnsureLayerExists( resource );
+		}
+
+		await GameTask.WhenAll( chunksToRebuild.Select( async x =>
+		{
+			await GameTask.WorkerThread();
+
+			var quality = x.Resource.Quality;
+			var chunkModifications = Modifications
+				.Take( count )
+				.Where( y => y.Resource == x.Resource && AffectsChunk( y.Sdf, quality, x.ChunkKey ) )
+				.SkipWhile( y => y.Operator == Operator.Subtract )
+				.Select( y => new ChunkModification<TSdf>( y.Sdf, y.Operator ) )
+				.ToArray();
+
+			var chunk = GetChunk( x.Resource, x.ChunkKey );
+
+			if ( chunk is null )
+			{
+				if ( chunkModifications.Length == 0 )
+				{
+					return;
+				}
+
+				await GameTask.MainThread();
+				chunk = GetOrCreateChunk( x.Resource, x.ChunkKey );
+				await GameTask.WorkerThread();
+			}
+
+			await chunk.RebuildAsync( chunkModifications );
+
+			UpdatedChunkQueue.Enqueue( chunk );
+		} ) );
+	}
+
 	private void EnsureLayerExists( TResource resource )
 	{
 		ThreadSafe.AssertIsMainThread();
@@ -517,7 +599,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		EnsureLayerExists( resource );
 
-		Modifications.Add( new Modification( sdf, resource, Operator.Add ) );
+		Modifications.Add( new Modification<TResource, TSdf>( sdf, resource, Operator.Add ) );
 
 		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
 	}
@@ -542,7 +624,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		EnsureLayerExists( resource );
 
-		Modifications.Add( new Modification( sdf, resource, Operator.Subtract ) );
+		Modifications.Add( new Modification<TResource, TSdf>( sdf, resource, Operator.Subtract ) );
 
 		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
 	}
@@ -644,9 +726,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <param name="sdf">SDF to check the bounds of.</param>
 	/// <param name="quality">Quality setting that affects chunk size.</param>
 	/// <returns>Indices of possible affected chunks.</returns>
-	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality)
+	protected abstract IEnumerable<TChunkKey> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 		where T : TSdf;
-	
+
+	protected abstract bool AffectsChunk<T>( T sdf, WorldQuality quality, TChunkKey chunkKey )
+		where T : TSdf;
+
 	private async Task ModifyChunksAsync<T>( T sdf, TResource resource, bool createChunks,
 		Func<TChunk, T, Task<bool>> func )
 		where T : TSdf

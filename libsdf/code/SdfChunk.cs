@@ -184,10 +184,16 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		return OnSubtractAsync( sdf );
 	}
 
+	public Task<bool> RebuildAsync( IEnumerable<ChunkModification<TSdf>> modifications )
+	{
+		return OnRebuildAsync( modifications );
+	}
+
 	protected abstract Task<bool> OnAddAsync<T>( T sdf )
 		where T : TSdf;
 	protected abstract Task<bool> OnSubtractAsync<T>( T sdf )
 		where T : TSdf;
+	protected abstract Task<bool> OnRebuildAsync( IEnumerable<ChunkModification<TSdf>> modifications );
 
 	internal async Task UpdateMesh()
 	{

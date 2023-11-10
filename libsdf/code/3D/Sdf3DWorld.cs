@@ -70,11 +70,24 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
-		if ( sdf.Bounds is { } bounds )
+		if ( sdf.Bounds is not { } bounds )
 		{
-			return GetChunks( bounds, quality );
+			throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
 		}
 
-		throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
+		return GetChunks( bounds, quality );
+	}
+
+	protected override bool AffectsChunk<T>( T sdf, WorldQuality quality, (int X, int Y, int Z) chunkKey )
+	{
+		if ( sdf.Bounds is not { } bounds )
+		{
+			throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
+		}
+
+		var ((minX, minY, minZ), (maxX, maxY, maxZ)) = GetChunkRange( bounds, quality );
+		return chunkKey.X >= minX && chunkKey.X < maxX
+			&& chunkKey.Y >= minY && chunkKey.Y < maxY
+			&& chunkKey.Z >= minZ && chunkKey.Z < maxZ;
 	}
 }

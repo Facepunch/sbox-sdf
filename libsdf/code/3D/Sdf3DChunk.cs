@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -34,6 +36,11 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	protected override Task<bool> OnSubtractAsync<T>( T sdf )
 	{
 		return Data.SubtractAsync( ToLocal( sdf ) );
+	}
+
+	protected override Task<bool> OnRebuildAsync( IEnumerable<ChunkModification<ISdf3D>> modifications )
+	{
+		return Data.RebuildAsync( modifications.Select( x => x with { Sdf = ToLocal( x.Sdf ) } ));
 	}
 
 	/// <inheritdoc />

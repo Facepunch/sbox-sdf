@@ -39,10 +39,8 @@ public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	/// <inheritdoc />
 	public override int Dimensions => 2;
 
-	/// <inheritdoc />
-	protected override IEnumerable<(int X, int Y)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
+	private (int MinX, int MinY, int MaxX, int MaxY) GetChunkRange( Rect bounds, WorldQuality quality )
 	{
-		var bounds = sdf.Bounds;
 		var unitSize = quality.UnitSize;
 
 		var min = (bounds.TopLeft - quality.MaxDistance - unitSize) / quality.ChunkSize;
@@ -54,10 +52,26 @@ public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		var maxX = (int) MathF.Ceiling( max.x );
 		var maxY = (int) MathF.Ceiling( max.y );
 
+		return (minX, minY, maxX, maxY);
+	}
+
+	/// <inheritdoc />
+	protected override IEnumerable<(int X, int Y)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
+	{
+		var (minX, minY, maxX, maxY) = GetChunkRange( sdf.Bounds, quality );
+
 		for ( var y = minY; y < maxY; ++y )
 		for ( var x = minX; x < maxX; ++x )
 		{
 			yield return (x, y);
 		}
+	}
+
+	protected override bool AffectsChunk<T>( T sdf, WorldQuality quality, (int X, int Y) chunkKey )
+	{
+		var (minX, minY, maxX, maxY) = GetChunkRange( sdf.Bounds, quality );
+
+		return chunkKey.X >= minX && chunkKey.X < maxX
+			&& chunkKey.Y >= minY && chunkKey.Y < maxY;
 	}
 }
