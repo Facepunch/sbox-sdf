@@ -92,6 +92,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 		if ( changed )
 		{
+			SwapBuffers();
 			MarkChanged();
 		}
 
@@ -132,6 +133,7 @@ public partial class Sdf2DArray : SdfArray<ISdf2D>
 
 		if ( changed )
 		{
+			SwapBuffers();
 			MarkChanged();
 		}
 

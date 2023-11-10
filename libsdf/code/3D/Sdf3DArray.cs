@@ -243,8 +243,6 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 
 		var samples = ArrayPool<float>.Shared.Rent( ArraySize * ArraySize * ArraySize );
 
-		var changed = false;
-
 		try
 		{
 			foreach ( var modification in modifications )
@@ -258,11 +256,11 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 				switch ( modification.Operator )
 				{
 					case Operator.Add:
-						changed |= AddImpl( samples, min, size );
+						AddImpl( samples, min, size );
 						break;
 
 					case Operator.Subtract:
-						changed |= SubtractImpl( samples, min, size );
+						SubtractImpl( samples, min, size );
 						break;
 				}
 			}
@@ -272,13 +270,10 @@ public partial class Sdf3DArray : SdfArray<ISdf3D>
 			ArrayPool<float>.Shared.Return( samples );
 		}
 
-		if ( changed )
-		{
-			SwapBuffers();
-			MarkChanged();
-		}
+		SwapBuffers();
+		MarkChanged();
 
-		return changed;
+		return true;
 	}
 
 	internal Task WriteToAsync( Sdf3DMeshWriter writer, Sdf3DVolume volume )

@@ -566,6 +566,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			await chunk.RebuildAsync( chunkModifications );
 
 			UpdatedChunkQueue.Enqueue( chunk );
+
+			await GameTask.MainThread();
+
+			ChunkMeshUpdated( chunk, false );
 		} ) );
 	}
 
