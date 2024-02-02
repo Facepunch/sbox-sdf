@@ -1,15 +1,12 @@
 ﻿using Sandbox.Diagnostics;
 using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Sandbox.Internal;
 using Sandbox.Utility;
-using Parallel = Sandbox.Utility.Parallel;
 
 namespace Sandbox.Sdf;
 
@@ -19,8 +16,8 @@ public sealed class RegisterSdfTypesAttribute : Attribute
 
 }
 
-public delegate T SdfReader<T>( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) where T : ISdf<T>;
-public delegate T SdfReader<TBase, T>( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<TBase>> sdfTypes ) where TBase : ISdf<TBase> where T : TBase;
+public delegate T SdfReader<T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) where T : ISdf<T>;
+public delegate T SdfReader<TBase, T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<TBase>> sdfTypes ) where TBase : ISdf<TBase> where T : TBase;
 
 public interface ISdf<T>
 	where T : ISdf<T>
@@ -46,16 +43,16 @@ public interface ISdf<T>
 		RegisteredTypes.Sort( ( a, b ) => string.CompareOrdinal( a.Type.FullName, b.Type.FullName ) );
 	}
 
-	void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes );
+	void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes );
 
 	public static void RegisterType<TSdf>( SdfReader<T, TSdf> readRaw )
 		where TSdf : T
 	{
 		RegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ),
-			( reader, sdfTypes ) => readRaw( reader, sdfTypes )) );
+			( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) => readRaw( ref reader, sdfTypes )) );
 	}
 
-	public void Write( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void Write( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		EnsureTypesRegistered();
 
@@ -74,29 +71,26 @@ public interface ISdf<T>
 		}
 
 		writer.Write( typeIndex );
-		WriteRaw( writer, sdfTypes );
+		WriteRaw( ref writer, sdfTypes );
 	}
 
-	public static T Read( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes )
+	public static T Read( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes )
 	{
-		var typeIndex = reader.ReadInt32();
+		var typeIndex = reader.Read<int>();
 		var sdfReader = sdfTypes[typeIndex];
 
-		return sdfReader( reader, sdfTypes );
+		return sdfReader( ref reader, sdfTypes );
 	}
 }
 
-internal interface ISdfWorld : IDisposable, IValid
+internal interface ISdfWorld
 {
 	int ClearCount { get; }
 	int ModificationCount { get; }
 	int Dimensions { get; }
 
-	void UpdateChunkTransforms();
-	void Update();
-
-	int Write( NetWrite msg, int prevModifications );
-	bool Read( ref NetRead msg );
+	int Write( ref ByteStream msg, int prevModifications );
+	bool Read( ref ByteStream msg );
 }
 
 public enum Operator
@@ -122,7 +116,7 @@ public record struct ChunkModification<TSdf>( TSdf Sdf, Operator Operator )
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : ISdfWorld
+public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component, ISdfWorld
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -130,16 +124,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	where TArray : SdfArray<TSdf>, new()
 	where TSdf : ISdf<TSdf>
 {
-	public static implicit operator Entity( SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> world )
-	{
-		return world._impl as Entity;
-	}
-
 	private List<Modification<TResource, TSdf>> Modifications { get; } = new();
 
 	private ConcurrentQueue<TChunk> UpdatedChunkQueue { get; } = new();
-
-	private readonly ISdfWorldImpl _impl;
 
 	private bool _receivingModifications;
 
@@ -158,75 +145,15 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// </summary>
 	public int ModificationCount => Modifications.Count;
 
-	public bool IsValid => _impl.IsValid();
-	public SceneWorld Scene => _impl.Scene;
-
-	public Transform Transform
-	{
-		get => _impl.Transform;
-		set => _impl.Transform = value;
-	}
-
-	public Vector3 Position
-	{
-		get => _impl.Position;
-		set => _impl.Position = value;
-	}
-
-	public Rotation Rotation
-	{
-		get => _impl.Rotation;
-		set => _impl.Rotation = value;
-	}
-
-	public float Scale
-	{
-		get => _impl.Scale;
-		set => _impl.Scale = value;
-	}
-
-	public Vector3 LocalPosition
-	{
-		get => _impl.LocalPosition;
-		set => _impl.LocalPosition = value;
-	}
-
-	public Rotation LocalRotation
-	{
-		get => _impl.LocalRotation;
-		set => _impl.LocalRotation = value;
-	}
-
-	public float LocalScale
-	{
-		get => _impl.LocalScale;
-		set => _impl.LocalScale = value;
-	}
-
-	public EntityTags Tags => _impl.Tags;
-
-	internal SdfWorld( ISdfWorldImpl impl )
-	{
-		_impl = impl;
-	}
-
-	protected SdfWorld( SceneWorld sceneWorld )
-	{
-		_impl = new SdfWorldSceneObject( sceneWorld );
-	}
-
-	protected SdfWorld()
-	{
-		_impl = new SdfWorldEntity( this );
-	}
-
 	internal bool IsDestroying { get; private set; }
 
-	public void Dispose()
+	protected override void OnDestroy()
 	{
 		IsDestroying = true;
 
 		_ = ClearAsync();
+
+		base.OnDestroy();
 	}
 
 	private class Layer
@@ -242,26 +169,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
-	private Transform _prevTransform;
-
-	public void UpdateChunkTransforms()
+	protected override void OnUpdate()
 	{
-		for ( var i = AllChunks.Count - 1; i >= 0; --i )
-		{
-			AllChunks[i].UpdateTransform();
-		}
-	}
-
-	public void Update()
-	{
-		var transform = Transform;
-
-		if ( !transform.Equals( _prevTransform ) )
-		{
-			_prevTransform = transform;
-			UpdateChunkTransforms();
-		}
-
 		ProcessUpdatedChunkQueue();
 
 		foreach ( var (resource, layer) in Layers )
@@ -299,12 +208,10 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 #pragma warning disable SB3000
 	private static readonly Dictionary<TypeDescription, int> NetWrite_TypeIndices = new ();
 	private static readonly Dictionary<int, SdfReader<TSdf>> NetRead_TypeReaders = new();
-	private static readonly BinaryWriter NetWrite_BinaryWriter = new ( new MemoryStream() );
-	private static readonly BinaryReader NetRead_BinaryReader = new( new MemoryStream() );
 	// ReSharper enable StaticMemberInGenericType
 #pragma warning restore SB3000
 
-	public int Write( NetWrite msg, int prevModifications )
+	public int Write( ref ByteStream msg, int prevModifications )
 	{
 		var count = Math.Min( MaxModificationsPerMessage, ModificationCount - prevModifications );
 
@@ -313,23 +220,19 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		msg.Write( count );
 		msg.Write( ModificationCount );
 
-		NetWrite_BinaryWriter.BaseStream.Seek( 0, SeekOrigin.Begin );
-		NetWrite_BinaryWriter.BaseStream.SetLength( 0 );
+		var writer = ByteStream.Create( 512 );
 
-		WriteRange( NetWrite_BinaryWriter, prevModifications, count, NetWrite_TypeIndices );
+		WriteRange( ref writer, prevModifications, count, NetWrite_TypeIndices );
 
-		NetWrite_BinaryWriter.Flush();
+		msg.Write( writer.Length );
+		msg.Write( writer );
 
-		var buffer = ((MemoryStream)NetWrite_BinaryWriter.BaseStream).GetBuffer();
-		var size = (int)NetWrite_BinaryWriter.BaseStream.Length;
-
-		msg.Write( size );
-		msg.Write( buffer, 0, size );
+		writer.Dispose();
 
 		return count;
 	}
 
-	private void WriteRange( BinaryWriter writer, int from, int count, Dictionary<TypeDescription, int> sdfTypes )
+	private void WriteRange( ref ByteStream writer, int from, int count, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		for ( var i = 0; i < count; ++i )
 		{
@@ -337,11 +240,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 			writer.Write( (byte) modification.Operator );
 			writer.Write( modification.Resource.ResourceId );
-			modification.Sdf.Write( writer, sdfTypes );
+			modification.Sdf.Write( ref writer, sdfTypes );
 		}
 	}
 
-	public bool Read( ref NetRead msg )
+	public bool Read( ref ByteStream msg )
 	{
 		var clearCount = msg.Read<int>();
 		var prevCount = msg.Read<int>();
@@ -380,32 +283,22 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 
 		var size = msg.Read<int>();
-		var stream = (MemoryStream)NetRead_BinaryReader.BaseStream;
+		var stream = msg.ReadByteStream( size );
 
-		if ( stream.Capacity < size )
-		{
-			stream.Capacity = Helpers.NextPowerOf2( size );
-		}
-
-		stream.Seek( 0, SeekOrigin.Begin );
-		stream.SetLength( size );
-
-		msg.Read( stream.GetBuffer(), 0, size );
-
-		ReadRange( NetRead_BinaryReader, msgCount, NetRead_TypeReaders );
+		ReadRange( ref stream, msgCount, NetRead_TypeReaders );
 
 		return true;
 	}
 
-	private void ReadRange( BinaryReader reader, int count, IReadOnlyDictionary<int, SdfReader<TSdf>> sdfTypes )
+	private void ReadRange( ref ByteStream reader, int count, IReadOnlyDictionary<int, SdfReader<TSdf>> sdfTypes )
 	{
 		for ( var i = 0; i < count; ++i )
 		{
-			var op = (Operator) reader.ReadByte();
-			var resId = reader.ReadInt32();
-			var res = GlobalGameNamespace.ResourceLibrary.Get<TResource>( resId );
+			var op = (Operator) reader.Read<byte>();
+			var resId = reader.Read<int>();
+			var res = ResourceLibrary.Get<TResource>( resId );
 
-			var sdf = ISdf<TSdf>.Read( reader, sdfTypes );
+			var sdf = ISdf<TSdf>.Read( ref reader, sdfTypes );
 
 			var modification = new Modification<TResource, TSdf>( sdf, res, op );
 
@@ -449,7 +342,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		Modifications.Clear();
 
-		if ( Game.IsServer )
+		if ( Network.IsOwner )
 		{
 			++ClearCount;
 		}
@@ -511,8 +404,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		IEnumerable<Modification<TResource, TSdf>> modifications,
 		IEnumerable<Modification<TResource, TSdf>> toRebuild = null )
 	{
-		Assert.True( _impl is SdfWorldSceneObject, "Can only call SetModificationsAsync on worlds using scene objects." );
-
 		var chunksToRebuild = new HashSet<(TResource Resource, TChunkKey ChunkKey)>();
 
 		AddAffectedChunks( chunksToRebuild, toRebuild ?? Modifications );
@@ -692,14 +583,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void AssertCanModify()
 	{
-		Assert.True( _impl is not Entity { IsClientOnly: false } || Game.IsServer || _receivingModifications, 
-			"Can only modify server-created SDF Worlds on the server." );
+		Assert.True( Network.IsOwner || _receivingModifications, 
+			"Can only modify host-created SDF Worlds on the host." );
 	}
 
 	internal void ChunkMeshUpdated( TChunk chunk, bool removed )
 	{
-		if ( !Game.IsClient ) return;
-
 		foreach ( var (key, value) in Layers )
 		{
 			if ( key.ReferencedTextures == null ) continue;
@@ -716,11 +605,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	public bool HasPhysics => _impl.HasPhysics;
+	public bool HasPhysics => false;
 
 	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
 	{
-		return _impl.AddMeshShape( vertices, indices );
+		throw new NotImplementedException();
 	}
 
 	/// <summary>
@@ -743,12 +632,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		AssertCanModify();
 
 		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
-
-		if ( !Game.IsClient && !resource.HasCollision )
-		{
-			// Only care about collision on the server
-			return;
-		}
 
 		Task task;
 

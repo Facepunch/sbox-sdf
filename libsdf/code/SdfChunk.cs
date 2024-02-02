@@ -66,7 +66,7 @@ public record struct MeshDescription( IMeshWriter Writer, Material Material );
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : IDisposable, IValid
+public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -97,14 +97,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// If this chunk has collision, the generated physics mesh for this chunk.
 	/// </summary>
-	public PhysicsShape Shape { get; set; }
+	public ModelCollider Collider { get; set; }
 
 	/// <summary>
 	/// If this chunk is rendered, the scene object containing the generated mesh.
 	/// </summary>
-	public SceneObject SceneObject { get; private set; }
-	
-	public bool IsValid { get; private set; }
+	public ModelRenderer Renderer { get; private set; }
 
 	public abstract Vector3 LocalPosition { get; }
 
@@ -112,8 +110,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal void Init( TWorld world, TResource resource, TChunkKey key )
 	{
-		IsValid = true;
-
 		World = world;
 		Resource = resource;
 		Key = key;
@@ -130,24 +126,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	protected virtual void OnInit()
 	{
 
-	}
-
-	/// <inheritdoc />
-	public void Dispose()
-	{
-		if ( !IsValid )
-		{
-			return;
-		}
-
-		IsValid = false;
-
-		if ( World.IsValid() && !World.IsDestroying && Shape.IsValid() ) Shape.Remove();
-
-		if ( SceneObject.IsValid() ) SceneObject.Delete();
-
-		Shape = null;
-		SceneObject = null;
 	}
 
 	/// <summary>
@@ -199,7 +177,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		await OnUpdateMeshAsync();
 
-		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
+		if ( Renderer == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
 		await GameTask.MainThread();
 
@@ -212,7 +190,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal void UpdateLayerTexture( TResource resource, TChunk source )
 	{
-		if ( SceneObject == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
+		if ( Renderer == null || Resource.ReferencedTextures is not { Count: > 0 } ) return;
 
 		foreach ( var reference in Resource.ReferencedTextures )
 		{
@@ -241,11 +219,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 				return;
 			}
 
-			SceneObject.Attributes.Set( targetAttribute, source.Data.Texture );
+			Renderer.SceneObject.Attributes.Set( targetAttribute, source.Data.Texture );
 		}
 		else
 		{
-			SceneObject.Attributes.Set( targetAttribute, Data.Dimensions == 3 ? Static.White3D : Texture.White );
+			Renderer.SceneObject.Attributes.Set( targetAttribute, Data.Dimensions == 3 ? Static.White3D : Texture.White );
 		}
 
 		var quality = resource.Quality;
@@ -257,7 +235,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		var texParams = new Vector4( margin, margin, scale * size, quality.MaxDistance * 2f );
 
-		SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
+		Renderer.SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
 	}
 
 	/// <summary>
@@ -300,22 +278,24 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( indices.Count == 0 )
 		{
-			Shape?.Remove();
-			Shape = null;
+			Collider?.Destroy();
+			Collider = null;
 		}
 		else
 		{
 			var tags = Resource.SplitCollisionTags;
 
-			if ( !Shape.IsValid() )
+			if ( !Collider.IsValid() )
 			{
-				Shape = World.AddMeshShape( vertices, indices );
+				throw new NotImplementedException();
+				// Shape = World.AddMeshShape( vertices, indices );
 
-				foreach ( var tag in tags ) Shape.AddTag( tag );
+				foreach ( var tag in tags ) Collider.Tags.Add( tag );
 			}
 			else
 			{
-				Shape.UpdateMesh( vertices, indices );
+				throw new NotImplementedException();
+				// Shape.UpdateMesh( vertices, indices );
 			}
 		}
 	}
@@ -366,8 +346,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( _usedMeshes.Count == 0 )
 		{
-			SceneObject?.Delete();
-			SceneObject = null;
+			Renderer?.Destroy();
+			Renderer = null;
 			return;
 		}
 
@@ -375,29 +355,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			.AddMeshes( _usedMeshes.ToArray() )
 			.Create();
 
-		if ( SceneObject == null )
+		if ( !Renderer.IsValid() )
 		{
-			SceneObject = new SceneObject( World.Scene, model )
-			{
-				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
-			};
-
-			UpdateTransform();
-		}
-		else
-		{
-			SceneObject.Model = model;
-		}
-	}
-
-	internal void UpdateTransform()
-	{
-		if ( SceneObject == null )
-		{
-			return;
+			Renderer = Components.Create<ModelRenderer>();
+			Renderer.SceneObject.Batchable = Resource.ReferencedTextures is not { Count: > 0 };
 		}
 
-		SceneObject.Transform = World.Transform;
-		SceneObject.Position = World.Transform.PointToWorld( LocalPosition );
+		Renderer.Model = model;
 	}
 }

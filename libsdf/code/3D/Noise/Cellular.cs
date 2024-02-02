@@ -140,16 +140,16 @@ namespace Sandbox.Sdf.Noise
 			}
 		}
 
-		public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+		public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
 			writer.Write( Seed );
 			writer.Write( CellSize );
 			writer.Write( DistanceOffset );
 		}
 
-		public static CellularNoiseSdf3D ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
+		public static CellularNoiseSdf3D ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
-			return new CellularNoiseSdf3D( reader.ReadInt32(), reader.ReadVector3(), reader.ReadSingle() );
+			return new CellularNoiseSdf3D( reader.Read<int>(), reader.Read<Vector3>(), reader.Read<float>() );
 		}
 	}
 }

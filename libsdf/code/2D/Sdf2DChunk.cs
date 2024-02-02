@@ -47,7 +47,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 	/// <inheritdoc />
 	protected override async Task OnUpdateMeshAsync()
 	{
-		var enableRenderMesh = !Game.IsServer;
+		var enableRenderMesh = (Resource.FrontFaceMaterial ?? Resource.BackFaceMaterial ?? Resource.CutFaceMaterial) is not null;
 		var enableCollisionMesh = Resource.HasCollision && World.HasPhysics;
 
 		if ( !enableRenderMesh && !enableCollisionMesh )

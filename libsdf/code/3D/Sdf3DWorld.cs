@@ -9,32 +9,6 @@ namespace Sandbox.Sdf;
 /// </summary>
 public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
-	internal Sdf3DWorld( ISdfWorldImpl impl )
-		: base( impl )
-	{
-
-	}
-
-	/// <summary>
-	/// Create a <see cref="SceneObject"/>-based 3D surface that can be added to and subtracted from.
-	/// This won't use any entities, so is safe for use in menus and editors.
-	/// See <see cref="Sdf3DWorld()"/> for creating networked worlds with collision.
-	/// </summary>
-	public Sdf3DWorld( SceneWorld sceneWorld )
-		: base( sceneWorld )
-	{
-
-	}
-
-	/// <summary>
-	/// Create an <see cref="Entity"/>-based 3D surface that can be added to and subtracted from.
-	/// See <see cref="Sdf3DWorld(SceneWorld)"/> for creating worlds in menus and editors.
-	/// </summary>
-	public Sdf3DWorld()
-	{
-
-	}
-
 	public override int Dimensions => 3;
 
 	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max) GetChunkRange( BBox bounds, WorldQuality quality )

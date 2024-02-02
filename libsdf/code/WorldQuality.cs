@@ -44,7 +44,7 @@ public record struct WorldQuality( int ChunkResolution, float ChunkSize, float M
 	/// <summary>
 	/// Read an instance of <see cref="WorldQuality"/> from a <see cref="NetRead"/>er.
 	/// </summary>
-	public static WorldQuality Read( ref NetRead net )
+	public static WorldQuality Read( ref ByteStream net )
 	{
 		return new WorldQuality( net.Read<int>(),
 			net.Read<float>(),
@@ -54,7 +54,7 @@ public record struct WorldQuality( int ChunkResolution, float ChunkSize, float M
 	/// <summary>
 	/// Write this instance to a <see cref="NetWrite"/>er. Can be read with <see cref="Read"/>.
 	/// </summary>
-	public void Write( NetWrite net )
+	public void Write( ref ByteStream net )
 	{
 		net.Write( ChunkResolution );
 		net.Write( ChunkSize );

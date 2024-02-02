@@ -130,19 +130,19 @@ public record struct RectSdf( Vector2 Min, Vector2 Max, float CornerRadius = 0f 
 		}
 	}
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( Min );
 		writer.Write( Max );
 		writer.Write( CornerRadius );
 	}
 
-	public static RectSdf ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static RectSdf ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new RectSdf(
-			reader.ReadVector2(),
-			reader.ReadVector2(),
-			reader.ReadSingle() );
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
 	}
 }
 
@@ -159,17 +159,17 @@ public record struct CircleSdf( Vector2 Center, float Radius ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => (pos - Center).Length - Radius;
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( Center );
 		writer.Write( Radius );
 	}
 
-	public static CircleSdf ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static CircleSdf ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new CircleSdf(
-			reader.ReadVector2(),
-			reader.ReadSingle() );
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
 	}
 }
 
@@ -222,19 +222,19 @@ public record struct LineSdf( Vector2 PointA, Vector2 PointB, float Radius, Vect
 		}
 	}
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( PointA );
 		writer.Write( PointB );
 		writer.Write( Radius );
 	}
 
-	public static LineSdf ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static LineSdf ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new LineSdf(
-			reader.ReadVector2(),
-			reader.ReadVector2(),
-			reader.ReadSingle() );
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>(),
+			reader.Read<float>() );
 	}
 }
 
@@ -365,7 +365,7 @@ public readonly struct TextureSdf : ISdf2D
 		}
 	}
 	
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
 		writer.Write( _texture.ResourcePath );
 		writer.Write( _gradientWidthPixels );
@@ -374,14 +374,14 @@ public readonly struct TextureSdf : ISdf2D
 		writer.Write( _worldOffset );
 	}
 
-	public static TextureSdf ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static TextureSdf ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TextureSdf(
-			Texture.Load( FileSystem.Mounted, reader.ReadString() ),
-			reader.ReadInt32(),
-			(ColorChannel) reader.ReadByte(),
-			reader.ReadVector2(),
-			reader.ReadVector2() );
+			Texture.Load( FileSystem.Mounted, reader.Read<string>() ),
+			reader.Read<int>(),
+			(ColorChannel) reader.Read<byte>(),
+			reader.Read<Vector2>(),
+			reader.Read<Vector2>() );
 	}
 }
 
@@ -417,22 +417,22 @@ public record struct TransformedSdf2D<T>( T Sdf, Transform2D Transform, Rect Bou
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[Transform.InverseTransformPoint( pos )] * Transform.InverseScale;
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer, sdfTypes );
+		Sdf.Write( ref writer, sdfTypes );
 		writer.Write( Transform.Position );
 		writer.Write( Transform.Rotation );
 		writer.Write( Transform.Scale );
 	}
 
-	public static TransformedSdf2D<T> ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static TransformedSdf2D<T> ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TransformedSdf2D<T>(
-			(T)ISdf2D.Read( reader, sdfTypes ),
+			(T)ISdf2D.Read( ref reader, sdfTypes ),
 			new Transform2D(
-				reader.ReadVector2(),
-				reader.ReadVector2(),
-				reader.ReadSingle() ) );
+				reader.Read<Vector2>(),
+				reader.Read<Vector2>(),
+				reader.Read<float>() ) );
 	}
 }
 
@@ -448,17 +448,17 @@ public record struct TranslatedSdf2D<T>( T Sdf, Vector2 Offset ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos - Offset];
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer, sdfTypes );
+		Sdf.Write( ref writer, sdfTypes );
 		writer.Write( Offset );
 	}
 
-	public static TranslatedSdf2D<T> ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static TranslatedSdf2D<T> ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TranslatedSdf2D<T>(
-			(T) ISdf2D.Read( reader, sdfTypes ),
-			reader.ReadVector2() );
+			(T) ISdf2D.Read( ref reader, sdfTypes ),
+			reader.Read<Vector2>() );
 	}
 }
 
@@ -474,16 +474,16 @@ public record struct ExpandedSdf2D<T>( T Sdf, float Margin ) : ISdf2D
 	/// <inheritdoc />
 	public float this[Vector2 pos] => Sdf[pos] - Margin;
 
-	public void WriteRaw( BinaryWriter writer, Dictionary<TypeDescription, int> sdfTypes )
+	public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 	{
-		Sdf.Write( writer, sdfTypes );
+		Sdf.Write( ref writer, sdfTypes );
 		writer.Write( Margin );
 	}
 
-	public static ExpandedSdf2D<T> ReadRaw( BinaryReader reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
+	public static ExpandedSdf2D<T> ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new ExpandedSdf2D<T>(
-			(T) ISdf2D.Read( reader, sdfTypes ),
-			reader.ReadSingle() );
+			(T) ISdf2D.Read( ref reader, sdfTypes ),
+			reader.Read<float>() );
 	}
 }

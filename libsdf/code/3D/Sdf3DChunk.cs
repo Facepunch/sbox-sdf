@@ -46,7 +46,7 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	/// <inheritdoc />
 	protected override async Task OnUpdateMeshAsync()
 	{
-		var enableRenderMesh = !Game.IsServer && Resource.Material != null;
+		var enableRenderMesh = Resource.Material != null;
 		var enableCollisionMesh = Resource.HasCollision;
 
 		if ( !enableRenderMesh && !enableCollisionMesh )
