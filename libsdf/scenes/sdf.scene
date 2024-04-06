@@ -1,0 +1,150 @@
+{
+  "__guid": "d2f15d63-85c9-40fd-9d07-8651a20b2edf",
+  "GameObjects": [
+    {
+      "__guid": "ad8c215e-ac43-4b95-bd79-03f15c30e19c",
+      "Name": "Camera",
+      "Position": "-4000,0,2048",
+      "Rotation": "-0.0000000102214,0.1736482,0.00000000002244338,0.9848077",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "Components": [
+        {
+          "__type": "CameraComponent",
+          "__guid": "02a16ff4-71d8-4aa6-8ca2-cdf534f7b226",
+          "BackgroundColor": "0.33333,0.46275,0.52157,1",
+          "ClearFlags": "All",
+          "FieldOfView": 60,
+          "IsMainCamera": true,
+          "Orthographic": false,
+          "OrthographicHeight": 1204,
+          "Priority": 1,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 10
+        }
+      ]
+    },
+    {
+      "__guid": "1afb483b-06dd-45f1-9d92-3312e09a9e7b",
+      "Name": "Directional Light",
+      "Rotation": "0.4351622,0.4351622,-0.5573454,0.5573453",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "Components": [
+        {
+          "__type": "DirectionalLight",
+          "__guid": "4aa626c9-0c91-43f0-a8e4-646625b8e339",
+          "FogMode": "Enabled",
+          "FogStrength": 1,
+          "LightColor": "0.93564,0.98537,1,1",
+          "Shadows": true,
+          "SkyColor": "0.05882,0.07451,0.08235,1"
+        }
+      ]
+    },
+    {
+      "__guid": "35d3248e-82f1-4059-9685-50fc0a5d95c4",
+      "Name": "SDF World",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "Components": [
+        {
+          "__type": "Sdf3DWorldComponent",
+          "__guid": "5d112483-e56b-41be-8dbd-1f8c3660d4e9"
+        }
+      ],
+      "Children": [
+        {
+          "__guid": "6106d5b2-6cbb-4f77-87f4-ee3d497ce477",
+          "Name": "Sphere",
+          "Position": "0,0,597.5592",
+          "Enabled": true,
+          "NetworkMode": 2,
+          "Components": [
+            {
+              "__type": "Sdf3DSphereBrushComponent",
+              "__guid": "8a5fe4ff-3334-4cf3-889c-3d6a0f41dc72",
+              "Operator": "Add",
+              "Radius": 1024,
+              "Volume": "resources/white.sdfvol"
+            },
+            {
+              "__type": "Sdf3DNoiseComponent",
+              "__guid": "d37c4922-c53a-4aff-863d-0c1281546b34",
+              "BiasScale": 0.125,
+              "CellSize": "256,256,256",
+              "DistanceOffset": 0,
+              "Seed": 914407190
+            }
+          ]
+        },
+        {
+          "__guid": "259c37f2-f8d9-40c6-ab32-c9f98547d763",
+          "Name": "Sphere",
+          "Position": "557.2042,711.7593,1174.847",
+          "Enabled": true,
+          "NetworkMode": 2,
+          "Components": [
+            {
+              "__type": "Sdf3DSphereBrushComponent",
+              "__guid": "3275b01f-e0da-461a-9dfc-63183f52d671",
+              "Operator": "Add",
+              "Radius": 512,
+              "Volume": "resources/scorch.sdfvol"
+            }
+          ],
+          "Children": [
+            {
+              "__guid": "5a0a938e-0e75-4e38-ad9d-739df9ee1796",
+              "Name": "Sphere (1)",
+              "Position": "0.00003051758,0,0.0001220703",
+              "Enabled": true,
+              "NetworkMode": 2,
+              "Components": [
+                {
+                  "__type": "Sdf3DSphereBrushComponent",
+                  "__guid": "7bb7f793-e07d-4ef9-b3b0-8f236d676151",
+                  "Operator": "Subtract",
+                  "Radius": 442.89957,
+                  "Volume": "resources/white.sdfvol"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "Lerping": true,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 30,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "sdf",
+  "Description": "",
+  "LastSaved": "2024-04-06T12:04:44.0369955\u002B02:00",
+  "ResourceVersion": 1,
+  "__version": 1,
+  "__references": []
+}

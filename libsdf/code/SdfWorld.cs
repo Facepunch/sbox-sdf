@@ -573,7 +573,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return chunk;
 		}
 
-		layerData.Chunks[key] = chunk = new TChunk();
+		layerData.Chunks[key] = chunk = Components.Create<TChunk>();
 		chunk.Init( (TWorld) this, resource, key );
 
 		AllChunks.Add( chunk );

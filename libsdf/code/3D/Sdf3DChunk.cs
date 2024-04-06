@@ -63,7 +63,23 @@ public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 		if ( enableRenderMesh )
 		{
-			renderTask = UpdateRenderMeshesAsync( new MeshDescription( writer, Resource.Material ) );
+			var offset = new Vector3( Key.X, Key.Y, Key.Z ) * Resource.Quality.ChunkSize;
+			renderTask = GameTask.RunInThreadAsync( async () =>
+			{
+				// ReSharper disable AccessToDisposedClosure
+				var vertices = writer.Vertices;
+
+				for ( var i = 0; i < vertices.Count; ++i )
+				{
+					var temp = vertices[i];
+					temp.Position += offset;
+
+					vertices[i] = temp;
+				}
+
+				await UpdateRenderMeshesAsync( new MeshDescription( writer, Resource.Material ) );
+				// ReSharper restore AccessToDisposedClosure
+			} );
 		}
 
 		if ( enableCollisionMesh )

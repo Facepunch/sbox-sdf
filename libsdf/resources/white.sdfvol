@@ -1,0 +1,18 @@
+{
+  "Material": "materials/default/white.vmat",
+  "IsTextureSourceOnly": false,
+  "CollisionTags": "solid",
+  "QualityLevel": "Medium",
+  "ChunkResolution": 16,
+  "ChunkSize": 256,
+  "MaxDistance": 64,
+  "ReferencedTextures": [
+    {
+      "TargetAttribute": "ScorchLayer",
+      "Source": "sdf/scorch.sdfvol"
+    }
+  ],
+  "ResourceVersion": 0,
+  "__version": 0,
+  "__references": []
+}
