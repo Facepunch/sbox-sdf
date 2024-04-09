@@ -353,8 +353,6 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( !Renderer.IsValid() )
 		{
 			Renderer = new SceneObject( Scene.SceneWorld, model );
-			// Renderer = ChunkObject.Components.Create<ModelRenderer>();
-			// Renderer.SceneObject.Position = new Vector3( 256f, 256f, 256f );
 			Renderer.Batchable = Resource.ReferencedTextures is not { Count: > 0 };
 		}
 

@@ -39,11 +39,8 @@ public partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf
 			return;
 		}
 
-		if ( state.clearCount != clearCount || state.modificationCount <= modificationCount )
-		{
-			Log.Info( $"Can't do something else" );
+		if (state.clearCount != clearCount || state.modificationCount <= modificationCount)
 			return;
-		}
 		
 		ConnectionStates[conn] = state with { modificationCount = modificationCount };
 	}
