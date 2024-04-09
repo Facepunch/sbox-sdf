@@ -8,7 +8,6 @@
   "HasAssets": true,
   "AssetsPath": "",
   "Resources": "/shaders/*.hlsl\n",
-  "MenuResources": null,
   "HasCode": true,
   "CodePath": "/code/",
   "PackageReferences": [
