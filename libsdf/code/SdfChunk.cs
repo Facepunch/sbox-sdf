@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sandbox.Sdf;
@@ -97,12 +94,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// <summary>
 	/// If this chunk has collision, the generated physics mesh for this chunk.
 	/// </summary>
-	public ModelCollider Collider { get; set; }
+	public PhysicsShape Shape { get; set; }
 
 	/// <summary>
 	/// If this chunk is rendered, the scene object containing the generated mesh.
 	/// </summary>
-	public ModelRenderer Renderer { get; private set; }
+	public SceneObject Renderer { get; private set; }
 
 	public abstract Vector3 LocalPosition { get; }
 
@@ -219,11 +216,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 				return;
 			}
 
-			Renderer.SceneObject.Attributes.Set( targetAttribute, source.Data.Texture );
+			Renderer.Attributes.Set( targetAttribute, source.Data.Texture );
 		}
 		else
 		{
-			Renderer.SceneObject.Attributes.Set( targetAttribute, Data.Dimensions == 3 ? Static.White3D : Texture.White );
+			Renderer.Attributes.Set( targetAttribute, Data.Dimensions == 3 ? Static.White3D : Texture.White );
 		}
 
 		var quality = resource.Quality;
@@ -235,7 +232,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		var texParams = new Vector4( margin, margin, scale * size, quality.MaxDistance * 2f );
 
-		Renderer.SceneObject.Attributes.Set( $"{targetAttribute}_Params", texParams );
+		Renderer.Attributes.Set( $"{targetAttribute}_Params", texParams );
 	}
 
 	/// <summary>
@@ -278,24 +275,22 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( indices.Count == 0 )
 		{
-			Collider?.Destroy();
-			Collider = null;
+			Shape?.Remove();
+			Shape = null;
 		}
 		else
 		{
 			var tags = Resource.SplitCollisionTags;
 
-			if ( !Collider.IsValid() )
+			if ( !Shape.IsValid() )
 			{
-				throw new NotImplementedException();
-				// Shape = World.AddMeshShape( vertices, indices );
+				Shape = World.AddMeshShape( vertices, indices );
 
-				foreach ( var tag in tags ) Collider.Tags.Add( tag );
+				foreach ( var tag in tags ) Shape.Tags.Add( tag );
 			}
 			else
 			{
-				throw new NotImplementedException();
-				// Shape.UpdateMesh( vertices, indices );
+				Shape.UpdateMesh( vertices, indices );
 			}
 		}
 	}
@@ -346,7 +341,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( _usedMeshes.Count == 0 )
 		{
-			Renderer?.Destroy();
+			Renderer?.Delete();
 			Renderer = null;
 			return;
 		}
@@ -357,10 +352,21 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( !Renderer.IsValid() )
 		{
-			Renderer = Components.Create<ModelRenderer>();
-			Renderer.SceneObject.Batchable = Resource.ReferencedTextures is not { Count: > 0 };
+			Renderer = new SceneObject( Scene.SceneWorld, model );
+			// Renderer = ChunkObject.Components.Create<ModelRenderer>();
+			// Renderer.SceneObject.Position = new Vector3( 256f, 256f, 256f );
+			Renderer.Batchable = Resource.ReferencedTextures is not { Count: > 0 };
 		}
 
 		Renderer.Model = model;
+	}
+
+	internal void UpdateTransform()
+	{
+		if ( !Renderer.IsValid() )
+			return;
+
+		Renderer.Transform = World.Transform.World;
+		Renderer.Position = World.Transform.World.PointToWorld( LocalPosition );
 	}
 }

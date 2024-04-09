@@ -1,23 +1,25 @@
-﻿using Sandbox.Diagnostics;
-using System;
+﻿using System;
+using Sandbox.Diagnostics;
+using Sandbox.Internal;
+using Sandbox.Utility;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Sandbox.Internal;
-using Sandbox.Utility;
 
 namespace Sandbox.Sdf;
 
 [AttributeUsage( AttributeTargets.Method )]
 public sealed class RegisterSdfTypesAttribute : Attribute
 {
-
 }
 
-public delegate T SdfReader<T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) where T : ISdf<T>;
-public delegate T SdfReader<TBase, T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<TBase>> sdfTypes ) where TBase : ISdf<TBase> where T : TBase;
+public delegate T SdfReader<T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes )
+	where T : ISdf<T>;
+
+public delegate T SdfReader<TBase, T>( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<TBase>> sdfTypes )
+	where TBase : ISdf<TBase> where T : TBase;
 
 public interface ISdf<T>
 	where T : ISdf<T>
@@ -35,7 +37,8 @@ public interface ISdf<T>
 
 		_sTypesRegistered = true;
 
-		foreach ( var (method, _) in GlobalGameNamespace.TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
+		foreach ( var (method, _) in
+		         GlobalGameNamespace.TypeLibrary.GetMethodsWithAttribute<RegisterSdfTypesAttribute>() )
 		{
 			method.Invoke( null );
 		}
@@ -49,7 +52,8 @@ public interface ISdf<T>
 		where TSdf : T
 	{
 		RegisteredTypes.Add( (GlobalGameNamespace.TypeLibrary.GetType( typeof(TSdf) ),
-			( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) => readRaw( ref reader, sdfTypes )) );
+			( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<T>> sdfTypes ) =>
+				readRaw( ref reader, sdfTypes )) );
 	}
 
 	public void Write( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
@@ -147,6 +151,8 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	internal bool IsDestroying { get; private set; }
 
+	private PhysicsBody PhysicsBody { get; set; }
+
 	protected override void OnDestroy()
 	{
 		IsDestroying = true;
@@ -171,6 +177,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	protected override void OnUpdate()
 	{
+		for ( var i = AllChunks.Count - 1; i >= 0; --i )
+		{
+			AllChunks[i].UpdateTransform();
+		}
+
 		ProcessUpdatedChunkQueue();
 
 		foreach ( var (resource, layer) in Layers )
@@ -190,6 +201,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 				DispatchUpdateMesh( layer );
 			}
 		}
+
+		if ( IsProxy )
+			return;
+
+		foreach ( var conn in Connection.All.Where( c => c != Connection.Host ) )
+			SendModifications( conn );
 	}
 
 	public void Write( Stream stream )
@@ -206,7 +223,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	// ReSharper disable StaticMemberInGenericType
 #pragma warning disable SB3000
-	private static readonly Dictionary<TypeDescription, int> NetWrite_TypeIndices = new ();
+	private static readonly Dictionary<TypeDescription, int> NetWrite_TypeIndices = new();
 	private static readonly Dictionary<int, SdfReader<TSdf>> NetRead_TypeReaders = new();
 	// ReSharper enable StaticMemberInGenericType
 #pragma warning restore SB3000
@@ -220,14 +237,12 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		msg.Write( count );
 		msg.Write( ModificationCount );
 
-		var writer = ByteStream.Create( 512 );
+		WriteRange( ref msg, prevModifications, count, NetWrite_TypeIndices );
 
-		WriteRange( ref writer, prevModifications, count, NetWrite_TypeIndices );
+		/*		msg.Write( writer.Length );
+				msg.Write( writer );
 
-		msg.Write( writer.Length );
-		msg.Write( writer );
-
-		writer.Dispose();
+				writer.Dispose();*/
 
 		return count;
 	}
@@ -238,7 +253,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			var modification = Modifications[from + i];
 
-			writer.Write( (byte) modification.Operator );
+			writer.Write( (byte)modification.Operator );
 			writer.Write( modification.Resource.ResourceId );
 			modification.Sdf.Write( ref writer, sdfTypes );
 		}
@@ -282,10 +297,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			NetRead_TypeReaders[index++] = reader;
 		}
 
-		var size = msg.Read<int>();
-		var stream = msg.ReadByteStream( size );
-
-		ReadRange( ref stream, msgCount, NetRead_TypeReaders );
+		ReadRange( ref msg, msgCount, NetRead_TypeReaders );
 
 		return true;
 	}
@@ -294,7 +306,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		for ( var i = 0; i < count; ++i )
 		{
-			var op = (Operator) reader.Read<byte>();
+			var op = (Operator)reader.Read<byte>();
 			var resId = reader.Read<int>();
 			var res = ResourceLibrary.Get<TResource>( resId );
 
@@ -322,7 +334,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return new DisposeAction( () => _receivingModifications = false );
 	}
 
-	[Obsolete($"Please use {nameof(ClearAsync)}")]
+	[Obsolete( $"Please use {nameof(ClearAsync)}" )]
 	public void Clear()
 	{
 		_ = ClearAsync();
@@ -371,7 +383,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		await GameTask.WhenAll( Layers.Values.SelectMany( x => x.Chunks.Values ).Select( x => x.ClearAsync( false ) ) );
 	}
 
-	[Obsolete( $"Please use {nameof( ClearAsync )}" )]
+	[Obsolete( $"Please use {nameof(ClearAsync)}" )]
 	public void Clear( TResource resource )
 	{
 		_ = ClearAsync( resource );
@@ -474,7 +486,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	[Obsolete( $"Please use {nameof( AddAsync )}" )]
+	[Obsolete( $"Please use {nameof(AddAsync)}" )]
 	public bool Add<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
@@ -499,7 +511,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return ModifyChunksAsync( sdf, resource, true, ( chunk, sdf ) => chunk.AddAsync( sdf ) );
 	}
 
-	[Obsolete( $"Please use {nameof( SubtractAsync )}" )]
+	[Obsolete( $"Please use {nameof(SubtractAsync)}" )]
 	public bool Subtract<T>( in T sdf, TResource resource )
 		where T : TSdf
 	{
@@ -524,7 +536,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		return ModifyChunksAsync( sdf, resource, false, ( chunk, sdf ) => chunk.SubtractAsync( sdf ) );
 	}
 
-	[Obsolete( $"Please use {nameof( SubtractAsync )}" )]
+	[Obsolete( $"Please use {nameof(SubtractAsync)}" )]
 	public bool Subtract<T>( in T sdf )
 		where T : TSdf
 	{
@@ -554,9 +566,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( IsDestroying ) return null;
 
 		return Layers.TryGetValue( resource, out var layerData )
-			&& layerData.Chunks.TryGetValue( key, out var chunk )
-				? chunk
-				: null;
+		       && layerData.Chunks.TryGetValue( key, out var chunk )
+			? chunk
+			: null;
 	}
 
 	private TChunk GetOrCreateChunk( TResource resource, TChunkKey key )
@@ -573,8 +585,9 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 			return chunk;
 		}
 
-		layerData.Chunks[key] = chunk = new TChunk();
-		chunk.Init( (TWorld) this, resource, key );
+		chunk = Components.Create<TChunk>();
+		layerData.Chunks[key] = chunk;
+		chunk.Init( (TWorld)this, resource, key );
 
 		AllChunks.Add( chunk );
 
@@ -583,7 +596,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private void AssertCanModify()
 	{
-		Assert.True( Network.IsOwner || _receivingModifications, 
+		Assert.True( Network.IsOwner || _receivingModifications,
 			"Can only modify host-created SDF Worlds on the host." );
 	}
 
@@ -605,11 +618,19 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	public bool HasPhysics => false;
+	public bool HasPhysics => true;
 
 	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
 	{
-		throw new NotImplementedException();
+		if ( PhysicsBody is null )
+		{
+			PhysicsBody = new PhysicsBody( Scene.PhysicsWorld );
+			PhysicsBody.BodyType = PhysicsBodyType.Static;
+			PhysicsBody.SetComponentSource( this );
+			PhysicsBody.Transform = Transform.World;
+		}
+
+		return PhysicsBody.AddMeshShape( vertices, indices );
 	}
 
 	/// <summary>
@@ -631,7 +652,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		AssertCanModify();
 
-		if ( resource == null ) throw new ArgumentNullException( nameof( resource ) );
+		if ( resource == null ) throw new ArgumentNullException( nameof(resource) );
 
 		Task task;
 
