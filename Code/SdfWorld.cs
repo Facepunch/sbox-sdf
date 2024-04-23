@@ -205,7 +205,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		if ( IsProxy )
 			return;
 
-		foreach ( var conn in Connection.All.Where( c => c != Connection.Host ) )
+		foreach ( var conn in Connection.All.Where( c => c != Connection.Host && c.IsActive ) )
 			SendModifications( conn );
 	}
 
