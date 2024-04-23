@@ -2,5 +2,5 @@
 launchSettings.json
 *.csproj
 *_c
-libsdf/.idea
-libsdf/libsdf.sln
+.idea
+*.sln
