@@ -225,9 +225,10 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 			for ( var i = 0; i < builder.Vertices.Count; ++i )
 			{
-				var pos = builder.Vertices[i] * scale;
-				var normal = builder.Normals[i];
-				var tangent = builder.Tangents[i];
+				var vertex = builder.Vertices[i];
+				var pos = vertex.Position * scale;
+				var normal = vertex.Normal;
+				var tangent = vertex.Tangent;
 
 				normal.z *= zScale;
 
@@ -362,7 +363,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 
 			foreach ( var v in builder.Vertices )
 			{
-				Vertices.Add( offset + v * scale );
+				Vertices.Add( offset + v.Position * scale );
 			}
 
 			if ( scale.z >= 0f )
