@@ -18,17 +18,18 @@ public sealed class SdfNetwork : Component
 		Instance = this;
 	}
 
-	[Unicast]
-	public void SendMeMissing( Connection connection, int clearCount, int modificationCount )
+	[Broadcast]
+	private void SendMeMissing( int clearCount, int modificationCount )
 	{
-		Log.Info( $"Want to send missing to {connection.DisplayName} : {connection.Name} with {clearCount}-{modificationCount}" );
-		SdfWorld.RequestMissing( connection, clearCount, modificationCount );
+		Log.Info( $"Want to send missing to {Rpc.Caller.DisplayName} : {Rpc.Caller.Name} with {clearCount}-{modificationCount}" );
+
+		SdfWorld.RequestMissing( Rpc.Caller, clearCount, modificationCount );
 	}
 
 	private TimeSince _notifiedMissingModifications = float.PositiveInfinity;
 
-	[Unicast]
-	public void WriteRpc( Connection connection, byte[] bytes )
+	[Broadcast]
+	public void WriteRpc( byte[] bytes )
 	{
 		var byteStream = ByteStream.CreateReader( bytes );
 		if ( SdfWorld.Read( ref byteStream ) )
@@ -41,7 +42,10 @@ public sealed class SdfNetwork : Component
 		{
 			_notifiedMissingModifications = 0f;
 
-			SendMeMissing( connection, SdfWorld.ClearCount, SdfWorld.ModificationCount );
+			using ( Rpc.FilterOnly( Rpc.Caller ) )
+			{
+				SendMeMissing( SdfWorld.ClearCount, SdfWorld.ModificationCount );
+			}
 		}
 	}
 }
