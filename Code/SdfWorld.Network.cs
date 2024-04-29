@@ -27,7 +27,7 @@ public partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf
 
 		ConnectionStates[conn] = state with { modificationCount = state.modificationCount + count };
 
-		using ( Rpc.FilterOnly( conn ) )
+		using ( Rpc.FilterInclude( conn ) )
 		{
 			SdfNetwork.Instance.WriteRpc( byteStream.ToArray() );
 		}

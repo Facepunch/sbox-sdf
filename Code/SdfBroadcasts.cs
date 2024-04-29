@@ -42,7 +42,7 @@ public sealed class SdfNetwork : Component
 		{
 			_notifiedMissingModifications = 0f;
 
-			using ( Rpc.FilterOnly( Rpc.Caller ) )
+			using ( Rpc.FilterInclude( Rpc.Caller ) )
 			{
 				SendMeMissing( SdfWorld.ClearCount, SdfWorld.ModificationCount );
 			}
