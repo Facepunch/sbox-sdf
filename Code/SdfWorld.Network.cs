@@ -29,14 +29,17 @@ public partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf
 
 		using ( Rpc.FilterInclude( conn ) )
 		{
-			SdfNetwork.Instance.WriteRpc( byteStream.ToArray() );
+			Rpc_SendModifications( byteStream.ToArray() );
 		}
 
 		byteStream.Dispose();
 	}
 
-	public void RequestMissing( Connection conn, int clearCount, int modificationCount )
+	[Broadcast]
+	private void Rpc_RequestMissing( int clearCount, int modificationCount )
 	{
+		var conn = Rpc.Caller;
+
 		if ( !ConnectionStates.TryGetValue( conn, out var state ) )
 		{
 			Log.Info( $"Can't find connection state for {conn.DisplayName}" );
@@ -47,5 +50,28 @@ public partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf
 			return;
 		
 		ConnectionStates[conn] = state with { modificationCount = modificationCount };
+	}
+
+	private TimeSince _notifiedMissingModifications = float.PositiveInfinity;
+
+	[Broadcast]
+	private void Rpc_SendModifications( byte[] bytes )
+	{
+		var byteStream = ByteStream.CreateReader( bytes );
+		if ( Read( ref byteStream ) )
+		{
+			_notifiedMissingModifications = float.PositiveInfinity;
+			return;
+		}
+
+		if ( _notifiedMissingModifications >= 0.5f )
+		{
+			_notifiedMissingModifications = 0f;
+
+			using ( Rpc.FilterInclude( Rpc.Caller ) )
+			{
+				Rpc_RequestMissing( ClearCount, ModificationCount );
+			}
+		}
 	}
 }
