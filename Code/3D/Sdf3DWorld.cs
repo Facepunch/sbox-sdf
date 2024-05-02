@@ -7,6 +7,7 @@ namespace Sandbox.Sdf;
 /// Main entity for creating a 3D surface that can be added to and subtracted from.
 /// Multiple volumes can be added to this entity with different materials.
 /// </summary>
+[Title( "SDF 3D World" )]
 public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
 	public override int Dimensions => 3;

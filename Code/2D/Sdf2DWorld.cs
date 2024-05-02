@@ -7,6 +7,7 @@ namespace Sandbox.Sdf;
 /// Main entity for creating a set of 2D surfaces that can be added to and subtracted from.
 /// Each surface is aligned to the same plane, but can have different offsets, depths, and materials.
 /// </summary>
+[Title( "SDF 2D World" )]
 public partial class Sdf2DWorld : SdfWorld<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (int X, int Y), Sdf2DArray, ISdf2D>
 {
 	/// <inheritdoc />
