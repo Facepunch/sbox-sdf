@@ -19,7 +19,7 @@ Material ToMaterialTriplanar( in PixelInput i, in Texture2D tColor, in Texture2D
 	float2 uvY = worldPos.xz;
 	float2 uvZ = worldPos.xy;
 
-	float3 triblend = saturate(pow(i.vNormalOs.xyz, 4));
+	float3 triblend = saturate(pow(abs(i.vNormalOs.xyz), 4));
 	triblend /= max(dot(triblend, half3(1,1,1)), 0.0001);
 
 	half3 absVertNormal = abs(i.vNormalOs);
