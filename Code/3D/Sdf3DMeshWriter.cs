@@ -9,7 +9,7 @@ namespace Sandbox.Sdf;
 internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 {
 	private ConcurrentQueue<Triangle> Triangles { get; } = new ConcurrentQueue<Triangle>();
-	private Dictionary<VertexKey, int> VertexMap { get; } = new Dictionary<VertexKey, int>();
+	private Dictionary<(VertexKey Key, UvPlane Plane), int> VertexMap { get; } = new();
 
 	public List<Vertex> Vertices { get; } = new List<Vertex>();
 	public List<Vector3> VertexPositions { get; } = new List<Vector3>();
@@ -69,9 +69,15 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 
 		foreach ( var triangle in Triangles )
 		{
-			Indices.Add( AddVertex( data, triangle.V0, unitSize ) );
-			Indices.Add( AddVertex( data, triangle.V1, unitSize ) );
-			Indices.Add( AddVertex( data, triangle.V2, unitSize ) );
+			var pos0 = GetPosition( data, triangle.V0 );
+			var pos1 = GetPosition( data, triangle.V1 );
+			var pos2 = GetPosition( data, triangle.V2 );
+
+			var uvPlane = GetUvPlane( pos0, pos1, pos2 );
+
+			Indices.Add( AddVertex( data, triangle.V0, uvPlane, pos0, unitSize ) );
+			Indices.Add( AddVertex( data, triangle.V1, uvPlane, pos1, unitSize ) );
+			Indices.Add( AddVertex( data, triangle.V2, uvPlane, pos2, unitSize ) );
 		}
 
 		for ( var i = baseIndex; i < Vertices.Count; ++i )
@@ -80,6 +86,34 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 
 			Vertices[i] = vertex with { Normal = vertex.Normal.Normal };
 		}
+	}
+
+	private static UvPlane GetUvPlane( Vector3 pos0, Vector3 pos1, Vector3 pos2 )
+	{
+		var cross = Vector3.Cross( pos1 - pos0, pos2 - pos0 );
+
+		var absX = MathF.Abs( cross.x );
+		var absY = MathF.Abs( cross.y );
+		var absZ = MathF.Abs( cross.z );
+
+		return absX >= absY && absX >= absZ ? cross.x > 0f ? UvPlane.PosX : UvPlane.NegX
+			: absY >= absZ ? cross.y > 0f ? UvPlane.PosY : UvPlane.NegY
+			: cross.z > 0f ? UvPlane.PosZ : UvPlane.NegZ;
+	}
+
+	private static (Vector3 U, Vector3 V) GetTangents( UvPlane plane )
+	{
+		return plane switch
+		{
+			UvPlane.PosX => (new Vector3( 0f, 0f, -1f ), new Vector3( 0f, 1f, 0f )),
+			UvPlane.NegX => (new Vector3( 0f, 0f, 1f ), new Vector3( 0f, 1f, 0f )),
+
+			UvPlane.PosY => (new Vector3( 1f, 0f, 0f ), new Vector3( 0f, 0f, 1f )),
+			UvPlane.NegY => (new Vector3( -1f, 0f, 0f ), new Vector3( 0f, 0f, 1f )),
+
+			UvPlane.PosZ => (new Vector3( 1f, 0f, 0f ), new Vector3( 0f, 1f, 0f )),
+			UvPlane.NegZ => (new Vector3( -1f, 0f, 0f ), new Vector3( 0f, 1f, 0f )),
+		};
 	}
 
 	public void ApplyTo( Mesh mesh )
@@ -118,18 +152,55 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 		}
 	}
 
-	private static Vertex GetVertex( in Sdf3DArrayData data, VertexKey key )
+	private static Vector3 GetPosition( in Sdf3DArrayData data, VertexKey key )
 	{
-		Vector3 pos;
+		switch ( key.Vertex )
+		{
+			case NormalizedVertex.A:
+				{
+					return new Vector3( key.X, key.Y, key.Z );
+				}
 
+			case NormalizedVertex.AB:
+				{
+					var a = data[key.X, key.Y, key.Z] - 127.5f;
+					var b = data[key.X + 1, key.Y, key.Z] - 127.5f;
+					var t = a / (a - b);
+
+					return new Vector3( key.X + t, key.Y, key.Z );
+				}
+
+			case NormalizedVertex.AC:
+				{
+					var a = data[key.X, key.Y, key.Z] - 127.5f;
+					var c = data[key.X, key.Y + 1, key.Z] - 127.5f;
+					var t = a / (a - c);
+
+					return new Vector3( key.X, key.Y + t, key.Z );
+				}
+
+			case NormalizedVertex.AE:
+				{
+					var a = data[key.X, key.Y, key.Z] - 127.5f;
+					var e = data[key.X, key.Y, key.Z + 1] - 127.5f;
+					var t = a / (a - e);
+
+					return new Vector3( key.X, key.Y, key.Z + t );
+				}
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
+
+	private static Vertex GetVertex( in Sdf3DArrayData data, VertexKey key, UvPlane plane, Vector3 pos )
+	{
 		float xNeg, xPos, yNeg, yPos, zNeg, zPos;
 
 		switch ( key.Vertex )
 		{
 			case NormalizedVertex.A:
 			{
-				pos = new Vector3( key.X, key.Y, key.Z );
-
 				xNeg = data[key.X - 1, key.Y, key.Z];
 				xPos = data[key.X + 1, key.Y, key.Z];
 				yNeg = data[key.X, key.Y - 1, key.Z];
@@ -141,12 +212,6 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 
 			case NormalizedVertex.AB:
 			{
-				var a = data[key.X, key.Y, key.Z] - 127.5f;
-				var b = data[key.X + 1, key.Y, key.Z] - 127.5f;
-				var t = a / (a - b);
-
-				pos = new Vector3( key.X + t, key.Y, key.Z );
-
 				xNeg = data[pos.x - 1, key.Y, key.Z];
 				xPos = data[pos.x + 1, key.Y, key.Z];
 				yNeg = data[pos.x, key.Y - 1, key.Z];
@@ -158,12 +223,6 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 
 			case NormalizedVertex.AC:
 			{
-				var a = data[key.X, key.Y, key.Z] - 127.5f;
-				var c = data[key.X, key.Y + 1, key.Z] - 127.5f;
-				var t = a / (a - c);
-
-				pos = new Vector3( key.X, key.Y + t, key.Z );
-
 				xNeg = data[key.X - 1, pos.y, key.Z];
 				xPos = data[key.X + 1, pos.y, key.Z];
 				yNeg = data[key.X, pos.y - 1, key.Z];
@@ -175,12 +234,6 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 
 			case NormalizedVertex.AE:
 			{
-				var a = data[key.X, key.Y, key.Z] - 127.5f;
-				var e = data[key.X, key.Y, key.Z + 1] - 127.5f;
-				var t = a / (a - e);
-
-				pos = new Vector3( key.X, key.Y, key.Z + t );
-
 				xNeg = data[key.X - 1, key.Y, pos.z];
 				xPos = data[key.X + 1, key.Y, pos.z];
 				yNeg = data[key.X, key.Y - 1, pos.z];
@@ -194,7 +247,18 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 				throw new NotImplementedException();
 		}
 
-		return new Vertex( pos, new Vector3( xPos - xNeg, yPos - yNeg, zPos - zNeg ).Normal );
+		var normal = new Vector3( xPos - xNeg, yPos - yNeg, zPos - zNeg ).Normal;
+		var basisTangents = GetTangents( plane );
+
+		var u = Vector3.Dot( basisTangents.U, pos );
+		var v = Vector3.Dot( basisTangents.V, pos );
+
+		var tangent = Vector3.Cross( basisTangents.V, normal );
+		var binormal = Vector3.Cross( tangent, normal );
+
+		return new Vertex( pos, normal,
+			new Vector4( tangent, MathF.Sign( Vector3.Dot( basisTangents.V, binormal ) ) ),
+			new Vector2( u, v ) );
 	}
 
 	partial void AddTriangles( in Sdf3DArrayData data, int x, int y, int z );
@@ -204,23 +268,23 @@ internal partial class Sdf3DMeshWriter : Pooled<Sdf3DMeshWriter>, IMeshWriter
 		Triangles.Enqueue( new Triangle( x, y, z, v0, v1, v2 ) );
 	}
 
-	private int AddVertex( in Sdf3DArrayData data, VertexKey key, float unitSize )
+	private int AddVertex( in Sdf3DArrayData data, VertexKey key, UvPlane plane, Vector3 pos, float unitSize )
 	{
-		if ( VertexMap.TryGetValue( key, out var index ) )
+		if ( VertexMap.TryGetValue( (key, plane), out var index ) )
 		{
 			return index;
 		}
 
 		index = Vertices.Count;
 
-		var vertex = GetVertex( in data, key );
+		var vertex = GetVertex( in data, key, plane, pos );
 
 		vertex = vertex with { Position = vertex.Position * unitSize };
 
 		Vertices.Add( vertex );
 		VertexPositions.Add( vertex.Position );
 
-		VertexMap.Add( key, index );
+		VertexMap.Add( (key, plane), index );
 
 		return index;
 	}

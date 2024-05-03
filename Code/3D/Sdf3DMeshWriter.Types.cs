@@ -58,6 +58,16 @@ partial class Sdf3DMeshWriter
 		BaseMask = 0xff ^ OffsetMask
 	}
 
+	private enum UvPlane
+	{
+		NegX,
+		PosX,
+		NegY,
+		PosY,
+		NegZ,
+		PosZ
+	}
+
 	private record struct VertexKey( int X, int Y, int Z, NormalizedVertex Vertex )
 	{
 		public static VertexKey Normalize( int x, int y, int z, CubeVertex vertex )
@@ -90,11 +100,6 @@ partial class Sdf3DMeshWriter
 					throw new NotImplementedException();
 			}
 		}
-
-		public VertexKey Offset( int x, int y, int z )
-		{
-			return new VertexKey( X + x, Y + y, Z + z, Vertex );
-		}
 	}
 
 	private record struct Triangle( VertexKey V0, VertexKey V1, VertexKey V2 )
@@ -108,12 +113,14 @@ partial class Sdf3DMeshWriter
 	}
 
 	[StructLayout( LayoutKind.Sequential )]
-	public record struct Vertex( Vector3 Position, Vector3 Normal )
+	public record struct Vertex( Vector3 Position, Vector3 Normal, Vector4 Tangent, Vector2 TexCoord )
 	{
 		public static VertexAttribute[] Layout { get; } =
 		{
 			new( VertexAttributeType.Position, VertexAttributeFormat.Float32 ),
-			new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 )
+			new( VertexAttributeType.Normal, VertexAttributeFormat.Float32 ),
+			new( VertexAttributeType.Tangent, VertexAttributeFormat.Float32, 4 ),
+			new( VertexAttributeType.TexCoord, VertexAttributeFormat.Float32, 2 )
 		};
 	}
 }
