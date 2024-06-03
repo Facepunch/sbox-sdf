@@ -193,6 +193,7 @@ public abstract partial class SdfArray<TSdf>
 	{
 		Array.Fill( BackBuffer, solid ? (byte) 0 : (byte) 255 );
 		SwapBuffers();
+		MarkChanged();
 	}
 
 	/// <summary>
