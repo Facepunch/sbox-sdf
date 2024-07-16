@@ -8,7 +8,7 @@ namespace Sandbox.Sdf;
 /// Base class for networked arrays containing raw SDF samples as bytes.
 /// </summary>
 /// <typeparam name="TSdf">Interface for SDFs that can modify the array</typeparam>
-public abstract partial class SdfArray<TSdf>
+public abstract partial class SdfArray<TSdf> : IDisposable
 	where TSdf : ISdf<TSdf>
 {
 	/// <summary>
@@ -203,5 +203,12 @@ public abstract partial class SdfArray<TSdf>
 	protected void MarkChanged()
 	{
 		_textureInvalid = true;
+	}
+
+	/// <inhertidoc />
+	public void Dispose()
+	{
+		_texture?.Dispose();
+		_texture = null;
 	}
 }

@@ -50,7 +50,7 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		var enableRenderMesh = (Resource.FrontFaceMaterial ?? Resource.BackFaceMaterial ?? Resource.CutFaceMaterial) is not null;
 		var enableCollisionMesh = Resource.HasCollision && World.HasPhysics;
 
-		if ( !enableRenderMesh && !enableCollisionMesh )
+		if ( !IsValid || !enableRenderMesh && !enableCollisionMesh )
 		{
 			return;
 		}
@@ -68,6 +68,8 @@ public partial class Sdf2DChunk : SdfChunk<Sdf2DWorld, Sdf2DChunk, Sdf2DLayer, (
 		}
 		catch ( Exception e )
 		{
+			if ( !IsValid ) return;
+
 			Log.Error( e );
 
 			writer.Reset();
