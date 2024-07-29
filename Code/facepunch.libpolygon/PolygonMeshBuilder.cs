@@ -510,7 +510,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		}
 	}
 
-	public void FromDebugDump( string dump )
+	public void FromDebugDump( string dump, float fraction )
 	{
 		var parsed = Json.Deserialize<DebugDump>( dump );
 		var loops = ParseEdgeLoops( parsed.EdgeLoops );
@@ -522,6 +522,8 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 		DrawGizmos( 0f, 0f );
 
+		var width = parsed.EdgeWidth * fraction;
+
 		switch ( parsed.EdgeStyle )
 		{
 			case EdgeStyle.Sharp:
@@ -529,15 +531,18 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 				break;
 
 			case EdgeStyle.Bevel:
-				Bevel( parsed.EdgeWidth, parsed.EdgeWidth );
+				Bevel( width, width );
+				DrawGizmos( 0f, width );
 				//Fill();
 				break;
 
 			case EdgeStyle.Round:
-				Arc( parsed.EdgeWidth, parsed.EdgeWidth, parsed.EdgeFaces );
+				Arc( width, width, parsed.EdgeFaces );
+				DrawGizmos( 0f, width );
 				//Fill();
 				break;
 		}
+
 	}
 
 	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),-?(?<y>[0-9]+(?:\.[0-9]+)?);" );
