@@ -488,13 +488,6 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private record DebugDump(
-		string Exception,
-		string EdgeLoops,
-		EdgeStyle EdgeStyle,
-		float EdgeWidth,
-		int EdgeFaces );
-
 	private DebugDump GenerateDebugDump( int offset, int count )
 	{
 		var writer = new StringWriter();

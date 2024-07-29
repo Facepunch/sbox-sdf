@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using Sandbox.Sdf;
 
 namespace Sandbox.Polygons;
 
@@ -506,5 +508,64 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 				Gizmo.Draw.Line( edge.Origin, edge.Project( maxDist ) );
 			}
 		}
+	}
+
+	public void FromDebugDump( string dump )
+	{
+		var parsed = Json.Deserialize<DebugDump>( dump );
+		var loops = ParseEdgeLoops( parsed.EdgeLoops );
+
+		foreach ( var loop in loops )
+		{
+			AddEdgeLoop( loop, 0, loop.Count );
+		}
+
+		DrawGizmos( 0f, 0f );
+
+		switch ( parsed.EdgeStyle )
+		{
+			case EdgeStyle.Sharp:
+				//Fill();
+				break;
+
+			case EdgeStyle.Bevel:
+				Bevel( parsed.EdgeWidth, parsed.EdgeWidth );
+				//Fill();
+				break;
+
+			case EdgeStyle.Round:
+				Arc( parsed.EdgeWidth, parsed.EdgeWidth, parsed.EdgeFaces );
+				//Fill();
+				break;
+		}
+	}
+
+	private static Regex Pattern { get; } = new Regex( @"(?<x>[0-9]+(?:\.[0-9]+)?),(?<y>[0-9]+(?:\.[0-9]+)?);" );
+
+	private static IReadOnlyList<IReadOnlyList<Vector2>> ParseEdgeLoops( string source )
+	{
+		var loops = new List<IReadOnlyList<Vector2>>();
+
+		foreach ( var line in source.Split( "\n" ) )
+		{
+			var loop = new List<Vector2>();
+
+			foreach ( Match match in Pattern.Matches( line ) )
+			{
+				var x = float.Parse( match.Groups["x"].Value );
+				var y = float.Parse( match.Groups["y"].Value );
+
+				loop.Add( new Vector2( x, y ) );
+			}
+
+			if ( loop.Count == 0 )
+			{
+				break;
+			}
+
+			loops.Add( loop );
+		}
+
+		return loops;
 	}
 }
