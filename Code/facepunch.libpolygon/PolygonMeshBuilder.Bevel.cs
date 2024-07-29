@@ -516,7 +516,7 @@ partial class PolygonMeshBuilder
 
 		var t = dx / dv;
 
-		if ( t <= -0.0001f )
+		if ( t < 0f )
 		{
 			return float.PositiveInfinity;
 		}
