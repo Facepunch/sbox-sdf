@@ -540,7 +540,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		}
 	}
 
-	private static Regex Pattern { get; } = new Regex( @"(?<x>[0-9]+(?:\.[0-9]+)?),(?<y>[0-9]+(?:\.[0-9]+)?);" );
+	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),-?(?<y>[0-9]+(?:\.[0-9]+)?);" );
 
 	private static IReadOnlyList<IReadOnlyList<Vector2>> ParseEdgeLoops( string source )
 	{
