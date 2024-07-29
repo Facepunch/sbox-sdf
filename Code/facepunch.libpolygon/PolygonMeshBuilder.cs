@@ -486,4 +486,25 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 		return this;
 	}
+
+	public void DrawGizmos( float minDist, float maxDist )
+	{
+		foreach ( var index in _activeEdges )
+		{
+			var edge = _allEdges[index];
+			var next = _allEdges[edge.NextEdge];
+
+			var start = edge.Project( maxDist );
+			var end = next.Project( maxDist );
+
+			Gizmo.Draw.Line( start, end );
+
+			Gizmo.Draw.Text( $"{index}", new Transform( (start + end) * 0.5f ) );
+
+			if ( minDist < maxDist )
+			{
+				Gizmo.Draw.Line( edge.Origin, edge.Project( maxDist ) );
+			}
+		}
+	}
 }
