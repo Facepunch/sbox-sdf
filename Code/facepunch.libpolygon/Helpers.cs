@@ -139,54 +139,63 @@ public record DebugDump(
 
 	public DebugDump Reduce()
 	{
-		var loops = DeserializeEdgeLoops( EdgeLoops ).ToList();
+		var sourceLoops = DeserializeEdgeLoops( EdgeLoops );
+		var erroring = new List<IReadOnlyList<Vector2>>();
 
-		for ( var i = loops.Count - 1; i >= 0; --i )
+		foreach ( var sourceLoop in sourceLoops )
 		{
+			var singleLoop = new[] { sourceLoop };
+
 			try
 			{
 				using var polyMeshBuilder = PolygonMeshBuilder.Rent();
 
-				Init( polyMeshBuilder, loops );
+				Init( polyMeshBuilder, singleLoop );
 				Bevel( polyMeshBuilder );
 				Fill( polyMeshBuilder );
-			}
-			catch
-			{
-				var loop = loops[i].ToList();
-				loops[i] = loop;
-
-				if ( loop.Count < 4 ) continue;
-
-				for ( var j = loop.Count - 1; j >= 0; --j )
-				{
-					var removed = loop[j];
-
-					loop.RemoveAt( j );
-
-					try
-					{
-						using var polyMeshBuilder = PolygonMeshBuilder.Rent();
-
-						Init( polyMeshBuilder, loops );
-						Bevel( polyMeshBuilder );
-						Fill( polyMeshBuilder );
-					}
-					catch
-					{
-						continue;
-					}
-
-					loop.Insert( j, removed );
-				}
 
 				continue;
 			}
+			catch
+			{
+				//
+			}
 
-			loops.RemoveAt( i );
+			if ( sourceLoop.Count < 4 )
+			{
+				erroring.Add( sourceLoop );
+			}
+
+			var loop = sourceLoop.ToList();
+
+			singleLoop[0] = loop;
+
+			for ( var j = loop.Count - 1; j >= 0; --j )
+			{
+				var removed = loop[j];
+
+				loop.RemoveAt( j );
+
+				try
+				{
+					using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+					Init( polyMeshBuilder, singleLoop );
+					Bevel( polyMeshBuilder );
+					Fill( polyMeshBuilder );
+				}
+				catch
+				{
+					continue;
+				}
+
+				loop.Insert( j, removed );
+			}
+
+			erroring.Add( loop );
 		}
 
-		return this with { EdgeLoops = SeriaizeEdgeLoops( loops ) };
+		return this with { EdgeLoops = SeriaizeEdgeLoops( erroring ) };
 	}
 
 	public void Init( PolygonMeshBuilder meshBuilder )
