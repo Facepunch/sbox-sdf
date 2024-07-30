@@ -1,6 +1,9 @@
 ﻿using Sandbox.Sdf;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Sandbox.Polygons;
 
@@ -81,9 +84,118 @@ internal static class Helpers
 	}
 }
 
-internal record DebugDump(
+public record DebugDump(
 	string Exception,
 	string EdgeLoops,
 	EdgeStyle EdgeStyle,
 	float EdgeWidth,
-	int EdgeFaces );
+	int EdgeFaces )
+{
+	public static string SeriaizeEdgeLoops( IReadOnlyList<IReadOnlyList<Vector2>> loops )
+	{
+		var writer = new StringWriter();
+
+		foreach ( var loop in loops )
+		{
+			foreach ( var vertex in loop )
+			{
+				writer.Write( $"{vertex.x:R},{vertex.y:R};" );
+			}
+
+			writer.Write( "\n" );
+		}
+
+		return writer.ToString();
+	}
+
+	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),-?(?<y>[0-9]+(?:\.[0-9]+)?);" );
+
+	public static IReadOnlyList<IReadOnlyList<Vector2>> DeserializeEdgeLoops( string source )
+	{
+		var loops = new List<IReadOnlyList<Vector2>>();
+
+		foreach ( var line in source.Split( "\n" ) )
+		{
+			var loop = new List<Vector2>();
+
+			foreach ( Match match in Pattern.Matches( line ) )
+			{
+				var x = float.Parse( match.Groups["x"].Value );
+				var y = float.Parse( match.Groups["y"].Value );
+
+				loop.Add( new Vector2( x, y ) );
+			}
+
+			if ( loop.Count == 0 )
+			{
+				break;
+			}
+
+			loops.Add( loop );
+		}
+
+		return loops;
+	}
+
+	public DebugDump Reduce()
+	{
+		var loops = DeserializeEdgeLoops( EdgeLoops ).ToList();
+
+		for ( var i = loops.Count - 1; i >= 0; --i )
+		{
+			try
+			{
+				using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+				Init( polyMeshBuilder, loops );
+				Bevel( polyMeshBuilder );
+				Fill( polyMeshBuilder );
+			}
+			catch
+			{
+				continue;
+			}
+
+			loops.RemoveAt( i );
+		}
+
+		return this with { EdgeLoops = SeriaizeEdgeLoops( loops ) };
+	}
+
+	public void Init( PolygonMeshBuilder meshBuilder )
+	{
+		Init( meshBuilder, DeserializeEdgeLoops( EdgeLoops ) );
+	}
+
+	private static void Init( PolygonMeshBuilder meshBuilder, IReadOnlyList<IReadOnlyList<Vector2>> loops )
+	{
+		foreach ( var loop in loops )
+		{
+			meshBuilder.AddEdgeLoop( loop, 0, loop.Count );
+		}
+	}
+
+	public void Bevel( PolygonMeshBuilder meshBuilder, float? width = null )
+	{
+		var w = width ?? EdgeWidth;
+
+		switch ( EdgeStyle )
+		{
+			case EdgeStyle.Sharp:
+				break;
+
+			case EdgeStyle.Bevel:
+				meshBuilder.Bevel( w, w );
+				break;
+
+			case EdgeStyle.Round:
+				meshBuilder.Arc( w, w, EdgeFaces );
+				break;
+		}
+	}
+
+	public void Fill( PolygonMeshBuilder meshBuilder )
+	{
+		meshBuilder.Fill();
+	}
+}

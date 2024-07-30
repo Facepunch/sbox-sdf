@@ -510,67 +510,22 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		}
 	}
 
-	public void FromDebugDump( string dump, float fraction )
+	public static void RunDebugDump( string dump, float width )
 	{
 		var parsed = Json.Deserialize<DebugDump>( dump );
-		var loops = ParseEdgeLoops( parsed.EdgeLoops );
 
-		foreach ( var loop in loops )
-		{
-			AddEdgeLoop( loop, 0, loop.Count );
-		}
+		using var builder = Rent();
 
-		DrawGizmos( 0f, 0f );
+		parsed.Init( builder );
 
-		var width = parsed.EdgeWidth * fraction;
+		Gizmo.Draw.Color = Color.White;
+		builder.DrawGizmos( 0f, 0f );
 
-		switch ( parsed.EdgeStyle )
-		{
-			case EdgeStyle.Sharp:
-				//Fill();
-				break;
+		parsed.Bevel( builder, width );
 
-			case EdgeStyle.Bevel:
-				Bevel( width, width );
-				DrawGizmos( 0f, width );
-				//Fill();
-				break;
+		Gizmo.Draw.Color = Color.Blue;
+		builder.DrawGizmos( width, width );
 
-			case EdgeStyle.Round:
-				Arc( width, width, parsed.EdgeFaces );
-				DrawGizmos( 0f, width );
-				//Fill();
-				break;
-		}
-
-	}
-
-	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),-?(?<y>[0-9]+(?:\.[0-9]+)?);" );
-
-	private static IReadOnlyList<IReadOnlyList<Vector2>> ParseEdgeLoops( string source )
-	{
-		var loops = new List<IReadOnlyList<Vector2>>();
-
-		foreach ( var line in source.Split( "\n" ) )
-		{
-			var loop = new List<Vector2>();
-
-			foreach ( Match match in Pattern.Matches( line ) )
-			{
-				var x = float.Parse( match.Groups["x"].Value );
-				var y = float.Parse( match.Groups["y"].Value );
-
-				loop.Add( new Vector2( x, y ) );
-			}
-
-			if ( loop.Count == 0 )
-			{
-				break;
-			}
-
-			loops.Add( loop );
-		}
-
-		return loops;
+		builder.Fill();
 	}
 }

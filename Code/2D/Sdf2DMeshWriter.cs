@@ -488,7 +488,7 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 		}
 	}
 
-	private DebugDump GenerateDebugDump( int offset, int count )
+	public string SeriaizeEdgeLoops( int offset, int count )
 	{
 		var writer = new StringWriter();
 
@@ -499,13 +499,13 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			for ( var j = 0; j < edgeLoop.Count; ++j )
 			{
 				var vertex = SourceVertices[edgeLoop.FirstIndex + j];
-				writer.Write($"{vertex.x:R},{vertex.y:R};");
+				writer.Write( $"{vertex.x:R},{vertex.y:R};" );
 			}
 
-			writer.Write("\n");
+			writer.Write( "\n" );
 		}
 
-		return new DebugDump( null, writer.ToString(), EdgeStyle.Sharp, 0, 0 );
+		return writer.ToString();
 	}
 
 	private void WriteRenderMesh( Sdf2DLayer layer )
@@ -594,13 +594,11 @@ partial class Sdf2DMeshWriter : Pooled<Sdf2DMeshWriter>
 			{
 				Log.Error( $"Internal error in PolygonMeshBuilder!\n\n" +
 					$"Please paste the info below in this thread:\nhttps://github.com/Facepunch/sbox-sdf/issues/17\n\n" +
-					$"{Json.Serialize( GenerateDebugDump( offset, count ) with
-				{
-					Exception = e.ToString(),
-					EdgeStyle = layer.EdgeStyle,
-					EdgeWidth = bevelScale,
-					EdgeFaces = layer.EdgeFaces
-				} )}" );
+					$"{Json.Serialize( new DebugDump( e.ToString(),
+						SeriaizeEdgeLoops( offset, count ),
+						layer.EdgeStyle,
+						bevelScale,
+						layer.EdgeFaces ) )}" );
 			}
 		}
 
