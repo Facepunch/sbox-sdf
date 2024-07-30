@@ -153,6 +153,33 @@ public record DebugDump(
 			}
 			catch
 			{
+				var loop = loops[i].ToList();
+				loops[i] = loop;
+
+				if ( loop.Count < 4 ) continue;
+
+				for ( var j = loop.Count - 1; j >= 0; --j )
+				{
+					var removed = loop[j];
+
+					loop.RemoveAt( j );
+
+					try
+					{
+						using var polyMeshBuilder = PolygonMeshBuilder.Rent();
+
+						Init( polyMeshBuilder, loops );
+						Bevel( polyMeshBuilder );
+						Fill( polyMeshBuilder );
+					}
+					catch
+					{
+						continue;
+					}
+
+					loop.Insert( j, removed );
+				}
+
 				continue;
 			}
 
