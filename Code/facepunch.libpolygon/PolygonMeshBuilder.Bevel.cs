@@ -58,11 +58,12 @@ partial class PolygonMeshBuilder
 		if ( MathF.Abs( _nextDistance ) > 0.001f )
 		{
 			var maxIterations = _activeEdges.Count * _activeEdges.Count;
+			var maxEdges = _activeEdges.Count * 4;
 
 			// Find each event as we sweep inwards with all the active edges
 
 			int iterations;
-			for ( iterations = 0; iterations < maxIterations && _activeEdges.Count > 0; ++iterations )
+			for ( iterations = 0; iterations < maxIterations && _activeEdges.Count > 0 && _activeEdges.Count <= maxEdges; ++iterations )
 			{
 				int? closedEdge = null;
 				int? splitEdge = null;
@@ -146,7 +147,7 @@ partial class PolygonMeshBuilder
 				break;
 			}
 
-			if ( _activeEdges.Count > 0 && iterations == maxIterations )
+			if ( _activeEdges.Count > 0 && iterations == maxIterations || _activeEdges.Count > maxEdges )
 			{
 				throw new Exception( $"Exploded after {iterations} with {_activeEdges.Count} active edges!" );
 			}
@@ -434,6 +435,11 @@ partial class PolygonMeshBuilder
 		return Math.Max( GetEpsilon( a ), GetEpsilon( b ) );
 	}
 
+	private static float GetEpsilon( Vector2 a, Vector2 b, Vector3 c, float frac = 0.0001f )
+	{
+		return Math.Max( GetEpsilon( a ), Math.Max( GetEpsilon( b ), GetEpsilon( c ) ) );
+	}
+
 	private static void UpdateMaxDistance( ref Edge edge, in Edge nextEdge )
 	{
 		if ( edge.NextEdge == edge.PrevEdge )
@@ -485,6 +491,9 @@ partial class PolygonMeshBuilder
 		}
 	}
 
+	/// <summary>
+	/// Find when the start vertex of <paramref name="edge"/> would cut <paramref name="other"/>.
+	/// </summary>
 	private static float CalculateSplitDistance( in Edge edge, in Edge other, in Edge otherNext,
 		out Vector2 splitPos, out bool merge )
 	{
@@ -496,25 +505,28 @@ partial class PolygonMeshBuilder
 			return float.PositiveInfinity;
 		}
 
-		var dv = Vector2.Dot( other.Velocity - edge.Velocity, other.Normal );
+		var dv0 = Vector2.Dot( other.Velocity - edge.Velocity, other.Normal );
+		var dv1 = Vector2.Dot( otherNext.Velocity - edge.Velocity, other.Normal );
 
-		if ( dv <= GetEpsilon( edge.Velocity, other.Velocity ) )
+		if ( Math.Max( dv0, dv1 ) <= GetEpsilon( edge.Velocity, other.Velocity, otherNext.Velocity ) )
 		{
 			return float.PositiveInfinity;
 		}
 
 		var baseDistance = Math.Max( edge.Distance, Math.Max( other.Distance, otherNext.Distance ) );
-		var thisOrigin = edge.Project( baseDistance );
-		var edgeOrigin = other.Project( baseDistance );
+		var edgeOrigin = edge.Project( baseDistance );
+		var otherOrigin = other.Project( baseDistance );
+		var otherNextOrigin = otherNext.Project( baseDistance );
 
-		var dx = Vector2.Dot( thisOrigin - edgeOrigin, other.Normal );
+		var dx0 = Vector2.Dot( edgeOrigin - otherOrigin, other.Normal );
+		var dx1 = Vector2.Dot( edgeOrigin - otherNextOrigin, other.Normal );
 
-		if ( dx <= -GetEpsilon( thisOrigin, edgeOrigin ) )
+		if ( Math.Min( dx0, dx1 ) <= -GetEpsilon( edgeOrigin, otherOrigin, otherNextOrigin ) )
 		{
 			return float.PositiveInfinity;
 		}
 
-		var t = dx / dv;
+		var t = Math.Min( dx0 / dv0, dx1 / dv1 );
 
 		if ( t < 0f )
 		{
@@ -526,10 +538,10 @@ partial class PolygonMeshBuilder
 			return float.PositiveInfinity;
 		}
 
-		splitPos = thisOrigin + edge.Velocity * t;
+		splitPos = edgeOrigin + edge.Velocity * t;
 
-		var prevPos = edgeOrigin + other.Velocity * t;
-		var nextPos = otherNext.Project( baseDistance + t );
+		var prevPos = otherOrigin + other.Velocity * t;
+		var nextPos = otherNextOrigin + otherNext.Velocity * t;
 
 		var dPrev = Vector2.Dot( splitPos - prevPos, other.Tangent );
 		var dNext = Vector2.Dot( splitPos - nextPos, other.Tangent );
@@ -551,6 +563,6 @@ partial class PolygonMeshBuilder
 			merge = true;
 		}
 
-		return baseDistance + Math.Max( 0f, t );
+		return baseDistance + t;
 	}
 }

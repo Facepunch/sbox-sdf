@@ -496,16 +496,20 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 			var edge = _allEdges[index];
 			var next = _allEdges[edge.NextEdge];
 
-			var start = edge.Project( maxDist );
-			var end = next.Project( maxDist );
+			var start = edge.Project( minDist );
+			var end = next.Project( minDist );
 
 			Gizmo.Draw.Line( start, end );
 
-			Gizmo.Draw.Text( $"{index}", new Transform( (start + end) * 0.5f ) );
+			var dist = (Gizmo.LocalCameraTransform.Position - (Vector3)start).Length;
+			var textOffset = dist / 64f;
+			var textPos = start + (end - start).Normal * textOffset - edge.Normal * textOffset;
+
+			Gizmo.Draw.Text( edge.ToString(), new Transform( textPos ) );
 
 			if ( minDist < maxDist )
 			{
-				Gizmo.Draw.Line( edge.Origin, edge.Project( maxDist ) );
+				Gizmo.Draw.Line( edge.Project( minDist ), edge.Project( maxDist ) );
 			}
 		}
 	}
@@ -519,7 +523,7 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		parsed.Init( builder );
 
 		Gizmo.Draw.Color = Color.White;
-		builder.DrawGizmos( 0f, 0f );
+		builder.DrawGizmos( 0f, width );
 
 		parsed.Bevel( builder, width );
 
