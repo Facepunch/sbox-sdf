@@ -228,8 +228,9 @@ public record DebugDump(
 	public void Bevel( PolygonMeshBuilder meshBuilder, float? width = null )
 	{
 		var w = width ?? EdgeWidth;
+		var style = width is null ? EdgeStyle : EdgeStyle.Bevel;
 
-		switch ( EdgeStyle )
+		switch ( style )
 		{
 			case EdgeStyle.Sharp:
 				break;
