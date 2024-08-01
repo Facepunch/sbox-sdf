@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Sandbox.Sdf;
 
 namespace Sandbox.Polygons;
@@ -509,12 +506,12 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 			if ( minDist < maxDist )
 			{
-				Gizmo.Draw.Line( edge.Project( minDist ), edge.Project( maxDist ) );
+				// Gizmo.Draw.Line( edge.Project( minDist ), edge.Project( Math.Min( edge.MaxDistance, maxDist ) ) );
 			}
 		}
 	}
 
-	public static void RunDebugDump( string dump, float width, bool fromSdf )
+	public static void RunDebugDump( string dump, float width, bool fromSdf, int maxIterations )
 	{
 		var parsed = Json.Deserialize<DebugDump>( dump );
 
@@ -546,6 +543,6 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		Gizmo.Draw.Color = Color.Blue;
 		builder.DrawGizmos( width, width );
 
-		builder.Fill();
+		// builder.Fill();
 	}
 }
