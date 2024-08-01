@@ -517,7 +517,7 @@ partial class PolygonMeshBuilder
 		var dv0 = Vector2.Dot( other.Velocity - edge.Velocity, other.Normal );
 		var dv1 = Vector2.Dot( otherNext.Velocity - edge.Velocity, other.Normal );
 
-		if ( Math.Max( dv0, dv1 ) <= GetEpsilon( edge.Velocity, other.Velocity, otherNext.Velocity ) )
+		if ( Math.Min( dv0, dv1 ) <= GetEpsilon( edge.Velocity, other.Velocity, otherNext.Velocity ) )
 		{
 			return float.PositiveInfinity;
 		}
