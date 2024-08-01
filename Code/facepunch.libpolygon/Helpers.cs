@@ -122,7 +122,7 @@ public record DebugDump(
 		return writer.ToString();
 	}
 
-	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),-?(?<y>[0-9]+(?:\.[0-9]+)?);" );
+	private static Regex Pattern { get; } = new Regex( @"(?<x>-?[0-9]+(?:\.[0-9]+)?),(?<y>-?[0-9]+(?:\.[0-9]+)?);" );
 
 	public static IReadOnlyList<IReadOnlyList<Vector2>> DeserializeEdgeLoops( string source )
 	{
