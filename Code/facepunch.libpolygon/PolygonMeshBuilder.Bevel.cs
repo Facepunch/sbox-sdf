@@ -58,12 +58,12 @@ partial class PolygonMeshBuilder
 		if ( MathF.Abs( _nextDistance ) > 0.001f )
 		{
 			var maxIterations = _activeEdges.Count * _activeEdges.Count;
-			var maxEdges = _activeEdges.Count * 4;
+			var maxEdges = _nextEdgeIndex + _activeEdges.Count * 4;
 
 			// Find each event as we sweep inwards with all the active edges
 
 			int iterations;
-			for ( iterations = 0; iterations < maxIterations && _activeEdges.Count > 0 && _activeEdges.Count <= maxEdges; ++iterations )
+			for ( iterations = 0; iterations < maxIterations && _activeEdges.Count > 0 && _nextEdgeIndex <= maxEdges; ++iterations )
 			{
 				int? closedEdge = null;
 				int? splitEdge = null;
