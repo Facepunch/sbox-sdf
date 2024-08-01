@@ -84,9 +84,23 @@ internal static class Helpers
 	}
 }
 
+public record SdfDataDump(
+	string Samples,
+	int BaseIndex,
+	int Size,
+	int RowStride )
+{
+	internal SdfDataDump( Sdf2DArrayData data )
+		: this( System.Convert.ToBase64String( data.Samples ), data.BaseIndex, data.Size, data.RowStride )
+	{
+
+	}
+}
+
 public record DebugDump(
 	string Exception,
 	string EdgeLoops,
+	SdfDataDump SdfData,
 	EdgeStyle EdgeStyle,
 	float EdgeWidth,
 	int EdgeFaces )

@@ -514,9 +514,23 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 		}
 	}
 
-	public static void RunDebugDump( string dump, float width )
+	public static void RunDebugDump( string dump, float width, bool fromSdf )
 	{
 		var parsed = Json.Deserialize<DebugDump>( dump );
+
+		if ( fromSdf && parsed.SdfData is not null )
+		{
+			var samples = Convert.FromBase64String( parsed.SdfData.Samples );
+			var data = new Sdf2DArrayData( samples, parsed.SdfData.BaseIndex, parsed.SdfData.Size,
+				parsed.SdfData.RowStride );
+
+			using var writer = Sdf2DMeshWriter.Rent();
+
+			writer.AddEdgeLoops( data, 0f );
+			writer.DrawGizmos();
+
+			return;
+		}
 
 		using var builder = Rent();
 
@@ -524,6 +538,8 @@ public partial class PolygonMeshBuilder : Pooled<PolygonMeshBuilder>
 
 		Gizmo.Draw.Color = Color.White;
 		builder.DrawGizmos( 0f, width );
+
+		if ( width <= 0f ) return;
 
 		parsed.Bevel( builder, width );
 
