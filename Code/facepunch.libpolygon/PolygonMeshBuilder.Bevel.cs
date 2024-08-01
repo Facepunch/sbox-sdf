@@ -149,7 +149,7 @@ partial class PolygonMeshBuilder
 				break;
 			}
 
-			if ( _activeEdges.Count > 0 && iterations == maxIterations || _activeEdges.Count > maxEdges )
+			if ( _activeEdges.Count > 0 && iterations == maxIterations || _nextEdgeIndex > maxEdges )
 			{
 				throw new Exception( $"Exploded after {iterations} with {_activeEdges.Count} active edges!" );
 			}
@@ -535,7 +535,10 @@ partial class PolygonMeshBuilder
 			return float.PositiveInfinity;
 		}
 
-		var t = Math.Min( dx0 / dv0, dx1 / dv1 );
+		var t0 = dx0 / dv0;
+		var t1 = dx1 / dv1;
+
+		var t = Math.Min( t0, t1 );
 
 		if ( t < 0f )
 		{
@@ -549,15 +552,15 @@ partial class PolygonMeshBuilder
 
 		splitPos = edgeOrigin + edge.Velocity * t;
 
-		var prevPos = otherOrigin + other.Velocity * t;
-		var nextPos = otherNextOrigin + otherNext.Velocity * t;
+		var prevPos = otherOrigin + other.Velocity * t0;
+		var nextPos = otherNextOrigin + otherNext.Velocity * t1;
 
 		var dPrev = Vector2.Dot( splitPos - prevPos, other.Tangent );
 		var dNext = Vector2.Dot( splitPos - nextPos, other.Tangent );
 
 		var epsilon = GetEpsilon( prevPos, nextPos );
 
-		if ( dPrev <= -epsilon || dNext >= epsilon )
+		if ( dPrev <= 0f || dNext >= 0f )
 		{
 			return float.PositiveInfinity;
 		}
@@ -573,7 +576,7 @@ partial class PolygonMeshBuilder
 		}
 		else if ( dNext >= -epsilon )
 		{
-			if ( edge.NextEdge == other.Index || edge.PrevEdge == other.Index )
+			if ( edge.NextEdge == otherNext.Index || edge.PrevEdge == otherNext.Index )
 			{
 				return float.PositiveInfinity;
 			}
