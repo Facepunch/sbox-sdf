@@ -104,8 +104,9 @@ partial class PolygonMeshBuilder
 
 					var edge = _allEdges[index];
 					var other = _allEdges[otherIndex];
+					var otherNext = _allEdges[other.NextEdge];
 
-					var splitDist = CalculateSplitDistance( edge, other, _allEdges[other.NextEdge],
+					var splitDist = CalculateSplitDistance( edge, other, otherNext,
 						out var splitPos, out var merge );
 
 					if ( splitDist - _nextDistance > 0.001f )
@@ -118,11 +119,12 @@ partial class PolygonMeshBuilder
 
 					bestDist = splitDist;
 					bestPos = splitPos;
-					bestMerge = merge;
+					bestMerge = merge != MergeMode.None;
 
 					closedEdge = null;
-					splitEdge = other.Index;
 					splittingEdge = edge.Index;
+
+					splitEdge = merge == MergeMode.End ? otherNext.Index : other.Index;
 				}
 
 				if ( splittingEdge != null && bestMerge )
@@ -491,14 +493,21 @@ partial class PolygonMeshBuilder
 		}
 	}
 
+	private enum MergeMode
+	{
+		None,
+		Start,
+		End
+	}
+
 	/// <summary>
 	/// Find when the start vertex of <paramref name="edge"/> would cut <paramref name="other"/>.
 	/// </summary>
 	private static float CalculateSplitDistance( in Edge edge, in Edge other, in Edge otherNext,
-		out Vector2 splitPos, out bool merge )
+		out Vector2 splitPos, out MergeMode merge )
 	{
 		splitPos = default;
-		merge = false;
+		merge = MergeMode.None;
 
 		if ( other.Index == edge.Index || edge.Twin == other.Index || edge.Velocity.LengthSquared <= 0f )
 		{
@@ -548,7 +557,7 @@ partial class PolygonMeshBuilder
 
 		var epsilon = GetEpsilon( prevPos, nextPos );
 
-		if ( dPrev <= -epsilon || dNext >= -epsilon )
+		if ( dPrev <= -epsilon || dNext >= epsilon )
 		{
 			return float.PositiveInfinity;
 		}
@@ -560,7 +569,16 @@ partial class PolygonMeshBuilder
 				return float.PositiveInfinity;
 			}
 
-			merge = true;
+			merge = MergeMode.Start;
+		}
+		else if ( dNext >= -epsilon )
+		{
+			if ( edge.NextEdge == other.Index || edge.PrevEdge == other.Index )
+			{
+				return float.PositiveInfinity;
+			}
+
+			merge = MergeMode.End;
 		}
 
 		return baseDistance + t;
