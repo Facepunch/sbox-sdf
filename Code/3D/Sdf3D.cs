@@ -510,9 +510,11 @@ namespace Sandbox.Sdf
 
 		public float this[ Vector3 pos ] => throw new NotImplementedException();
 
-		Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			if ( Vector3.Dot( transform.Rotation.Up, Vector3.Up ) < 0.9999f ) throw new NotImplementedException();
+
+			await GameTask.WorkerThread();
 
 			var hScale = transform.Scale.z;
 
@@ -532,8 +534,6 @@ namespace Sandbox.Sdf
 					output[index] = (z - sample) * hScale;
 				}
 			}
-
-			return Task.CompletedTask;
 		}
 	}
 }
