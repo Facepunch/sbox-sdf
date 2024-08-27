@@ -12,6 +12,12 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 {
 	public override int Dimensions => 3;
 
+	[Property]
+	public bool IsFinite { get; set; }
+
+	[Property, ShowIf( nameof(IsFinite), true )]
+	public Vector3Int Size { get; set; } = new Vector3Int( 1024, 1024, 1024 );
+
 	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max) GetChunkRange( BBox bounds, WorldQuality quality )
 	{
 		var unitSize = quality.UnitSize;
@@ -26,6 +32,21 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		var maxX = (int) MathF.Ceiling( max.x );
 		var maxY = (int) MathF.Ceiling( max.y );
 		var maxZ = (int) MathF.Ceiling( max.z );
+
+		if ( IsFinite )
+		{
+			var chunksX = (int)MathF.Ceiling( Size.x / quality.ChunkSize );
+			var chunksY = (int)MathF.Ceiling( Size.y / quality.ChunkSize );
+			var chunksZ = (int)MathF.Ceiling( Size.z / quality.ChunkSize );
+
+			minX = Math.Max( 0, minX );
+			minY = Math.Max( 0, minY );
+			minZ = Math.Max( 0, minZ );
+
+			maxX = Math.Min( chunksX, maxX );
+			maxY = Math.Min( chunksY, maxY );
+			maxZ = Math.Min( chunksZ, maxZ );
+		}
 
 		return ((minX, minY, minZ), (maxX, maxY, maxZ));
 	}

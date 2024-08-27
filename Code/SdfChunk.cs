@@ -63,7 +63,7 @@ public record struct MeshDescription( IMeshWriter Writer, Material Material );
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component
+public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component, Component.ExecuteInEditor
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>

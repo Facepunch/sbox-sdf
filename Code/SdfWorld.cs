@@ -120,7 +120,7 @@ public record struct ChunkModification<TSdf>( TSdf Sdf, Operator Operator )
 /// <typeparam name="TChunkKey">Integer coordinates used to index a chunk</typeparam>
 /// <typeparam name="TArray">Type of <see cref="SdfArray{TSdf}"/> used to contain samples</typeparam>
 /// <typeparam name="TSdf">Interface for SDF shapes used to make modifications</typeparam>
-public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component, ISdfWorld
+public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf> : Component, Component.ExecuteInEditor, ISdfWorld
 	where TWorld : SdfWorld<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>
 	where TChunk : SdfChunk<TWorld, TChunk, TResource, TChunkKey, TArray, TSdf>, new()
 	where TResource : SdfResource<TResource>
@@ -236,11 +236,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		msg.Write( ModificationCount );
 
 		WriteRange( ref msg, prevModifications, count, NetWrite_TypeIndices );
-
-		/*		msg.Write( writer.Length );
-				msg.Write( writer );
-
-				writer.Dispose();*/
 
 		return count;
 	}
