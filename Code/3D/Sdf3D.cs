@@ -67,6 +67,7 @@ namespace Sandbox.Sdf
 			ISdf3D.RegisterType( IntersectedSdf3D<ISdf3D, ISdf3D>.ReadRaw );
 			ISdf3D.RegisterType( BiasedSdf3D<ISdf3D, ISdf3D>.ReadRaw );
 			ISdf3D.RegisterType( CellularNoiseSdf3D.ReadRaw );
+			ISdf3D.RegisterType( HeightmapSdf3D.ReadRaw );
 		}
 
 		/// <summary>
@@ -486,6 +487,53 @@ namespace Sandbox.Sdf
 		public static BiasedSdf3D<T, TBias> ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
 		{
 			return new BiasedSdf3D<T, TBias>( (T) ISdf3D.Read( ref reader, sdfTypes ), (TBias) ISdf3D.Read( ref reader, sdfTypes ), reader.Read<float>() );
+		}
+	}
+
+	public record struct HeightmapSdf3D( float[] Heightmap, int Resolution, int Margin, float Size, BBox? Bounds ) : ISdf3D
+	{
+		public HeightmapSdf3D( float[] heightmap, int resolution, int margin, float size )
+			: this( heightmap, resolution, margin, size, new BBox( 0f, new Vector3( size, size, heightmap.Max() ) ) )
+		{
+
+		}
+
+		public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
+		{
+			throw new NotImplementedException();
+		}
+
+		public static HeightmapSdf3D ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
+		{
+			throw new NotImplementedException();
+		}
+
+		public float this[ Vector3 pos ] => throw new NotImplementedException();
+
+		Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
+		{
+			if ( Vector3.Dot( transform.Rotation.Up, Vector3.Up ) < 0.9999f ) throw new NotImplementedException();
+
+			var hScale = transform.Scale.z;
+
+			for ( var x = 0; x < outputSize.X; ++x )
+			for ( var y = 0; y < outputSize.Y; ++y )
+			{
+				var worldPos = transform.PointToWorld( new Vector3( x, y ) );
+				var hPos = new Vector2( worldPos.x, worldPos.y ) * (Resolution - Margin * 2) / Size + Margin;
+
+				var hx = Math.Clamp( (int)hPos.x, 0, Resolution - 1 );
+				var hy = Math.Clamp( (int)hPos.y, 0, Resolution - 1 );
+
+				var sample = (Heightmap[hx + hy * Resolution] - worldPos.z) / hScale;
+
+				for ( int z = 0, index = y * outputSize.X + x; z < outputSize.Z; ++z, index += outputSize.X * outputSize.Y )
+				{
+					output[index] = (z - sample) * hScale;
+				}
+			}
+
+			return Task.CompletedTask;
 		}
 	}
 }
