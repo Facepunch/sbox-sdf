@@ -63,10 +63,12 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 		}
 	}
 
+	private BBox? DefaultBounds => IsFinite ? new BBox( 0f, Size ) : null;
+
 	/// <inheritdoc />
 	protected override IEnumerable<(int X, int Y, int Z)> GetAffectedChunks<T>( T sdf, WorldQuality quality )
 	{
-		if ( sdf.Bounds is not { } bounds )
+		if ( (sdf.Bounds ?? DefaultBounds) is not { } bounds )
 		{
 			throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
 		}
@@ -76,7 +78,7 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 
 	protected override bool AffectsChunk<T>( T sdf, WorldQuality quality, (int X, int Y, int Z) chunkKey )
 	{
-		if ( sdf.Bounds is not { } bounds )
+		if ( (sdf.Bounds ?? DefaultBounds) is not { } bounds )
 		{
 			throw new Exception( "Can only make modifications with an SDF with Bounds != null" );
 		}

@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Sandbox.Sdf.Noise;
 using Sandbox.UI;
+using Sandbox.Utility;
 
 namespace Sandbox.Sdf
 {
@@ -68,6 +69,7 @@ namespace Sandbox.Sdf
 			ISdf3D.RegisterType( BiasedSdf3D<ISdf3D, ISdf3D>.ReadRaw );
 			ISdf3D.RegisterType( CellularNoiseSdf3D.ReadRaw );
 			ISdf3D.RegisterType( HeightmapSdf3D.ReadRaw );
+			ISdf3D.RegisterType( NoiseSdf3D.ReadRaw );
 		}
 
 		/// <summary>
@@ -535,5 +537,21 @@ namespace Sandbox.Sdf
 				}
 			}
 		}
+	}
+
+	public record struct NoiseSdf3D( INoiseField Noise, float Threshold = 0.5f, float Scale = 256f ) : ISdf3D
+	{
+		public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
+		{
+			throw new NotImplementedException();
+		}
+		public static NoiseSdf3D ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf3D>> sdfTypes )
+		{
+			throw new NotImplementedException();
+		}
+
+		public BBox? Bounds => null;
+
+		public float this[ Vector3 pos ] => (Noise.Sample( pos ) - Threshold) * Scale;
 	}
 }
