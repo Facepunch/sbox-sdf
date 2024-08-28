@@ -370,6 +370,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		Renderer.RenderingEnabled = Active;
 		Renderer.Model = model;
+
+		UpdateTransform();
 	}
 
 	internal void UpdateTransform()
@@ -392,6 +394,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			shape.EnableSolidCollisions = true;
 		}
+
+		UpdateTransform();
 	}
 
 	protected override void OnDisabled()
