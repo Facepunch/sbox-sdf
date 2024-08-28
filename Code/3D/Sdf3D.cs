@@ -490,10 +490,10 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public record struct HeightmapSdf3D( float[] Heightmap, int Resolution, int Margin, float Size, BBox? Bounds ) : ISdf3D
+	public record struct HeightmapSdf3D( float[] Heightmap, int Resolution, float Size, BBox? Bounds ) : ISdf3D
 	{
-		public HeightmapSdf3D( float[] heightmap, int resolution, int margin, float size )
-			: this( heightmap, resolution, margin, size, new BBox( 0f, new Vector3( size, size, heightmap.Max() ) ) )
+		public HeightmapSdf3D( float[] heightmap, int resolution, float size )
+			: this( heightmap, resolution, size, new BBox( 0f, new Vector3( size, size, heightmap.Max() ) ) )
 		{
 
 		}
@@ -522,7 +522,7 @@ namespace Sandbox.Sdf
 			for ( var y = 0; y < outputSize.Y; ++y )
 			{
 				var worldPos = transform.PointToWorld( new Vector3( x, y ) );
-				var hPos = new Vector2( worldPos.x, worldPos.y ) * (Resolution - Margin * 2) / Size + Margin;
+				var hPos = new Vector2( worldPos.x, worldPos.y ) * (Resolution - 1) / Size;
 
 				var hx = Math.Clamp( (int)hPos.x, 0, Resolution - 1 );
 				var hy = Math.Clamp( (int)hPos.y, 0, Resolution - 1 );
