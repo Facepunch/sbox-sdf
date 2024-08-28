@@ -617,7 +617,11 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		}
 	}
 
-	public bool HasPhysics => true;
+	/// <summary>
+	/// Disable to not generate any collision meshes.
+	/// </summary>
+	[Property]
+	public bool HasPhysics { get; set; } = true;
 
 	internal PhysicsShape AddMeshShape( List<Vector3> vertices, List<int> indices )
 	{
