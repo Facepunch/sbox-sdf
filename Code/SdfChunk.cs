@@ -300,6 +300,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			{
 				Shape.UpdateMesh( vertices, indices );
 			}
+
+			Shape.EnableSolidCollisions = Active;
 		}
 	}
 
@@ -360,10 +362,13 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		if ( !Renderer.IsValid() )
 		{
-			Renderer = new SceneObject( Scene.SceneWorld, model );
-			Renderer.Batchable = Resource.ReferencedTextures is not { Count: > 0 };
+			Renderer = new SceneObject( Scene.SceneWorld, model )
+			{
+				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
+			};
 		}
 
+		Renderer.RenderingEnabled = Active;
 		Renderer.Model = model;
 	}
 
@@ -374,6 +379,32 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 
 		Renderer.Transform = World.Transform.World;
 		Renderer.Position = World.Transform.World.PointToWorld( LocalPosition );
+	}
+
+	protected override void OnEnabled()
+	{
+		if ( Renderer is { } renderer )
+		{
+			renderer.RenderingEnabled = true;
+		}
+
+		if ( Shape is { } shape )
+		{
+			shape.EnableSolidCollisions = true;
+		}
+	}
+
+	protected override void OnDisabled()
+	{
+		if ( Renderer is { } renderer )
+		{
+			renderer.RenderingEnabled = false;
+		}
+
+		if ( Shape is { } shape )
+		{
+			shape.EnableSolidCollisions = false;
+		}
 	}
 
 	protected override void OnDestroy()
