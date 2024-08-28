@@ -16,7 +16,7 @@ public partial class Sdf3DWorld : SdfWorld<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, 
 	public bool IsFinite { get; set; }
 
 	[Property, ShowIf( nameof(IsFinite), true )]
-	public Vector3Int Size { get; set; } = new Vector3Int( 1024, 1024, 1024 );
+	public Vector3 Size { get; set; } = new Vector3( 1024, 1024, 1024 );
 
 	private ((int X, int Y, int Z) Min, (int X, int Y, int Z) Max) GetChunkRange( BBox bounds, WorldQuality quality )
 	{
