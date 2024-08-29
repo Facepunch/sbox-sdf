@@ -539,7 +539,7 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public record struct NoiseSdf3D( INoiseField Noise, float Threshold = 0.5f, float Scale = 256f ) : ISdf3D
+	public record struct NoiseSdf3D( INoiseField Noise, float Threshold = 0.5f, float DistanceScale = 256f ) : ISdf3D
 	{
 		public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
 		{
@@ -552,6 +552,6 @@ namespace Sandbox.Sdf
 
 		public BBox? Bounds => null;
 
-		public float this[ Vector3 pos ] => (Noise.Sample( pos ) - Threshold) * Scale;
+		public float this[ Vector3 pos ] => (Noise.Sample( pos ) - Threshold) * DistanceScale;
 	}
 }

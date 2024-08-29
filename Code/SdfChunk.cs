@@ -101,6 +101,23 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	/// </summary>
 	public SceneObject Renderer { get; private set; }
 
+	private float _opacity = 1f;
+
+	public float Opacity
+	{
+		get => _opacity;
+		set
+		{
+			_opacity = value;
+
+			if ( Renderer is { } renderer )
+			{
+				renderer.ColorTint = Color.White.WithAlpha( value );
+				renderer.RenderingEnabled = value > 0f;
+			}
+		}
+	}
+
 	public abstract Vector3 LocalPosition { get; }
 
 	private readonly List<Mesh> _usedMeshes = new();
@@ -110,6 +127,8 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		World = world;
 		Resource = resource;
 		Key = key;
+
+		Opacity = world.Opacity;
 
 		Flags |= ComponentFlags.Hidden | ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 
@@ -364,11 +383,12 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			Renderer = new SceneObject( Scene.SceneWorld, model )
 			{
-				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
+				Batchable = Resource.ReferencedTextures is not { Count: > 0 },
+				ColorTint = Color.White.WithAlpha( Opacity ),
+				RenderingEnabled = Opacity > 0f
 			};
 		}
 
-		Renderer.RenderingEnabled = Active;
 		Renderer.Model = model;
 
 		UpdateTransform();
@@ -387,7 +407,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 	{
 		if ( Renderer is { } renderer )
 		{
-			renderer.RenderingEnabled = true;
+			renderer.RenderingEnabled = Opacity > 0f;
 		}
 
 		if ( Shape is { } shape )
