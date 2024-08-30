@@ -109,12 +109,7 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		set
 		{
 			_opacity = value;
-
-			if ( Renderer is { } renderer )
-			{
-				renderer.ColorTint = Color.White.WithAlpha( value );
-				renderer.RenderingEnabled = value > 0f;
-			}
+			UpdateOpacity();
 		}
 	}
 
@@ -383,15 +378,14 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			Renderer = new SceneObject( Scene.SceneWorld, model )
 			{
-				Batchable = Resource.ReferencedTextures is not { Count: > 0 },
-				ColorTint = Color.White.WithAlpha( Opacity ),
-				RenderingEnabled = Opacity > 0f
+				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
 			};
 		}
 
 		Renderer.Model = model;
 
 		UpdateTransform();
+		UpdateOpacity();
 	}
 
 	internal void UpdateTransform()
@@ -403,19 +397,26 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 		Renderer.Position = World.Transform.World.PointToWorld( LocalPosition );
 	}
 
+	private void UpdateOpacity()
+	{
+		if ( Renderer is not { } renderer ) return;
+
+		var value = Opacity;
+
+		renderer.ColorTint = Color.White.WithAlpha( value );
+		renderer.RenderingEnabled = value > 0f;
+		Renderer.Flags.CastShadows = value >= 1f;
+	}
+
 	protected override void OnEnabled()
 	{
-		if ( Renderer is { } renderer )
-		{
-			renderer.RenderingEnabled = Opacity > 0f;
-		}
-
 		if ( Shape is { } shape )
 		{
 			shape.EnableSolidCollisions = true;
 		}
 
 		UpdateTransform();
+		UpdateOpacity();
 	}
 
 	protected override void OnDisabled()
