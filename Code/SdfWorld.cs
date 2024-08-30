@@ -161,7 +161,6 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 		{
 			value = Math.Clamp( value, 0f, 1f );
 
-			// ReSharper disable once RedundantCheckBeforeAssignment
 			if ( _opacity == value ) return;
 
 			_opacity = value;
