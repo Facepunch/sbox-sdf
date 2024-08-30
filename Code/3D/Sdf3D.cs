@@ -492,12 +492,29 @@ namespace Sandbox.Sdf
 		}
 	}
 
-	public record struct HeightmapSdf3D( float[] Heightmap, int Resolution, float Size, BBox? Bounds ) : ISdf3D
+	public record struct HeightmapSdf3D( INoiseField Noise, BBox? Bounds ) : ISdf3D
 	{
-		public HeightmapSdf3D( float[] heightmap, int resolution, float size )
-			: this( heightmap, resolution, size, new BBox( 0f, new Vector3( size, size, heightmap.Max() ) ) )
+		public HeightmapSdf3D( INoiseField noise, int resolution, float size )
+			: this( noise, new BBox( 0f, new Vector3( size, size, FindMaxHeight( noise, resolution, size ) ) ) )
 		{
 
+		}
+
+		private static float FindMaxHeight( INoiseField noise, int resolution, float size )
+		{
+			var max = 0f;
+			var scale = size / (resolution - 1);
+
+			for ( var x = 0; x < resolution; ++x )
+			for ( var y = 0; y < resolution; ++y )
+			{
+				var worldPos = new Vector2( x, y ) * scale;
+				var sample = noise.Sample( worldPos );
+
+				max = Math.Max( max, sample );
+			}
+
+			return max;
 		}
 
 		public void WriteRaw( ref ByteStream writer, Dictionary<TypeDescription, int> sdfTypes )
@@ -524,12 +541,7 @@ namespace Sandbox.Sdf
 			for ( var y = 0; y < outputSize.Y; ++y )
 			{
 				var worldPos = transform.PointToWorld( new Vector3( x, y ) );
-				var hPos = new Vector2( worldPos.x, worldPos.y ) * (Resolution - 1) / Size;
-
-				var hx = Math.Clamp( (int)hPos.x, 0, Resolution - 1 );
-				var hy = Math.Clamp( (int)hPos.y, 0, Resolution - 1 );
-
-				var sample = (Heightmap[hx + hy * Resolution] - worldPos.z) / hScale;
+				var sample = (Noise.Sample( worldPos.x, worldPos.y ) - worldPos.z) / hScale;
 
 				for ( int z = 0, index = y * outputSize.X + x; z < outputSize.Z; ++z, index += outputSize.X * outputSize.Y )
 				{
