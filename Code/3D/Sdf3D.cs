@@ -529,6 +529,8 @@ namespace Sandbox.Sdf
 
 		public float this[ Vector3 pos ] => throw new NotImplementedException();
 
+		[field: ThreadStatic] private static float[] _heightmapSamples;
+
 		async Task ISdf3D.SampleRangeAsync( Transform transform, float[] output, (int X, int Y, int Z) outputSize )
 		{
 			if ( Vector3.Dot( transform.Rotation.Up, Vector3.Up ) < 0.9999f ) throw new NotImplementedException();
@@ -537,15 +539,50 @@ namespace Sandbox.Sdf
 
 			var hScale = transform.Scale.z;
 
+			var hStride = outputSize.X + 2;
+			var hSampleCount = hStride * (outputSize.Y + 2);
+
+			if ( _heightmapSamples is null || _heightmapSamples.Length < hSampleCount )
+			{
+				Array.Resize( ref _heightmapSamples, hSampleCount );
+			}
+
+			var hSamples = _heightmapSamples;
+
+			for ( var x = 0; x < outputSize.X + 2; ++x )
+			for ( var y = 0; y < outputSize.Y + 2; ++y )
+			{
+				var worldPos = transform.PointToWorld( new Vector3( x - 1, y - 1 ) );
+				hSamples[x + y * hStride] = (Noise.Sample( worldPos.x, worldPos.y ) - worldPos.z) / hScale;
+			}
+
 			for ( var x = 0; x < outputSize.X; ++x )
 			for ( var y = 0; y < outputSize.Y; ++y )
 			{
-				var worldPos = transform.PointToWorld( new Vector3( x, y ) );
-				var sample = (Noise.Sample( worldPos.x, worldPos.y ) - worldPos.z) / hScale;
+				var hIndex = x + 1 + (y + 1) * hStride;
+				var sample = hSamples[hIndex];
+
+				// Sample neighbouring points too, for a bit more accuracy on steep slopes
+
+				var xNeg = hSamples[hIndex - 1];
+				var xPos = hSamples[hIndex + 1];
+				var yNeg = hSamples[hIndex - hStride];
+				var yPos = hSamples[hIndex + hStride];
+
+				// Find the highest / lowest neighbors, relative to center sample
+
+				var max = Math.Max( 0, Math.Max( Math.Max( xNeg, xPos ), Math.Max( yNeg, yPos ) ) - sample );
+				var min = Math.Min( 0, Math.Min( Math.Min( xNeg, xPos ), Math.Min( yNeg, yPos ) ) - sample );
+
+				// Find out how much distance from line to neighbor increases with height,
+				// both for above the surface and below
+
+				var posInc = 1f / MathF.Sqrt( 1f + max * max );
+				var negInc = 1f / MathF.Sqrt( 1f + min * min );
 
 				for ( int z = 0, index = y * outputSize.X + x; z < outputSize.Z; ++z, index += outputSize.X * outputSize.Y )
 				{
-					output[index] = (z - sample) * hScale;
+					output[index] = (z - sample) * hScale * (z > sample ? posInc : negInc);
 				}
 			}
 		}
