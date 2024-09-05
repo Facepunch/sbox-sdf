@@ -192,7 +192,7 @@ public abstract partial class SdfWorld<TWorld, TChunk, TResource, TChunkKey, TAr
 
 	private Task _lastModificationTask = System.Threading.Tasks.Task.CompletedTask;
 
-	public bool NeedsMeshUpdate => Layers.Values.Any( x => x.NeedsMeshUpdate.Count > 0 || !x.UpdateMeshTask.IsCompleted );
+	public bool NeedsMeshUpdate => UpdatedChunkQueue.Count > 0 || Layers.Values.Any( x => x.NeedsMeshUpdate.Count > 0 || !x.UpdateMeshTask.IsCompleted );
 
 	protected override void OnUpdate()
 	{
