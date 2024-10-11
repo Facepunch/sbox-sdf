@@ -12,7 +12,7 @@ namespace Sandbox.Sdf;
 [Hide]
 public partial class Sdf3DChunk : SdfChunk<Sdf3DWorld, Sdf3DChunk, Sdf3DVolume, (int X, int Y, int Z), Sdf3DArray, ISdf3D>
 {
-	public override Vector3 LocalPosition
+	public override Vector3 ChunkPosition
 	{
 		get
 		{
