@@ -379,6 +379,11 @@ public abstract partial class SdfChunk<TWorld, TChunk, TResource, TChunkKey, TAr
 			{
 				Batchable = Resource.ReferencedTextures is not { Count: > 0 }
 			};
+
+			foreach ( var tag in World.Tags )
+			{
+				Renderer.Tags.Add( tag );
+			}
 		}
 
 		Renderer.Model = model;
