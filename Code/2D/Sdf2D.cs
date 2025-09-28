@@ -23,6 +23,26 @@ public interface ISdf2D : ISdf<ISdf2D>
 	/// <param name="pos">Position to sample at</param>
 	/// <returns>A signed distance from the surface of this shape</returns>
 	float this[Vector2 pos] { get; }
+	
+	/// <summary>
+	/// Sample an axis-aligned rectangular region, writing to an <paramref name="output"/> array.
+	/// This assumes sampling is performed on the XY plane.
+	/// </summary>
+	/// <param name="transform">Transformation to apply to the SDF.</param>
+	/// <param name="output">Array to write signed distance values to.</param>
+	/// <param name="outputSize">Dimensions of the <paramref name="output"/> array.</param>
+	public async Task SampleRangeAsync( Transform transform, float[] output, (int X, int Y) outputSize )
+	{
+		await GameTask.WorkerThread();
+
+		for ( var y = 0; y < outputSize.Y; ++y )
+		{
+			for ( int x = 0, index = y * outputSize.X; x < outputSize.X; ++x, ++index )
+			{
+				output[index] = this[transform.PointToWorld( new Vector3( x, y, 0 ) )];
+			}
+		}
+	}
 }
 
 /// <summary>
@@ -431,7 +451,7 @@ public readonly struct TextureSdf : ISdf2D
 	public static TextureSdf ReadRaw( ref ByteStream reader, IReadOnlyDictionary<int, SdfReader<ISdf2D>> sdfTypes )
 	{
 		return new TextureSdf(
-			Texture.Load( FileSystem.Mounted, reader.Read<string>() ),
+			Texture.LoadFromFileSystem( reader.Read<string>(), FileSystem.Mounted ),
 			reader.Read<int>(),
 			(ColorChannel) reader.Read<byte>(),
 			reader.Read<Vector2>(),
